@@ -1,0 +1,194 @@
+---
+# This repository's own dogfood config: it runs the same checklists and
+# scripts this repo ships to consumers, via `repo: local` rather than a
+# self-referencing `repo: ./`, since a self-reference needs a tagged rev
+# and this repo has not cut a release yet. Once tagged, consumers use
+# `repo: https://github.com/ivan-pinatti/pre-commit-checklists` with a
+# `rev:` pin instead of this file.
+default_install_hook_types: [pre-commit, pre-push, commit-msg]
+minimum_pre_commit_version: 4.0.1
+repos:
+  - repo: https://github.com/oxsecurity/megalinter
+    rev: v10.0.0
+    hooks:
+      - id: megalinter-full
+        stages: [pre-push]
+        verbose: true
+
+  - repo: local
+    hooks:
+      - id: checklist-basic
+        name: Basic Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-basic]
+        stages: [pre-commit]
+        verbose: true
+
+      - id: checklist-spell
+        name: Spelling Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-spell]
+        stages: [pre-commit]
+        verbose: true
+
+      - id: checklist-json
+        name: JSON Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-json]
+        stages: [pre-commit]
+        types: [json]
+        verbose: true
+
+      - id: checklist-markdown
+        name: Markdown Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-markdown]
+        stages: [pre-commit]
+        types: [markdown]
+        verbose: true
+
+      - id: checklist-toml
+        name: TOML Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-toml]
+        stages: [pre-commit]
+        types: [toml]
+        verbose: true
+
+      - id: checklist-xml
+        name: XML Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-xml]
+        stages: [pre-commit]
+        types: [xml]
+        verbose: true
+
+      - id: checklist-yaml
+        name: YAML Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-yaml]
+        stages: [pre-commit]
+        types: [yaml]
+        verbose: true
+
+      - id: checklist-security-credentials
+        name: Security Checklist - Credentials
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-security-credentials]
+        stages: [pre-commit, pre-merge-commit]
+        verbose: true
+
+      - id: checklist-git-valid-branches
+        name: Git - Valid Branch Name Checklist
+        language: script
+        entry: ./scripts/check-branch-name.sh
+        stages: [pre-commit, pre-merge-commit]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+      - id: checklist-git-protected-branches
+        name: Git - Protected Branches Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-git-protected-branches]
+        stages: [pre-commit, pre-merge-commit]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+      - id: checklist-git-commit-msg
+        name: Git - Commit Message Checklist
+        language: script
+        entry: ./scripts/check-commit-msg.sh
+        stages: [commit-msg]
+        files: ^\.git/COMMIT_EDITMSG$
+        verbose: true
+
+      - id: checklist-github-actions
+        name: GitHub - Actions Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-github-actions]
+        stages: [pre-commit]
+        files: ^\.github/
+        verbose: true
+
+      # Defect 2 fix: the file selector below is `files:` matching dotfile
+      # `.env` variants, not `types: [json]`. The old selector meant this
+      # hook never saw a single .env file; pre-commit ANDs `types` and
+      # `files` together, and a dotenv file is never typed `json`.
+      - id: checklist-dev-dotenv
+        name: Development - DotENV Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-dotenv]
+        stages: [pre-commit]
+        files: '(^|/)\.env(\..+)?$'
+        verbose: true
+
+      - id: checklist-dev-editorconfig
+        name: Development - .editorconfig Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-editorconfig]
+        stages: [pre-commit]
+        verbose: true
+
+      - id: checklist-dev-shell
+        name: Development - Bash/Shell Script Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-shell]
+        stages: [pre-commit]
+        types: [shell]
+        verbose: true
+
+      # Defect 3 fix: `types_or: [python]` combined with
+      # `files: ^requirements\.txt$` ANDed together, resolving to "Python
+      # files literally named requirements.txt" -- matching nothing. A
+      # hook that should catch both *.py files and requirements.txt needs
+      # one `files:` alternation, not two selector keys combined.
+      - id: checklist-dev-python
+        name: Development - Python Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-python]
+        stages: [pre-commit]
+        files: '(\.py$|(^|/)requirements\.txt$)'
+        verbose: true
+
+      - id: checklist-dev-terraform
+        name: Development - Terraform Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-terraform]
+        stages: [pre-commit]
+        files: \.tf$
+        verbose: true
+
+      - id: checklist-dev-javascript
+        name: Development - JavaScript Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-javascript]
+        stages: [pre-commit]
+        types: [javascript]
+        verbose: true
+
+      - id: checklist-dev-typescript
+        name: Development - TypeScript Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-typescript]
+        stages: [pre-commit]
+        files: \.ts$
+        verbose: true
