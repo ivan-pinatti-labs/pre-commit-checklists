@@ -15,8 +15,8 @@
 
 # Print commands as they run, and dump the environment, when DEBUG=true.
 if [ "${DEBUG:-false}" = true ]; then
-	set -x
-	export
+  set -x
+  export
 fi
 
 set -o errexit
@@ -27,7 +27,7 @@ HERE=$(dirname "$(realpath "${0}")")
 CHECKLISTS_DIR="${HERE}/../checklists"
 
 usage() {
-	cat <<EOF
+  cat <<EOF
 Usage: $(basename "${0}") <checklist-name> [files...]
 
 Runs pre-commit against one of the checklist YAML files in checklists/,
@@ -41,19 +41,19 @@ Arguments:
 Examples:
   $(basename "${0}") checklist-basic file1.py file2.py
 EOF
-	exit 1
+  exit 1
 }
 
 if [ $# -lt 1 ]; then
-	usage
+  usage
 fi
 
 CHECKLIST_NAME="${1}"
 CONFIG_PATH="${CHECKLISTS_DIR}/${CHECKLIST_NAME}.yaml"
 
 if [ ! -f "${CONFIG_PATH}" ]; then
-	echo "Error: checklist '${CHECKLIST_NAME}' not found at '${CONFIG_PATH}'." >&2
-	exit 2
+  echo "Error: checklist '${CHECKLIST_NAME}' not found at '${CONFIG_PATH}'." >&2
+  exit 2
 fi
 
 shift
