@@ -1,0 +1,30 @@
+# MegaLinter
+megalinter-reports/
+mega-linter.log
+
+# pre-commit
+pre-commit.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Editors
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets and scratch
+.env
+.env.local
+*.local
