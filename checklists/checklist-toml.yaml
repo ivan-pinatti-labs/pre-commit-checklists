@@ -4,4 +4,3 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-toml
-        args: ["--allow-multiple-documents"]
