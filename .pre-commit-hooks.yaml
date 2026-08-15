@@ -1,0 +1,150 @@
+- id: checklist-basic
+  name: Basic Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-basic
+  verbose: true
+
+- id: checklist-spell
+  name: Spelling Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-spell
+  verbose: true
+
+- id: checklist-markdown
+  name: Markdown Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-markdown
+  verbose: true
+
+- id: checklist-json
+  name: JSON Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-json
+  verbose: true
+
+- id: checklist-toml
+  name: TOML Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-toml
+  verbose: true
+
+- id: checklist-xml
+  name: XML Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-xml
+  verbose: true
+
+- id: checklist-yaml
+  name: YAML Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-yaml
+  verbose: true
+
+- id: checklist-security-credentials
+  name: Security Checklist - Credentials
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-security-credentials
+  verbose: true
+
+- id: checklist-git-valid-branches
+  name: Git - Valid Branch Name Checklist
+  language: script
+  entry: ./scripts/check-branch-name.sh
+  args: []
+  verbose: true
+
+- id: checklist-git-commit-msg
+  name: Git - Commit Message Checklist
+  language: script
+  entry: ./scripts/check-commit-msg.sh
+  args: []
+  verbose: true
+
+- id: checklist-git-protected-branches
+  name: Git - Protected Branches Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-git-protected-branches
+  verbose: true
+
+- id: checklist-github-actions
+  name: GitHub - Actions Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-github-actions
+  verbose: true
+
+- id: checklist-dev-dotenv
+  name: Development - DotENV Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-dotenv
+  verbose: true
+
+- id: checklist-dev-editorconfig
+  name: Development - .editorconfig Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-editorconfig
+  verbose: true
+
+- id: checklist-dev-shell
+  name: Development - Bash/Shell Script Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-shell
+  verbose: true
+  files: \.(sh|bash)$
+
+- id: checklist-dev-python
+  name: Development - Python Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-python
+  verbose: true
+
+- id: checklist-dev-terraform
+  name: Development - Terraform Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-terraform
+  verbose: true
+
+- id: checklist-dev-javascript
+  name: Development - JavaScript Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-javascript
+  verbose: true
+
+- id: checklist-dev-typescript
+  name: Development - TypeScript Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-typescript
+  verbose: true
