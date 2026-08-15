@@ -1,0 +1,11 @@
+---
+# Local hook: prettier has no first-party pre-commit mirror, so it runs
+# through node with prettier as an additional_dependency instead.
+repos:
+  - repo: local
+    hooks:
+      - id: prettier-javascript
+        name: Run Prettier on JavaScript files
+        entry: prettier --write
+        language: node
+        additional_dependencies: ["prettier"]

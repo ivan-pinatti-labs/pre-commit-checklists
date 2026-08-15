@@ -1,0 +1,9 @@
+---
+# Style-checks .env files. The hook's own definition already scopes itself
+# to `.env*` files (types: [text], files: '\.env*'), so no selector is
+# needed here.
+repos:
+  - repo: https://github.com/wemake-services/dotenv-linter
+    rev: 0.9.0
+    hooks:
+      - id: dotenv-linter

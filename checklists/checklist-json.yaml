@@ -1,0 +1,14 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+
+  - repo: local
+    hooks:
+      - id: prettier-json
+        name: Run Prettier on JSON files
+        entry: prettier --write
+        language: node
+        additional_dependencies: ["prettier"]

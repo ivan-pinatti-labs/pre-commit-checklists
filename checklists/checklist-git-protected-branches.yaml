@@ -1,0 +1,9 @@
+---
+# Blocks direct commits to the common long-lived branch names. Adjust the
+# pattern to match your own branching model.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: no-commit-to-branch
+        args: ["--pattern", "(?i)(develop|staging|main|master)"]
