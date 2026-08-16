@@ -1,0 +1,44 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  // Dependabot handles the root .pre-commit-config.yaml and GitHub Actions
+  // versions, see dependabot.yml. Renovate exists for exactly one gap that
+  // leaves: every checklist under checklists/ is its own standalone
+  // pre-commit config (checklist-basic.yaml, checklist-dev-python.yaml, and
+  // so on), consumed indirectly through scripts/run-checklist.sh, and
+  // Dependabot's pre-commit ecosystem only ever reads a file literally
+  // named .pre-commit-config.yaml. Without Renovate watching the
+  // checklists/ directory too, every upstream hook pin inside them would
+  // rot silently, which defeats the point of a library whose whole job is
+  // shipping curated, current hook selections.
+  extends: ["config:recommended"],
+
+  // config:recommended enables a standing "Dependency Dashboard" issue that
+  // never resolves on its own; PRs still open on the normal schedule below
+  // without it, this just drops the one consolidated overview issue.
+  dependencyDashboard: false,
+
+  timezone: "America/Toronto",
+  schedule: ["before 7am on Monday"],
+
+  labels: ["dependencies"],
+  commitMessagePrefix: "chore:",
+
+  // Keep PR volume manageable.
+  prConcurrentLimit: 5,
+  prHourlyLimit: 2,
+  automerge: false,
+
+  // Extend the built-in pre-commit manager's file matching to also cover
+  // every checklist file, on top of its default of .pre-commit-config.yaml
+  // at the repo root (still matched, so the root dogfood config is covered
+  // by both tools; that overlap is harmless, Renovate and Dependabot would
+  // just each open the same PR, and this repo intentionally leaves it to
+  // Dependabot per the comment above).
+  "pre-commit": {
+    managerFilePatterns: [
+      "/^\\.pre-commit-config\\.yaml$/",
+      "/^checklists/checklist-.+\\.ya?ml$/",
+    ],
+  },
+}

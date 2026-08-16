@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Covers the root .pre-commit-config.yaml (this repo's own dogfood config).
+  # It does NOT cover checklists/checklist-*.yaml: Dependabot's pre-commit
+  # ecosystem only ever reads a file literally named .pre-commit-config.yaml
+  # in the given directory, so those pins are handled by Renovate instead.
+  # See .github/renovate.json5.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "America/Toronto"
+    labels:
+      - dependencies
+      - pre-commit
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: "America/Toronto"
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

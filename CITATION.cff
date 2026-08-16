@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: >
+  If you use this software, entirely or partially, directly or as inspiration,
+  please cite it using the metadata below and consider supporting the author.
+title: pre-commit-checklists
+abstract: >
+  Curated selections of public pre-commit hooks, packaged into checklists and
+  exposed as consumer-selectable hook ids. Covers file hygiene, spelling,
+  structured file linting (JSON, YAML, TOML, XML, Markdown), per-language
+  checks, secrets scanning, and git branch/commit-message guards, with an
+  install script and ready-to-copy consumer config templates.
+authors:
+  - name: Ivan Pinatti
+    alias: ivan-pinatti
+    url: https://github.com/ivan-pinatti
+license: Apache-2.0
+repository-code: https://github.com/ivan-pinatti/pre-commit-checklists
+url: https://github.com/ivan-pinatti/pre-commit-checklists
+keywords:
+  - pre-commit
+  - linting
+  - megalinter
+  - code-quality
+  - git-hooks
+version: 1.0.0
+date-released: "2026-08-15"
