@@ -15,5 +15,12 @@ repos:
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.13.1-1
     hooks:
+      # A consumer's args: fully replace this hook's own default args
+      # rather than merging with them, and the upstream default is just
+      # [--write]. --indent 2 alone, with neither --write nor --diff
+      # present, made shfmt print the reformatted file to stdout and
+      # always exit 0: a no-op check that never failed and never fixed
+      # anything. --write restores the enforcement (and the auto-fix,
+      # consistent with ruff-format and Prettier elsewhere in this repo).
       - id: shfmt
-        args: ["--indent", "2"]
+        args: ["--indent", "2", "--write"]
