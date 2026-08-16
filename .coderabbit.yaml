@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.json
+#
+# CodeRabbit picks up CLAUDE.md automatically as review guidelines, so its
+# rules (no hyphens/dashes as punctuation, no AI attribution, etc.) don't
+# need restating here.
+
+language: en-US
+
+reviews:
+  auto_review:
+    # CodeRabbit is a GitHub App posting a check, not a workflow job, so it
+    # cannot be ordered after the linters with `needs:` the way a workflow
+    # job can. Skipping drafts is the lever instead: open a pull request as
+    # a draft (see CLAUDE.md, "Pull requests"), let pre-commit and
+    # MegaLinter finish, then mark it ready. CodeRabbit then reviews once,
+    # against a diff the mechanical linters and checklists have already
+    # cleaned, instead of re-reviewing after every fixup commit.
+    #
+    # This is the default. Stated explicitly because the review order
+    # depends on it, and a default that quietly changed would change the
+    # order with it.
+    drafts: false
+  path_filters:
+    # Deliberately malformed fixtures: every file under a should-fail/
+    # directory exists so a checklist hook rejects it. Reviewing them as
+    # real code would flag the very defects they exist to demonstrate;
+    # tests/run_tests.sh asserts their exit codes instead.
+    - "!tests/fixtures/**/should-fail/**"
+  tools:
+    # Each of these already runs as a pre-commit hook in this repo's own
+    # dogfood config (see .pre-commit-config.yaml: checklist-yaml,
+    # checklist-github-actions, checklist-dev-shell, checklist-markdown),
+    # so nothing is lost by not running it a second time here.
+    yamllint:
+      enabled: false
+    actionlint:
+      enabled: false
+    shellcheck:
+      enabled: false
+    markdownlint:
+      enabled: false
+  path_instructions:
+    - path: "checklists/checklist-*.yaml"
+      instructions: >
+        Each file is a standalone pre-commit config, not a fragment: it is
+        consumed on its own through scripts/run-checklist.sh. A hook id's
+        types:/types_or: and files: selectors are ANDed together by
+        pre-commit, not ORed, so combining them can silently narrow a hook
+        to matching nothing at all. Flag any hook id whose combined
+        selectors could match fewer files than either selector reads as
+        matching alone, and check that the rev: pin is a real, current tag
+        of the named upstream repo.
+    - path: ".pre-commit-hooks.yaml"
+      instructions: >
+        Defines every hook id this library exposes to consumers. A new or
+        renamed hook id here needs a matching entry in
+        docs/hook-catalogue.md, and a removed or renamed one is a major
+        version change per docs/versioning.md.
+
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      # Not auto-detected the way CLAUDE.md is, so listed explicitly.
+      - "docs/hook-catalogue.md"
+      - "docs/versioning.md"
