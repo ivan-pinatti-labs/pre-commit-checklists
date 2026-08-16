@@ -1,5 +1,5 @@
 # EditorConfig is awesome: https://EditorConfig.org
-# This repo's own root config, dogfooded by checklist-dev-editorconfig
+# This repo's own root config, checked by checklist-dev-editorconfig
 # (editorconfig-checker) via .pre-commit-config.yaml. Mirrors
 # templates/.editorconfig, the starter this library ships to consumers,
 # tuned to the file types actually present here.
