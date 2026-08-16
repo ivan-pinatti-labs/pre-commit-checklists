@@ -3,6 +3,7 @@
   "language": "en",
   "ignorePaths": [".secrets.baseline"],
   "words": [
+    "behaviour",
     "cspell",
     "devskim",
     "dogfood",
@@ -13,6 +14,7 @@
     "errexit",
     "hadolint",
     "isort",
+    "llms",
     "lycheeignore",
     "markdownlint",
     "megalinter",

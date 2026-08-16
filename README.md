@@ -19,6 +19,10 @@ with a sensible file selector already applied.
 If you are using this code, forking it, or getting ideas from it, sponsorships
 and donations help keep the project maintained.
 
+<!-- markdownlint-disable MD013 -->
+<!-- Badge URLs, QR image URLs, and the networks footnote below cannot be
+     wrapped without breaking the rendered layout. -->
+
 <div align="center">
 
 [![GitHub Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-fe8e86?logo=github&style=for-the-badge)](https://github.com/sponsors/ivan-pinatti)
@@ -31,73 +35,75 @@ and donations help keep the project maintained.
   <tr>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/btc.png"
-        width="85">
+        alt="BTC donation QR code" width="85">
       <br><code>&nbsp;BTC&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/eth.png"
-        width="85">
+        alt="ETH donation QR code" width="85">
       <br><code>ERC&#8209;20</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/xmr.png"
-        width="85">
+        alt="XMR donation QR code" width="85">
       <br><code>&nbsp;XMR&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/xrp.png"
-        width="85">
+        alt="XRP donation QR code" width="85">
       <br><code>&nbsp;XRP&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/ada.png"
-        width="85">
+        alt="ADA donation QR code" width="85">
       <br><code>&nbsp;ADA&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/atom.png"
-        width="85">
+        alt="ATOM donation QR code" width="85">
       <br><code>&nbsp;ATOM&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/bch.png"
-        width="85">
+        alt="BCH donation QR code" width="85">
       <br><code>&nbsp;BCH&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/bnb.png"
-        width="85">
+        alt="BNB donation QR code" width="85">
       <br><code>BEP&#8209;20</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/doge.png"
-        width="85">
+        alt="DOGE donation QR code" width="85">
       <br><code>&nbsp;DOGE&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/kava.png"
-        width="85">
+        alt="KAVA donation QR code" width="85">
       <br><code>&nbsp;KAVA&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/ltc.png"
-        width="85">
+        alt="LTC donation QR code" width="85">
       <br><code>&nbsp;LTC&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/trx.png"
-        width="85">
+        alt="TRX donation QR code" width="85">
       <br><code>TRC&#8209;20</code>
     </td>
     <td align="center">
       <img src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/zec.png"
-        width="85">
+        alt="ZEC donation QR code" width="85">
       <br><code>&nbsp;ZEC&nbsp;&nbsp;</code>
     </td>
   </tr>
 </table>
 
 _\* ERC-20 accepts ETH, USDT, and USDC · BEP-20 accepts BNB, USDT, and USDC · TRC-20 accepts TRX, USDT, and USDC · [All addresses and networks](https://github.com/ivan-pinatti/ivan-pinatti/blob/main/docs/crypto/addresses.md)_
+
+<!-- markdownlint-enable MD013 -->
 
 ---
 
@@ -167,10 +173,13 @@ don't recur.
 
 - [`docs/getting-started.md`](docs/getting-started.md): full setup walkthrough
 - [`docs/hook-catalogue.md`](docs/hook-catalogue.md): source data for the table above
-- [`docs/overrides.md`](docs/overrides.md): skip a hook, exclude a path, require ticket prefixes, allowlist a secret
+- [`docs/overrides.md`](docs/overrides.md): skip a hook, exclude a path, require
+  ticket prefixes, allowlist a secret
 - [`docs/megalinter.md`](docs/megalinter.md): running the optional MegaLinter pass alongside these checklists
 - [`docs/versioning.md`](docs/versioning.md): what the `rev:` pin means and how it moves
-- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md), [`docs/CODE_OF_CONDUCT.md`](docs/CODE_OF_CONDUCT.md), [`docs/SECURITY.md`](docs/SECURITY.md)
+- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md),
+  [`docs/CODE_OF_CONDUCT.md`](docs/CODE_OF_CONDUCT.md),
+  [`docs/SECURITY.md`](docs/SECURITY.md)
 
 ## AI Usage and Attribution
 
