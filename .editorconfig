@@ -1,0 +1,62 @@
+# EditorConfig is awesome: https://EditorConfig.org
+# This repo's own root config, dogfooded by checklist-dev-editorconfig
+# (editorconfig-checker) via .pre-commit-config.yaml. Mirrors
+# templates/.editorconfig, the starter this library ships to consumers,
+# tuned to the file types actually present here.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml}]
+# No max_line_length here: Prettier (checklist-yaml's prettier-yaml hook)
+# reads .editorconfig by default and maps this property to its own
+# printWidth, so setting it would reflow the wrapping of every existing
+# YAML file in the repo the next time Prettier runs, well past what this
+# fix is meant to change. indent_size matches Prettier's own default
+# (2), so it changes nothing there.
+indent_style = space
+indent_size = 2
+
+[*.md]
+# indent_size explicitly unset (not just omitted: EditorConfig sections
+# cascade, so leaving this out would still inherit indent_size=2 from
+# [*] above). editorconfig-checker validates indentation as multiples of
+# indent_size whenever both keys resolve to a value, and ordered-list
+# continuation lines (e.g. under "1. ") naturally hang at 3 or 4 spaces,
+# not 2. Enforcing it here would make every ordered list in this repo's
+# own docs a violation, unrelated to the whitespace bugs this file
+# exists to catch.
+indent_style = space
+indent_size = unset
+max_line_length = 100
+trim_trailing_whitespace = false
+
+[Makefile]
+tab_width = 2
+indent_style = tab
+
+[COMMIT_EDITMSG]
+max_line_length = 0
+
+[*.py]
+max_line_length = 88
+
+[*.json]
+# Same reasoning as [*.{yml,yaml}] above: checklist-json's prettier-json
+# hook would reflow every existing JSON file's wrapping if this changed
+# Prettier's printWidth.
+indent_size = 2
+
+[*.{bash,sh}]
+indent_size = 2
+
+[*.tf]
+indent_size = 2
+indent_style = space
