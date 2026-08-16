@@ -1,0 +1,10 @@
+# Append this to your repo's .gitignore. scripts/install.sh does this for
+# you. Do NOT add .secrets.baseline here: it is meant to be committed, so
+# detect-secrets has something to diff future scans against.
+
+# MegaLinter
+megalinter-reports/
+mega-linter.log
+
+# pre-commit
+pre-commit.log

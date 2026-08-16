@@ -1,0 +1,15 @@
+# Checked by lychee (markdown-link-check covers a narrower job in
+# checklist-markdown; add lychee separately if you scan links more
+# broadly). One regex per line. See docs/overrides.md and
+# https://lychee.cli.rs/recipes/excluding-links/
+
+# In-cluster Kubernetes service links never resolve outside the cluster.
+^https?://.*\.default\.svc(:[0-9]+)?(/.*)?$
+^https?://.*\.svc\.cluster\.local(:[0-9]+)?(/.*)?$
+
+# GitHub's API is frequently linked in docs but rate-limits unauthenticated
+# checkers hard enough to produce false-positive failures.
+^https?://api\.github\.com(:[0-9]+)?(/.*)?$
+
+# Placeholder/example hosts that show up in generated auth examples.
+^https?://x-access-token(:[0-9]+)?(/.*)?$

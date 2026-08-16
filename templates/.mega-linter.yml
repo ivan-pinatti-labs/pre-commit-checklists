@@ -1,0 +1,11 @@
+# MegaLinter configuration for a repo that is adopting it for the first
+# time: fixes are applied automatically, but a linter finding an error
+# never fails the build. See docs/megalinter.md before you flip
+# DISABLE_ERRORS to false, and https://megalinter.io/latest/config-file/
+# for every other option this file can hold.
+APPLY_FIXES: all
+DISABLE_ERRORS: true # flip to false once the codebase is green
+FLAVOR_SUGGESTIONS: false
+PRINT_ALL_FILES: false
+SHOW_ELAPSED_TIME: true
+VALIDATE_ALL_CODEBASE: false
