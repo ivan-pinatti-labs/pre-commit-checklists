@@ -14,7 +14,7 @@ Comma-separate multiple ids: `SKIP=checklist-spell,checklist-markdown`.
 ## Skip a hook entirely, for a repo
 
 Delete its entry from your `.pre-commit-config.yaml`. There is no
-config-file equivalent of `SKIP` — pre-commit only reads the hooks you
+config-file equivalent of `SKIP`: pre-commit only reads the hooks you
 listed, so removing one is the permanent version of skipping it.
 
 ## Exclude specific files or paths from a hook
@@ -80,7 +80,7 @@ More at the
 ## Ignoring a link (lychee / markdown-link-check)
 
 `checklist-markdown` runs `markdown-link-check`, which reads
-`.markdown-link-check.json` if present — see its
+`.markdown-link-check.json` if present. See its
 [own docs](https://github.com/tcort/markdown-link-check#config-file-format)
 for the ignore-pattern format.
 

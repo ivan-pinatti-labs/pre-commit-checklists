@@ -2,7 +2,7 @@
 
 ## Writing style
 
-- Do not use hyphens (`-`) or em/en dashes (`--`, `—`, `–`) as punctuation,
+- Do not use the hyphen character, or an em dash or en dash, as punctuation,
   anywhere: not in doc prose, code comments, commit messages, PR/issue text,
   or any other written output in this repo. Use commas, parentheses, or
   separate sentences instead. Hyphens are fine inside compound words (e.g.

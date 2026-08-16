@@ -3,7 +3,7 @@
 [MegaLinter](https://megalinter.io/) is a separate multi-linter tool this
 library also ships a starter config for
 ([`templates/.mega-linter.yml`](../templates/.mega-linter.yml)). It is
-not a checklist hook id and does not run through `pre-commit run` — it
+not a checklist hook id and does not run through `pre-commit run`. It
 auto-detects the linters relevant to your codebase and runs all of them,
 which makes it heavier than any one checklist here. Most repos run it at
 the `pre-push` git stage or in CI rather than on every commit; see the

@@ -17,9 +17,9 @@ repos:
 There are two independent version pins in play, and they move at
 different times, by different commands, in different repos:
 
-1. **The library pin** — the `rev:` in *your* `.pre-commit-config.yaml`,
+1. **The library pin**: the `rev:` in *your* `.pre-commit-config.yaml`,
    pointing at a tag of this repo.
-2. **The upstream hook pins** — the `rev:` fields inside *this repo's*
+2. **The upstream hook pins**: the `rev:` fields inside *this repo's*
    `checklists/checklist-*.yaml` files, pointing at tags of
    `pre-commit/pre-commit-hooks`, `astral-sh/ruff-pre-commit`, and so on.
 
@@ -27,7 +27,7 @@ Running `pre-commit autoupdate` in your repo only ever touches (1). It
 rewrites the `rev:` next to `repo: https://github.com/ivan-pinatti/pre-commit-checklists`
 to the latest tag of this library. It has no way to see inside a hook
 that shells out to a nested `pre-commit run --config <checklist>.yaml`
-(which is how every checklist hook id works — see
+(which is how every checklist hook id works, see
 [`docs/hook-catalogue.md`](hook-catalogue.md)), so it cannot and does not
 touch (2).
 
@@ -44,7 +44,7 @@ pin picks up the next time you run `pre-commit autoupdate` yourself.
   cannot get there by running `pre-commit autoupdate` alone; the pin it
   bumps is not the one that matters for that.
 - **A patch release** (`v1.2.3` to `v1.2.4`) is a bug fix to a script, a
-  checklist selector, or docs — no hook id is added, removed, or
+  checklist selector, or docs: no hook id is added, removed, or
   reworked in a way that changes what it matches.
 - **A minor release** (`v1.2.0` to `v1.3.0`) can add a hook id or a
   checklist, or bump an upstream hook pin inside a checklist. Existing

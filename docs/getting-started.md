@@ -14,7 +14,7 @@ find in your repo. You add one `repo:` entry to your own
   here).
 - `git`, obviously, and for the per-language checklists, whatever
   toolchain that language needs (Node for JavaScript/TypeScript,
-  Terraform for the Terraform checklist, and so on) — see
+  Terraform for the Terraform checklist, and so on). See
   [`docs/hook-catalogue.md`](hook-catalogue.md) for exactly what each
   hook shells out to.
 
@@ -55,8 +55,8 @@ Run `./scripts/install.sh --help` for the full flag list.
    [`templates/pre-commit-config/`](../templates/pre-commit-config/) to
    `.pre-commit-config.yaml` at the root of your repo.
 2. Update the `rev:` pin to the
-   [latest release tag](https://github.com/ivan-pinatti/pre-commit-checklists/releases)
-   — see [`docs/versioning.md`](versioning.md) for what that pin means.
+   [latest release tag](https://github.com/ivan-pinatti/pre-commit-checklists/releases),
+   see [`docs/versioning.md`](versioning.md) for what that pin means.
 3. Copy the supporting tool configs you need from
    [`templates/`](../templates/) into your repo root.
 4. Generate a secrets baseline:
@@ -78,7 +78,7 @@ Run `./scripts/install.sh --help` for the full flag list.
 pre-commit run --all-files
 ```
 
-Expect the first run to reformat or fail on pre-existing files —
+Expect the first run to reformat or fail on pre-existing files:
 `checklist-basic`'s `end-of-file-fixer` and `trailing-whitespace`, or a
 language checklist's formatter, will happily rewrite a whole codebase the
 first time it sees it. Review the diff, commit it separately from your
