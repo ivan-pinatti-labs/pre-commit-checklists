@@ -148,3 +148,11 @@
   args:
     - checklist-dev-typescript
   verbose: true
+
+- id: checklist-dev-docker
+  name: Development - Dockerfile Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-docker
+  verbose: true

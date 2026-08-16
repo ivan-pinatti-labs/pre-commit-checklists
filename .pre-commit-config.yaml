@@ -202,3 +202,12 @@ repos:
         stages: [pre-commit]
         files: \.ts$
         verbose: true
+
+      - id: checklist-dev-docker
+        name: Development - Dockerfile Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-docker]
+        stages: [pre-commit]
+        types: [dockerfile]
+        verbose: true

@@ -1,0 +1,12 @@
+---
+# hadolint-docker over the docker_image variant of the hook (same mechanism
+# checklist-github-actions already uses for actionlint-docker), so a
+# consumer needs Docker but not a locally installed hadolint binary. The
+# hook's own definition already scopes itself to `types: ["dockerfile"]`,
+# which the `identify` library recognizes from filenames like `Dockerfile`,
+# `Dockerfile.*`, and `*.dockerfile`, so no selector is needed here.
+repos:
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.15.1
+    hooks:
+      - id: hadolint-docker
