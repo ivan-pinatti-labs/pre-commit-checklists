@@ -11,8 +11,10 @@ MD013:
   tables: false
 
 # MD033: no-inline-html. The README's Support block needs raw HTML for the
-# centred badge row and the sponsor QR grid; Markdown has no equivalent for
-# either. Allow only the elements that block actually uses, so unrelated
-# inline HTML elsewhere still gets flagged.
+# centred badge row and the sponsor QR grid, and the hook catalogue tables
+# need raw HTML so long cells can wrap across physical lines and stay
+# under the .editorconfig line-length limit; Markdown has no equivalent
+# for any of that. Allow only the elements those blocks actually use, so
+# unrelated inline HTML elsewhere still gets flagged.
 MD033:
-  allowed_elements: [br, code, div, img, table, td, tr]
+  allowed_elements: [a, br, code, div, img, table, td, th, tr]

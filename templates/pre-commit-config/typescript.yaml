@@ -1,8 +1,9 @@
 ---
 # TypeScript starter: general file hygiene plus the TypeScript checklist
-# (Prettier). Add templates/pre-commit-config/recommended.yaml's
+# (Biome). Add templates/pre-commit-config/recommended.yaml's
 # checklist-json hook too if you want package.json/tsconfig.json
-# formatted the same way.
+# formatted the same way (that one still runs Prettier; only the
+# JavaScript and TypeScript checklists moved to Biome).
 #
 # Copy this file to .pre-commit-config.yaml at the root of your repo, update
 # the `rev:` pin below to the latest release tag, then run:
@@ -10,10 +11,10 @@
 #   pre-commit install
 #   pre-commit run --all-files
 #
-# checklist-dev-typescript runs Prettier through `language: node`, so a
-# working `node`/`npm` is needed the first time pre-commit builds the
-# hook's environment. See docs/getting-started.md and
-# docs/hook-catalogue.md.
+# checklist-dev-typescript runs Biome's biome-check through a Node
+# `additional_dependencies` pin, so a working `node`/`npm` is needed the
+# first time pre-commit builds the hook's environment. See
+# docs/getting-started.md and docs/hook-catalogue.md.
 repos:
   - repo: https://github.com/ivan-pinatti/pre-commit-checklists
     rev: v1.0.0 # replace with the latest release tag
@@ -25,6 +26,6 @@ repos:
       # (in this library) generates one for you.
       - id: checklist-security-credentials
 
-      # Formats *.ts with Prettier.
+      # Formats, lints, and organizes imports in *.ts with Biome.
       - id: checklist-dev-typescript
         files: \.ts$

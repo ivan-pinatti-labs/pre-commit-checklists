@@ -1,5 +1,5 @@
 ---
-# Full starter: every hook id this library ships, including all five
+# Full starter: every hook id this library ships, including all six
 # language checklists. Delete the language sections you don't need, or
 # start from one of the per-language starters in this directory instead.
 #
@@ -86,6 +86,9 @@ repos:
         stages: [pre-commit]
       - id: checklist-dev-typescript
         files: \.ts$
+        stages: [pre-commit]
+      - id: checklist-dev-docker
+        types: [dockerfile]
         stages: [pre-commit]
 
   # MegaLinter is not a checklist hook id: it is a separate multi-linter
