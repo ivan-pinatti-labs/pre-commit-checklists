@@ -46,3 +46,9 @@ run_pre_push:
 	@echo "Running pre-commit, pre-push stage, against all files"
 	@pre-commit run --all-files --config .pre-commit-config.yaml --hook-stage pre-push --verbose
 	@echo "Pre-commit run successful"
+
+.PHONY: test
+test:
+	@echo "Running the tests/ self-test suite"
+	@tests/run_tests.sh
+	@echo "Self-test suite successful"
