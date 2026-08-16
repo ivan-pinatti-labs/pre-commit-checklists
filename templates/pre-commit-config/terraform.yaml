@@ -1,0 +1,27 @@
+---
+# Terraform starter: general file hygiene plus the Terraform checklist
+# (terraform fmt, terraform validate, tflint).
+#
+# Copy this file to .pre-commit-config.yaml at the root of your repo, update
+# the `rev:` pin below to the latest release tag, then run:
+#
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# terraform-validate and tflint need a Terraform installation to run
+# against; see docs/getting-started.md for requirements and
+# docs/hook-catalogue.md for what each hook checks.
+repos:
+  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+    rev: v1.0.0 # replace with the latest release tag
+    hooks:
+      - id: checklist-basic
+
+      # Blocks committed private keys and known secret patterns. Requires
+      # a `.secrets.baseline` file at the repo root; scripts/install.sh
+      # (in this library) generates one for you.
+      - id: checklist-security-credentials
+
+      # terraform-fmt, terraform-validate, tflint.
+      - id: checklist-dev-terraform
+        files: \.tf$

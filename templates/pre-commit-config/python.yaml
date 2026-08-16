@@ -1,0 +1,29 @@
+---
+# Python starter: general file hygiene plus the Python checklist (ruff
+# check + format, AST/builtin-literal/debug-statement checks, and a
+# requirements.txt fixer).
+#
+# Copy this file to .pre-commit-config.yaml at the root of your repo, update
+# the `rev:` pin below to the latest release tag, then run:
+#
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# Combine with templates/pre-commit-config/recommended.yaml's hooks for
+# YAML/TOML/JSON coverage (pyproject.toml, CI config, etc.) if you want it.
+# See docs/getting-started.md and docs/hook-catalogue.md.
+repos:
+  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+    rev: v1.0.0 # replace with the latest release tag
+    hooks:
+      - id: checklist-basic
+
+      # Blocks committed private keys and known secret patterns. Requires
+      # a `.secrets.baseline` file at the repo root; scripts/install.sh
+      # (in this library) generates one for you.
+      - id: checklist-security-credentials
+
+      # ruff-check --fix, ruff-format, check-ast, check-builtin-literals,
+      # debug-statements, name-tests-test, requirements-txt-fixer.
+      - id: checklist-dev-python
+        files: '(\.py$|(^|/)requirements\.txt$)'

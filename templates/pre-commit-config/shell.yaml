@@ -1,0 +1,26 @@
+---
+# Shell starter: general file hygiene plus the shell/bash checklist
+# (shebang checks, shellcheck, shfmt).
+#
+# Copy this file to .pre-commit-config.yaml at the root of your repo, update
+# the `rev:` pin below to the latest release tag, then run:
+#
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# See docs/getting-started.md and docs/hook-catalogue.md.
+repos:
+  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+    rev: v1.0.0 # replace with the latest release tag
+    hooks:
+      - id: checklist-basic
+
+      # Blocks committed private keys and known secret patterns. Requires
+      # a `.secrets.baseline` file at the repo root; scripts/install.sh
+      # (in this library) generates one for you.
+      - id: checklist-security-credentials
+
+      # check-executables-have-shebangs, check-shebang-scripts-are-executable,
+      # shellcheck --severity=error, shfmt --indent 2.
+      - id: checklist-dev-shell
+        types: [shell]

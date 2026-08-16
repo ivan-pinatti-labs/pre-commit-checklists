@@ -1,0 +1,22 @@
+---
+# Minimal starter: the smallest safety net worth having in any repository.
+#
+# Copy this file to .pre-commit-config.yaml at the root of your repo, update
+# the `rev:` pin below to the latest release tag, then run:
+#
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# See docs/getting-started.md for the full walkthrough, and
+# docs/versioning.md for how the `rev:` pin works and how to bump it.
+repos:
+  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+    rev: v1.0.0 # replace with the latest release tag
+    hooks:
+      # Large-file/merge-conflict/line-ending hygiene, safe on any repo.
+      - id: checklist-basic
+
+      # Blocks committed private keys and known secret patterns. Requires
+      # a `.secrets.baseline` file at the repo root; scripts/install.sh
+      # (in this library) generates one for you.
+      - id: checklist-security-credentials

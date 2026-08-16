@@ -1,0 +1,78 @@
+---
+# Full starter: every hook id this library ships, including all five
+# language checklists. Delete the language sections you don't need, or
+# start from one of the per-language starters in this directory instead.
+#
+# Copy this file to .pre-commit-config.yaml at the root of your repo, update
+# the `rev:` pin below to the latest release tag, then run:
+#
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# See docs/getting-started.md for the full walkthrough,
+# docs/hook-catalogue.md for what each hook id checks and matches, and
+# docs/versioning.md for how the `rev:` pin works and how to bump it.
+default_install_hook_types: [pre-commit, commit-msg]
+repos:
+  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+    rev: v1.0.0 # replace with the latest release tag
+    hooks:
+      # -- General file hygiene --------------------------------------
+      - id: checklist-basic
+      - id: checklist-spell
+      - id: checklist-dev-editorconfig
+
+      # -- Structured file types ---------------------------------------
+      - id: checklist-markdown
+        types: [markdown]
+      - id: checklist-json
+        types: [json]
+      - id: checklist-yaml
+        types: [yaml]
+      - id: checklist-toml
+        types: [toml]
+      - id: checklist-xml
+        types: [xml]
+      - id: checklist-dev-dotenv
+        files: '(^|/)\.env(\..+)?$'
+
+      # -- Security -------------------------------------------------------
+      - id: checklist-security-credentials
+
+      # -- Git and GitHub -----------------------------------------------
+      - id: checklist-git-valid-branches
+        pass_filenames: false
+        always_run: true
+      - id: checklist-git-commit-msg
+        stages: [commit-msg]
+        files: ^\.git/COMMIT_EDITMSG$
+      - id: checklist-git-protected-branches
+        pass_filenames: false
+        always_run: true
+      - id: checklist-github-actions
+        files: ^\.github/
+
+      # -- Languages: keep only the ones your repo uses -----------------
+      - id: checklist-dev-shell
+        types: [shell]
+      - id: checklist-dev-python
+        files: '(\.py$|(^|/)requirements\.txt$)'
+      - id: checklist-dev-terraform
+        files: \.tf$
+      - id: checklist-dev-javascript
+        types: [javascript]
+      - id: checklist-dev-typescript
+        files: \.ts$
+
+  # MegaLinter is not a checklist hook id: it is a separate multi-linter
+  # tool this library also ships config for (templates/.mega-linter.yml).
+  # It is heavier than the checklists above and is usually run at the
+  # pre-push stage or in CI rather than on every commit. Uncomment to run
+  # it locally as well; see docs/megalinter.md before you do.
+  #
+  # - repo: https://github.com/oxsecurity/megalinter
+  #   rev: v10.0.0 # pin explicitly; MegaLinter is not part of this
+  #                # library's own release cycle
+  #   hooks:
+  #     - id: megalinter-full
+  #       stages: [pre-push]
