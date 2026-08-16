@@ -87,7 +87,8 @@ def main() -> int:
         return 1
 
     print(
-        f"selector-lint: checked {len(TARGETS)} file(s), no types/types_or + files combinations found."
+        f"selector-lint: checked {len(TARGETS)} file(s), "
+        "no types/types_or + files combinations found."
     )
     return 0
 

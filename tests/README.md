@@ -100,72 +100,41 @@ through a clone.
 This gate should be re-run once the repo is public, against the real URL,
 before treating the consumer path as fully proven.
 
-## Known gaps this sprint found but did not fix
+## Known gaps found by an earlier sprint, since resolved
 
-Out of scope for `tests/` to fix directly (the owning files sit outside
-this sprint scope); reported here for a follow-up.
+An earlier sprint of `tests/` found four gaps it could not fix itself,
+because the owning files sat outside that sprint's scope. All four have
+since been fixed by later work; kept here as a record of what the
+symptom looked like, in case any of them regress.
 
-1. **`shfmt` in `checklist-dev-shell.yaml` is a no-op formatter check.**
-   The checklist overrides shfmt args to `["--indent", "2"]`. Consumer
-   `args:` fully replace a hook manifest own default args rather than
-   merging with them, and the upstream `pre-commit-shfmt` hook default is
-   `[--write]`. With neither `--write`/`-w` nor `--diff`/`-d` present,
-   `shfmt` prints reformatted output to stdout and always exits 0;
-   `tests/fixtures/checklist-dev-shell/should-fail/greet.sh` intentionally
-   uses a shellcheck-severity-error bug (`local` outside a function)
-   rather than a formatting bug, precisely because a formatting-only bug
-   would not fail this hook at all. Confirmed live: shfmt reported
-   `Passed` against a should-fail fixture with clearly wrong indentation.
-   A fix would add `-d` (or restore `--write`) to `checklists/checklist-dev-shell.yaml`,
-   which is outside `tests/`.
-2. **No root `.editorconfig` in this repo.** `checklist-dev-editorconfig`
-   is wired into the dogfood `.pre-commit-config.yaml`, but with no
-   `.editorconfig` anywhere above a checked file, `editorconfig-checker`
-   has no rules to apply and passes trivially. `docs/hook-catalogue.md`
-   says this hook "Requires: `.editorconfig` at repo root", which is not
-   currently true of how this repo dogfoods itself.
-   `tests/fixtures/checklist-dev-editorconfig/.editorconfig` works around
-   this for the fixture tests only, by relying on EditorConfig own
-   directory-walk-up behavior (confirmed empirically); it does not fix
-   the gap in the real repo.
-3. **`checklist-github-actions` dogfood-wiring is untestable right now.**
-   `actionlint-docker` own hook manifest anchors `files:` to
-   `^\.github/workflows/` at the repo root (not overridable from a
-   fixture path under `tests/`), and this repo has no
-   `.github/workflows/` yet (owned by a different, not-yet-run part of
-   the build). `check_hooks.sh` tests this hook own behavior via
-   `tests/config/checklist-github-actions.override.yaml` (a test-only
-   config that points the same pinned `actionlint-docker` hook at any
-   YAML file) but skips the dogfood-wiring assertion for it. Re-check
-   this hook specific wiring once `.github/workflows/*.yml` exists.
-4. **The dogfood `.pre-commit-config.yaml` has no `exclude:` for
-   `tests/fixtures/`, so `pre-commit run --all-files` at the repo root
-   now also fails against the `should-fail` fixtures themselves.**
-   Every dogfood hook that matches by file type (or matches everything,
-   like `checklist-basic` and `checklist-security-credentials`) has no
-   path-based exclusion, so a full repo sweep correctly, if noisily,
-   reports the intentionally bad content in
-   `tests/fixtures/*/should-fail/*` as real failures: invalid TOML/JSON/
-   XML/YAML, a merge-conflict marker, a fake private key, a leftover
-   `pdb` import, and so on. This was confirmed by running
-   `pre-commit run --config .pre-commit-config.yaml --all-files
-   --hook-stage pre-commit` after adding the fixtures: roughly a dozen
-   checklists newly report a `Failed` line, on top of the two
-   pre-existing, already-documented exceptions (`markdown-link-check`
-   and the protected-branches hook on `main`). There is no way to avoid
-   this from inside `tests/`: pre-commit only supports excluding paths
-   via a hook-level or top-level `exclude:` key in `.pre-commit-config.yaml`
-   itself, and that file sits outside this sprint own scope. The fix is
-   a single line at the top of that file, `exclude: ^tests/fixtures/`
-   (or narrower, `^tests/fixtures/.*/should-fail/`), which is a one-line,
-   low-risk change for whoever owns that file next. Until that lands,
-   expect `pre-commit run --all-files` at the repo root to be red for
-   this reason in addition to the two already-known ones; `tests/run_tests.sh`
-   itself is unaffected, since every phase targets specific checklist
-   files or fixture paths directly rather than sweeping the whole repo.
+1. **`shfmt` in `checklist-dev-shell.yaml` was a no-op formatter check.**
+   The checklist overrode shfmt's args to `["--indent", "2"]`, dropping
+   the upstream `pre-commit-shfmt` hook's own default `[--write]` (consumer
+   `args:` replace a hook manifest's default args rather than merging with
+   them). With neither `--write`/`-w` nor `--diff`/`-d` present, `shfmt`
+   printed reformatted output to stdout and always exited 0. **Fixed**:
+   `checklists/checklist-dev-shell.yaml` now passes `["--indent", "2", "--write"]`.
+2. **No root `.editorconfig` in this repo**, so `checklist-dev-editorconfig`
+   (wired into the dogfood `.pre-commit-config.yaml`) had no rules above
+   a checked file and passed trivially. **Fixed**: a root `.editorconfig`
+   now exists.
+3. **`checklist-github-actions` dogfood-wiring was untestable.**
+   `actionlint-docker`'s own hook manifest anchors `files:` to
+   `^\.github/workflows/` at the repo root, which a fixture under
+   `tests/fixtures/` can never satisfy, and this repo had no
+   `.github/workflows/` yet. **Fixed**: `.github/workflows/*.yml` now
+   exists, and `check_hooks.sh`'s `test_github_actions_dogfood_wiring`
+   asserts the selector against those real files (content correctness is
+   still out of scope here; only "was the hook selected" is asserted).
+4. **The dogfood `.pre-commit-config.yaml` had no `exclude:` for
+   `tests/fixtures/`**, so `pre-commit run --all-files` at the repo root
+   also failed against the `should-fail` fixtures themselves. **Fixed**:
+   `.pre-commit-config.yaml` now has `exclude: ^tests/fixtures/[^/]+/should-fail/`.
 
-None of these are things `tests/` is scoped to fix; `checklists/`,
-`docs/`, and `.github/` belong to other parts of this build.
+`pre-commit run --all-files` at the repo root is expected to still fail
+in exactly two ways, neither a regression: `markdown-link-check` 404s
+against this repo's URL until it is published, and the protected-branches
+hook fires because local work happens on `main`.
 
 ## Fixture design notes
 
@@ -195,11 +164,18 @@ None of these are things `tests/` is scoped to fix; `checklists/`,
   bare `/tmp` path) makes that `git ls-files` call fail outright rather
   than report a clean result. Every fixture here lives under
   `tests/fixtures/`, inside the repo.
-- **Prettier fixtures must already be in Prettier own canonical form.**
-  A `should-pass` JSON/YAML/JS/TS fixture that is valid but not already
-  formatted exactly the way Prettier would write it counts as a failure
-  ("files were modified by this hook"), not a pass. Every `should-pass`
-  fixture that Prettier touches was verified to come back `(unchanged)`.
+- **Formatter fixtures must already be in the formatter's own canonical
+  form.** A `should-pass` JSON/YAML fixture (Prettier) or JS/TS fixture
+  (Biome, via `biome-check`) that is valid but not already formatted
+  exactly the way the tool would write it counts as a failure ("files
+  were modified by this hook"), not a pass. Every `should-pass` fixture
+  that Prettier or Biome touches was verified to come back `(unchanged)`
+  / "No fixes applied". Biome's own zero-config default is tab
+  indentation, not Prettier's 2-space default; `checklist-dev-javascript.yaml`
+  and `checklist-dev-typescript.yaml` pass `--indent-style=space
+  --indent-width=2` to keep this repo's own JS/TS fixtures consistent
+  with every other 2-space formatter here, so their `should-pass`
+  fixtures are canonical against those flags, not Biome's bare defaults.
 - **`name-tests-test --django` matches on path, not just filename.**
   Its hook manifest selector is `files: (^|/)tests/.+\.py$`, since this
   whole suite lives under a top-level `tests/` directory, any `.py`
@@ -216,9 +192,10 @@ None of these are things `tests/` is scoped to fix; `checklists/`,
 
 - `selectors`: Python 3 with PyYAML.
 - `hooks`: `pre-commit`, network access (hook environments are built and
-  cached on first use), Docker (for `actionlint-docker`), Node/npm (for
-  the Prettier-based checklists), and a Terraform + `tflint` toolchain
-  (for `checklist-dev-terraform`).
+  cached on first use), Docker (for `actionlint-docker` and
+  `hadolint-docker`), Node/npm (for the Prettier- and Biome-based
+  checklists), and a Terraform + `tflint` toolchain (for
+  `checklist-dev-terraform`).
 - `shell`: `shellcheck`, `git`, `pre-commit`, `detect-secrets`.
 - `consumer` / `commit`: `git`, `pre-commit`, and everything `hooks` needs
   (the throwaway consumer repos exercise the same checklists).

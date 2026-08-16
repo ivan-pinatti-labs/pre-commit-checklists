@@ -58,7 +58,7 @@ PC=$(resolve_pre_commit)
 # file-based selector (i.e. not always_run / not commit-msg-stage-only).
 # Kept in sync by hand with .pre-commit-config.yaml; if you add a checklist
 # to that file, add its id here too so Phase 2 covers it.
-DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript"
+DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker"
 
 is_dogfood_wired() {
   case " ${DOGFOOD_WIRED} " in
@@ -163,11 +163,38 @@ test_protected_branches() {
   rm -rf "${__scratch}"
 }
 
-for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript; do
+# checklist-github-actions dogfood-wiring, against this repo's own real
+# .github/workflows/*.yml. actionlint-docker's own hook manifest anchors
+# `files:` to ^\.github/workflows/ at the repo root, which a fixture
+# under tests/fixtures/ can never satisfy (see the module docstring above
+# and tests/README.md); this repo's real workflow files can. Only the
+# selector wiring is asserted here (the hook was not skipped), not the
+# workflow files' own lint cleanliness: those files are owned by a
+# different part of this build and their content is out of scope for
+# tests/ to gate on. Skips gracefully if no workflow exists yet.
+test_github_actions_dogfood_wiring() {
+  section "checklist-github-actions (dogfood wiring, real .github/workflows)"
+  mapfile -t __wf_files < <(find "${REPO_ROOT}/.github/workflows" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
+  if [ "${#__wf_files[@]}" -eq 0 ]; then
+    echo "  (skip: no .github/workflows/*.yml in this repo yet)"
+    return
+  fi
+  __rel_files=()
+  for __f in "${__wf_files[@]}"; do
+    __rel_files+=("${__f#"${REPO_ROOT}"/}")
+  done
+  run_hook "${PC}" ".pre-commit-config.yaml" "checklist-github-actions" "${__rel_files[@]}"
+  HOOK_OUTPUT="${HOOK_OUTPUT}"
+  assert_selected "checklist-github-actions/dogfood-wiring"
+}
+
+for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker; do
   test_checklist "${id}"
 done
 
 test_checklist "checklist-github-actions" "tests/config/checklist-github-actions.override.yaml"
+
+test_github_actions_dogfood_wiring
 
 test_protected_branches
 
