@@ -1,0 +1,279 @@
+---
+name: PR Validation
+
+# Three gates on every pull request against main: pre-commit (this repo's
+# own dogfood config), MegaLinter, and the tests/ self-test suite, plus a
+# labeler pass. Nothing here needs a personal access token; a public repo
+# cloning itself, applying labels, and pushing an auto-fix commit back to
+# the PR branch is everything the default GITHUB_TOKEN is scoped for. No
+# other services are wired into this pipeline.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# A new push supersedes whatever this workflow is still doing for the same
+# PR, so a rapid series of pushes doesn't leave several stale runs racing
+# each other, each capable of pushing its own auto-fix commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  # Flip to false to make every job report-only: findings still show up in
+  # logs and the PR comment, but nothing is auto-committed back to the PR
+  # branch.
+  AUTO_APPLY_FIXES: true
+
+jobs:
+  labeler:
+    name: Labeler
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Apply labels from .github/labeler.yml
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  pre-commit:
+    name: Pre-Commit Checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      # Only the checklists/pre-commit-config side of the hook environment
+      # cache; the Terraform/tflint binaries below are cached by their own
+      # setup actions.
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ hashFiles('.pre-commit-config.yaml', 'checklists/*.yaml') }}
+          restore-keys: |
+            pre-commit|
+
+      # checklist-dev-terraform (terraform-fmt, terraform-validate, tflint)
+      # expects both binaries already on PATH; the hook itself installs
+      # nothing. terraform_wrapper: false so terraform-validate talks to the
+      # real binary rather than hashicorp's stdout-wrapping shim.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Set up tflint
+        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6.3.0
+
+      - name: Install pre-commit
+        run: pip install "pre-commit==4.5.1"
+
+      - name: Run pre-commit
+        id: pre-commit
+        shell: bash
+        run: |
+          set +o errexit
+          pre-commit run --all-files --show-diff-on-failure --color always 2>&1 | tee pre-commit.log
+          __exit=${PIPESTATUS[0]}
+          set -o errexit
+
+          if [ "${__exit}" -eq 0 ]; then
+            echo "changes=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [ -z "$(git status --porcelain)" ]; then
+            # Failed, and nothing was auto-fixed: real findings the PR needs
+            # to address by hand (or a pre-existing, documented failure; see
+            # tests/README.md and docs/). Fail the job as-is.
+            echo "changes=false" >> "${GITHUB_OUTPUT}"
+            exit "${__exit}"
+          fi
+
+          echo "changes=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Commit and push auto-fixes
+        if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          # This repo's own commit identity throughout, not
+          # github-actions[bot]'s own noreply address: kept to one email
+          # across the whole history, human and automated commits alike.
+          git config user.email "ivan-pinatti@users.noreply.github.com"
+          git add -A
+          git commit -m "style: apply pre-commit auto-fixes"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+      # Pushing above used the job's own GITHUB_TOKEN, and GitHub does not
+      # let a GITHUB_TOKEN-authored push trigger a new workflow run (a
+      # platform-level anti-recursion guard, not something this workflow
+      # controls), so nothing will re-run this job against the fixed code on
+      # its own. Re-running pre-commit here, in the same job, is what proves
+      # the fix actually cleared the findings, and its exit code is what the
+      # job (and therefore the required check) reports.
+      - name: Re-run pre-commit after auto-fixes
+        if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
+        run: pre-commit run --all-files --show-diff-on-failure --color always 2>&1 | tee -a pre-commit.log
+
+      - name: Post the pre-commit log to the PR
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+
+            let log = "(no log was produced)";
+            try {
+              log = fs.readFileSync("pre-commit.log", "utf8").trim();
+            } catch (err) {
+              // Nothing to attach; the comment below still posts.
+            }
+
+            // ANSI color codes survive `--color always` into the log file;
+            // GitHub renders them as literal escape junk inside a fenced
+            // code block, so strip them rather than trying to translate
+            // them to Markdown. \x1b is the ESC byte that starts every SGR
+            // sequence (e.g. ESC[32m); written as an escape here rather
+            // than a literal control character so this file stays plain
+            // text on disk.
+            const ansiPattern = new RegExp("\\x1b\\[[0-9;]*m", "g");
+            log = log.replace(ansiPattern, "");
+
+            const maxLength = 60000;
+            let body = log;
+            if (body.length > maxLength) {
+              body = body.slice(0, maxLength) + "\n... (log truncated)";
+            }
+
+            const header =
+              "${{ job.status }}" === "success"
+                ? "### Pre-commit passed"
+                : "### Pre-commit failed";
+
+            const commentBody =
+              `${header}\n<details>\n<summary>Show pre-commit log</summary>\n\n` +
+              "```text\n" + body + "\n```\n</details>";
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody,
+            });
+
+  megalinter:
+    name: MegaLinter
+    needs: [pre-commit]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      # For the SARIF upload below. Free on a public repository.
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      # No root .mega-linter.yml: that file only exists as a starter under
+      # templates/ for consumers (see docs/megalinter.md). This repo
+      # configures MegaLinter here instead, scoped to the PR diff rather
+      # than the whole tree, so it doesn't re-flag the deliberately invalid
+      # content under tests/fixtures/*/should-fail/ on every run.
+      - name: MegaLinter
+        id: megalinter
+        uses: oxsecurity/megalinter@15e5b45552097e318c93de385779ce3b1084052c # v10.0.0
+        env:
+          APPLY_FIXES: ${{ env.AUTO_APPLY_FIXES == 'true' && 'all' || 'none' }}
+          APPLY_FIXES_EVENT: pull_request
+          APPLY_FIXES_MODE: commit
+          VALIDATE_ALL_CODEBASE: false
+          DISABLE_ERRORS: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload MegaLinter SARIF report
+        if: always() && hashFiles('megalinter-reports/megalinter-report.sarif') != ''
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: megalinter-reports/megalinter-report.sarif
+          category: megalinter
+
+      - name: Commit and push auto-fixes
+        if: steps.megalinter.outputs.has_updated_sources == '1' && env.AUTO_APPLY_FIXES == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          # This repo's own commit identity throughout, not
+          # github-actions[bot]'s own noreply address: kept to one email
+          # across the whole history, human and automated commits alike.
+          git config user.email "ivan-pinatti@users.noreply.github.com"
+          git add -A
+          git commit -m "style: apply MegaLinter auto-fixes"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+  self-test:
+    name: Self-Test Suite
+    runs-on: ubuntu-24.04
+    # A cold cache building every checklist's hook environment from scratch
+    # (Python, Node, and a pre-commit-managed Go toolchain download for
+    # shfmt) took real time to establish locally; 20 minutes leaves headroom
+    # over tests/run_tests.sh's five phases together, including the two
+    # throwaway /tmp repos the consumer/commit phases build.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Set up tflint
+        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6.3.0
+
+      # Docker, Node/npm and shellcheck ship on the ubuntu-24.04 runner
+      # image already; see tests/README.md's "What each phase needs
+      # installed" for the full list this satisfies.
+      - name: Install Python-based tooling
+        run: pip install "pre-commit==4.5.1" pyyaml detect-secrets
+
+      - name: Run the self-test suite
+        run: tests/run_tests.sh

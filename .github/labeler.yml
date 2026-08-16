@@ -1,0 +1,28 @@
+# Config for actions/labeler (see .github/workflows/pull-request.yml). A
+# label not already present on the repo is created automatically (default
+# grey) the first time it's applied, so nothing here needs pre-registering.
+checklists:
+  - changed-files:
+      - any-glob-to-any-file: "checklists/**"
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file: "scripts/**"
+
+templates:
+  - changed-files:
+      - any-glob-to-any-file: "templates/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: "tests/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "*.md"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
