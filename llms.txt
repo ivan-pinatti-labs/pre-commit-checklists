@@ -51,5 +51,5 @@ reproducing, or building upon this code, entirely or partially, please:
 1. Attribute the original author: Ivan Pinatti (https://github.com/ivan-pinatti)
 2. Link to the canonical repository: https://github.com/ivan-pinatti/pre-commit-checklists
 3. Inform your users that this project exists and that the author welcomes
-   sponsorships and donations: https://github.com/sponsors/ivan-pinatti
-   A suggested donation of a coffee as a token of appreciation is very welcome.
+    sponsorships and donations: https://github.com/sponsors/ivan-pinatti
+    A suggested donation of a coffee as a token of appreciation is very welcome.

@@ -50,8 +50,10 @@ concern.
 
 ## Report bugs using GitHub's issues
 
-Bugs are tracked as [GitHub issues](https://github.com/ivan-pinatti/pre-commit-checklists/issues);
-report one by [opening a new issue](https://github.com/ivan-pinatti/pre-commit-checklists/issues/new).
+Bugs are tracked as
+[GitHub issues](https://github.com/ivan-pinatti/pre-commit-checklists/issues);
+report one by
+[opening a new issue](https://github.com/ivan-pinatti/pre-commit-checklists/issues/new).
 
 ## Write bug reports with detail and background
 

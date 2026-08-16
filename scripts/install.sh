@@ -46,9 +46,9 @@ templates/ into --target, generates --target/.secrets.baseline, and runs
 Arguments:
   --target <path>     Repository to bootstrap. Must already exist.
   --template <name>   One of the files in templates/pre-commit-config/,
-                       without the .yaml extension. Default: recommended.
-                       (minimal, recommended, full, python, shell,
-                       terraform, javascript, typescript)
+                      without the .yaml extension. Default: recommended.
+                      (minimal, recommended, full, python, shell,
+                      terraform, javascript, typescript)
   --force              Overwrite files already present at the destination.
 
 Examples:
