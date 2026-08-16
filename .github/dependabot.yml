@@ -20,6 +20,12 @@ updates:
       include: "scope"
     open-pull-requests-limit: 5
 
+  # Covers every uses: line under .github/workflows/. Both workflows here
+  # pin actions to a full commit SHA with a trailing "# vX.Y.Z" comment
+  # (see new-tag-and-release.yml and pull-request.yml), which is the format
+  # Dependabot needs to resolve a bump: it reads the comment to find the
+  # current version, then rewrites both the SHA and the comment together.
+  # No extra config is needed for that, it is native to this ecosystem.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

@@ -21,7 +21,7 @@
   timezone: "America/Toronto",
   schedule: ["before 7am on Monday"],
 
-  labels: ["dependencies"],
+  labels: ["dependencies", "pre-commit"],
   commitMessagePrefix: "chore:",
 
   // Keep PR volume manageable.
@@ -29,15 +29,16 @@
   prHourlyLimit: 2,
   automerge: false,
 
-  // Extend the built-in pre-commit manager's file matching to also cover
-  // every checklist file, on top of its default of .pre-commit-config.yaml
-  // at the repo root (still matched, so the root dogfood config is covered
-  // by both tools; that overlap is harmless, Renovate and Dependabot would
-  // just each open the same PR, and this repo intentionally leaves it to
-  // Dependabot per the comment above).
+  // Narrow the built-in pre-commit manager to checklists/ only. Setting
+  // managerFilePatterns replaces the manager's default match entirely,
+  // rather than adding to it, and that default is
+  // /(^|/)\.pre-commit-config\.ya?ml$/, which would also match the root
+  // .pre-commit-config.yaml. The root file is deliberately left off this
+  // list: Dependabot already owns it (see dependabot.yml), and matching it
+  // here too would leave both bots able to open a pull request for the
+  // same rev: pin, exactly the fight this split is meant to avoid.
   "pre-commit": {
     managerFilePatterns: [
-      "/^\\.pre-commit-config\\.yaml$/",
       "/^checklists/checklist-.+\\.ya?ml$/",
     ],
   },
