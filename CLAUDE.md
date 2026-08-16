@@ -2,7 +2,11 @@
 
 ## Writing style
 
-- Do not use hyphens (`-`) or em/en dashes (`--`, `—`, `–`) as punctuation, anywhere: not in doc prose, code comments, commit messages, PR/issue text, or any other written output in this repo. Use commas, parentheses, or separate sentences instead. Hyphens are fine inside compound words (e.g. `pre-commit`, `self-signed`) and in code, paths, flags, and identifiers.
+- Do not use hyphens (`-`) or em/en dashes (`--`, `—`, `–`) as punctuation,
+  anywhere: not in doc prose, code comments, commit messages, PR/issue text,
+  or any other written output in this repo. Use commas, parentheses, or
+  separate sentences instead. Hyphens are fine inside compound words (e.g.
+  `pre-commit`, `self-signed`) and in code, paths, flags, and identifiers.
 
 ## Pull requests
 
