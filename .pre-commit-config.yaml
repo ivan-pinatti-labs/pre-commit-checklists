@@ -7,6 +7,12 @@
 # `rev:` pin instead of this file.
 default_install_hook_types: [pre-commit, pre-push, commit-msg]
 minimum_pre_commit_version: 4.0.1
+# The test fixtures under tests/fixtures/ are deliberately malformed: each
+# should-fail/ file exists precisely so a checklist rejects it. Linting them
+# here would report ~110 failures that are all correct behaviour. They are
+# still checked, but by tests/run_tests.sh, which asserts the exit codes
+# rather than treating them as source files.
+exclude: ^tests/fixtures/
 repos:
   - repo: https://github.com/oxsecurity/megalinter
     rev: v10.0.0
