@@ -12,6 +12,12 @@
 # See docs/getting-started.md for the full walkthrough,
 # docs/hook-catalogue.md for what each hook id checks and matches, and
 # docs/versioning.md for how the `rev:` pin works and how to bump it.
+#
+# One id below (checklist-git-commit-msg) runs at the commit-msg git hook
+# stage instead of pre-commit, so `default_install_hook_types` tells
+# `pre-commit install` to wire both stages up. Every other hook is
+# explicitly pinned to `stages: [pre-commit]` so it does not also
+# re-run, redundantly, during that commit-msg invocation.
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
   - repo: https://github.com/ivan-pinatti/pre-commit-checklists
@@ -19,50 +25,68 @@ repos:
     hooks:
       # -- General file hygiene --------------------------------------
       - id: checklist-basic
+        stages: [pre-commit]
       - id: checklist-spell
+        stages: [pre-commit]
       - id: checklist-dev-editorconfig
+        stages: [pre-commit]
 
       # -- Structured file types ---------------------------------------
       - id: checklist-markdown
         types: [markdown]
+        stages: [pre-commit]
       - id: checklist-json
         types: [json]
+        stages: [pre-commit]
       - id: checklist-yaml
         types: [yaml]
+        stages: [pre-commit]
       - id: checklist-toml
         types: [toml]
+        stages: [pre-commit]
       - id: checklist-xml
         types: [xml]
+        stages: [pre-commit]
       - id: checklist-dev-dotenv
         files: '(^|/)\.env(\..+)?$'
+        stages: [pre-commit]
 
       # -- Security -------------------------------------------------------
       - id: checklist-security-credentials
+        stages: [pre-commit]
 
       # -- Git and GitHub -----------------------------------------------
       - id: checklist-git-valid-branches
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
       - id: checklist-git-commit-msg
         stages: [commit-msg]
         files: ^\.git/COMMIT_EDITMSG$
       - id: checklist-git-protected-branches
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
       - id: checklist-github-actions
         files: ^\.github/
+        stages: [pre-commit]
 
       # -- Languages: keep only the ones your repo uses -----------------
       - id: checklist-dev-shell
         types: [shell]
+        stages: [pre-commit]
       - id: checklist-dev-python
         files: '(\.py$|(^|/)requirements\.txt$)'
+        stages: [pre-commit]
       - id: checklist-dev-terraform
         files: \.tf$
+        stages: [pre-commit]
       - id: checklist-dev-javascript
         types: [javascript]
+        stages: [pre-commit]
       - id: checklist-dev-typescript
         files: \.ts$
+        stages: [pre-commit]
 
   # MegaLinter is not a checklist hook id: it is a separate multi-linter
   # tool this library also ships config for (templates/.mega-linter.yml).

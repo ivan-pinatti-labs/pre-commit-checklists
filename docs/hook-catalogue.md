@@ -52,3 +52,18 @@ fixed in the table above and in every shipped template. If you write
 your own selector for a hook id, prefer one `files:` regex over
 combining `types:`/`types_or:` with `files:` unless you have checked
 what the AND actually resolves to.
+
+## Pin `stages:` too, if you install more than the pre-commit stage
+
+`checklist-git-commit-msg` is the one id here that isn't meant to run at
+the `pre-commit` git stage — it needs `stages: [commit-msg]`. If your
+`default_install_hook_types` includes anything beyond `pre-commit`
+(`commit-msg`, `pre-push`, ...), every *other* hook id also needs an
+explicit `stages: [pre-commit]`, or pre-commit will run it again at
+each of those other stages too. That's wasted work at best; at worst,
+a hook re-run outside the context it expects can fail outright — cspell
+does exactly this, exiting non-zero on a commit-msg-stage invocation
+where it is handed zero matching files. Every shipped template that
+enables `commit-msg` (`recommended.yaml`, `full.yaml`) already sets
+`stages: [pre-commit]` on every hook that needs it; keep doing that if
+you add more hooks of your own to either file.

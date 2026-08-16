@@ -13,9 +13,11 @@
 # docs/hook-catalogue.md for what each hook id checks, and
 # docs/versioning.md for how the `rev:` pin works and how to bump it.
 #
-# Two of the ids below (checklist-git-commit-msg) run at the commit-msg
-# git hook stage, not pre-commit, so `default_install_hook_types` below
-# tells `pre-commit install` to wire both stages up.
+# One id below (checklist-git-commit-msg) runs at the commit-msg git hook
+# stage instead of pre-commit, so `default_install_hook_types` tells
+# `pre-commit install` to wire both stages up. Every other hook is
+# explicitly pinned to `stages: [pre-commit]` so it does not also
+# re-run, redundantly, during that commit-msg invocation.
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
   - repo: https://github.com/ivan-pinatti/pre-commit-checklists
@@ -23,48 +25,59 @@ repos:
     hooks:
       # Large-file/merge-conflict/line-ending hygiene, safe on any repo.
       - id: checklist-basic
+        stages: [pre-commit]
 
       # Spell-checks every file cspell can read; tune words in .cspell.json.
       - id: checklist-spell
+        stages: [pre-commit]
 
       # Lints and link-checks Markdown.
       - id: checklist-markdown
         types: [markdown]
+        stages: [pre-commit]
 
       # Validates JSON syntax and formats with Prettier.
       - id: checklist-json
         types: [json]
+        stages: [pre-commit]
 
       # Validates YAML syntax, lints with yamllint, formats with Prettier.
       - id: checklist-yaml
         types: [yaml]
+        stages: [pre-commit]
 
       # Validates TOML syntax.
       - id: checklist-toml
         types: [toml]
+        stages: [pre-commit]
 
       # Validates XML syntax.
       - id: checklist-xml
         types: [xml]
+        stages: [pre-commit]
 
       # Checks .editorconfig rules are respected.
       - id: checklist-dev-editorconfig
+        stages: [pre-commit]
 
       # Lints .env / .env.* files. Selector required: the hook's own
       # default type is `text`, which is too broad to leave unscoped here.
       - id: checklist-dev-dotenv
         files: '(^|/)\.env(\..+)?$'
+        stages: [pre-commit]
 
       # Blocks committed private keys and known secret patterns. Requires
       # a `.secrets.baseline` file at the repo root; scripts/install.sh
       # (in this library) generates one for you.
       - id: checklist-security-credentials
+        stages: [pre-commit]
 
       # Rejects branch names that skip your naming convention. No ticket
       # prefix is required by default; see docs/overrides.md to opt in.
       - id: checklist-git-valid-branches
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
 
       # Rejects commit messages that are not Conventional Commits. No
       # ticket prefix is required by default; see docs/overrides.md.
@@ -79,7 +92,9 @@ repos:
       - id: checklist-git-protected-branches
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
 
       # Lints GitHub Actions workflow files.
       - id: checklist-github-actions
         files: ^\.github/
+        stages: [pre-commit]
