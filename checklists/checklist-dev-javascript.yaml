@@ -1,11 +1,27 @@
 ---
-# Local hook: prettier has no first-party pre-commit mirror, so it runs
-# through node with prettier as an additional_dependency instead.
+# cspell:ignore biomejs
+# Biome replaces the old Prettier-only setup: Prettier formatted JavaScript
+# but never linted it, so this checklist had no linting coverage at all.
+# biome-check formats, organizes imports, lints, and applies safe fixes in
+# one Rust binary. The repo below is Biome's own official pre-commit
+# integration (rev tags track the additional_dependencies package version
+# directly). The hook's own definition already scopes itself to a files
+# regex covering JS/TS/JSON/CSS/etc, so no selector is needed here; this
+# repo narrows that further to JavaScript only where it wires the hook up
+# (see .pre-commit-config.yaml).
+#
+# --indent-style=space --indent-width=2: Biome's own zero-config default is
+# tab indentation, unlike Prettier's 2-space default this checklist used to
+# ship. These two flags are appended to (not a replacement of) the hook's
+# own entry command, which bakes its flags into `entry:` rather than a
+# separate `args:` key, so this is additive. Kept for consistency with the
+# 2-space indent every other formatter in this library uses (ruff-format,
+# shfmt --indent 2, Prettier elsewhere); drop them if you want Biome's tab
+# default instead.
 repos:
-  - repo: local
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.5.8
     hooks:
-      - id: prettier-javascript
-        name: Run Prettier on JavaScript files
-        entry: prettier --write
-        language: node
-        additional_dependencies: ["prettier"]
+      - id: biome-check
+        additional_dependencies: ["@biomejs/biome@2.5.8"]
+        args: ["--indent-style=space", "--indent-width=2"]
