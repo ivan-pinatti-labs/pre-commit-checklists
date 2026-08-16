@@ -31,7 +31,7 @@ build your own selection from scratch.
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | — |
 | `checklist-github-actions` | actionlint-docker | `files: ^\.github/` | Docker (actionlint-docker runs in a container) |
-| `checklist-dev-dotenv` | dotenv-linter | `files: '(^|/)\.env(\..+)?$'` | — |
+| `checklist-dev-dotenv` | dotenv-linter | `files: '(^\|/)\.env(\..+)?$'` | — |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (the hook's own `.pre-commit-hooks.yaml` entry additionally bakes in `files: \.(sh\|bash)$`) | — |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | — |
