@@ -25,7 +25,7 @@ tests/run_tests.sh hooks shell
 
 | Phase | Script | What it checks |
 | --- | --- | --- |
-| `selectors` | `tests/scripts/selector_lint.py` | Static: no hook definition in `.pre-commit-hooks.yaml`, `checklists/*.yaml`, or `templates/pre-commit-config/*.yaml` combines `types:`/`types_or:` with `files:` on the same entry. pre-commit ANDs those keys; combining them is exactly how defects 2 and 3 happened. |
+| `selectors` | `tests/scripts/test_selector_lint.py` | Static: no hook definition in `.pre-commit-hooks.yaml`, `checklists/*.yaml`, or `templates/pre-commit-config/*.yaml` combines `types:`/`types_or:` with `files:` on the same entry. pre-commit ANDs those keys; combining them is exactly how defects 2 and 3 happened. |
 | `hooks` | `tests/scripts/check_hooks.sh` | Per checklist: a `should-pass` fixture set exits 0, a `should-fail` fixture set exits nonzero, and, critically, the hook is not silently skipped for matching zero files ("(no files to check)"). Also re-runs each `should-pass` set through the real dogfood `.pre-commit-config.yaml` by hook id, asserting the file-based selector wiring there still selects the fixture. |
 | `shell` | `tests/scripts/lint_shell.sh` | `shellcheck --severity=warning` over `scripts/*.sh`, plus behavioral tests of `check-branch-name.sh`, `check-commit-msg.sh` (including the opt-in `--ticket-prefixes` path for both), `run-checklist.sh`, and `install.sh` against their documented exit codes. |
 | `consumer` | `tests/scripts/consumer_path.sh` | The `repo: <url>` + `rev: vX.Y.Z` consumer path, offline. See below. |

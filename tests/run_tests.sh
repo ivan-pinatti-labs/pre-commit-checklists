@@ -60,7 +60,7 @@ run_phase() {
 for phase in ${PHASES}; do
   case "${phase}" in
   selectors)
-    run_phase selectors "Phase: selector lint (static AND-selector guard)" "python3 tests/scripts/selector_lint.py"
+    run_phase selectors "Phase: selector lint (static AND-selector guard)" "python3 tests/scripts/test_selector_lint.py"
     ;;
   hooks)
     run_phase hooks "Phase: checklist fixtures + dogfood-wiring guard" "tests/scripts/check_hooks.sh"
