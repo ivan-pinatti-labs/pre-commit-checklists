@@ -1,0 +1,4 @@
+# Terraform init byproducts created by running checklist-dev-terraform
+# against the fixtures in this directory.
+fixtures/checklist-dev-terraform/**/.terraform/
+fixtures/checklist-dev-terraform/**/.terraform.lock.hcl

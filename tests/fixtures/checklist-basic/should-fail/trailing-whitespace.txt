@@ -1,0 +1,2 @@
+This line has trailing whitespace.   
+And this file has no final newline.

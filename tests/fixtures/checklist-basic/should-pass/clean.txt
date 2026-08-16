@@ -1,0 +1,2 @@
+This is an ordinary text file with a trailing newline and no trailing
+whitespace on any line.
