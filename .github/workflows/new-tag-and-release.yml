@@ -5,7 +5,7 @@ name: New Tag & Release
 # releases; see docker-torrent-box-with-vpn's own Merge workflow for the
 # same shape. No other services are wired into this pipeline.
 
-on:
+"on":
   push:
     branches: [main]
 

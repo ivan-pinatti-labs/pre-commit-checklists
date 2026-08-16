@@ -9,7 +9,7 @@ name: PR Validation
 # default GITHUB_TOKEN's read access. See docs/getting-started.md for the
 # rest of the adoption path.
 
-on:
+"on":
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
@@ -52,21 +52,21 @@ jobs:
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure --color always
 
-  # Optional: run MegaLinter alongside the checklists above. It is heavier
-  # and not part of this library's own hooks; see docs/megalinter.md before
-  # enabling it. Uncomment and adjust as needed.
-  # megalinter:
-  #   name: MegaLinter
-  #   runs-on: ubuntu-24.04
-  #   timeout-minutes: 15
-  #   permissions:
-  #     contents: read
-  #     security-events: write
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  #     - name: MegaLinter
-  #       uses: oxsecurity/megalinter@15e5b45552097e318c93de385779ce3b1084052c # v10.0.0
-  #       env:
-  #         VALIDATE_ALL_CODEBASE: false
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# Optional: run MegaLinter alongside the checklists above, as a second
+# top-level job. It is heavier and not part of this library's own hooks;
+# see docs/megalinter.md before enabling it. Uncomment and adjust as needed.
+# megalinter:
+#   name: MegaLinter
+#   runs-on: ubuntu-24.04
+#   timeout-minutes: 15
+#   permissions:
+#     contents: read
+#     security-events: write
+#   steps:
+#     - name: Checkout
+#       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+#     - name: MegaLinter
+#       uses: oxsecurity/megalinter@15e5b45552097e318c93de385779ce3b1084052c  # v10.0.0
+#       env:
+#         VALIDATE_ALL_CODEBASE: false
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
