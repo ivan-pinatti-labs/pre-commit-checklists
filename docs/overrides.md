@@ -132,7 +132,9 @@ directly rather than dispatching through `run-checklist.sh`. See
 [Changing the protected branches pattern](#changing-the-protected-branches-pattern)
 below for a worked example of adding an upstream hook directly, and
 [`docs/hook-catalogue.md`](hook-catalogue.md#which-dotenv-linter) for
-another.
+another. [Passing a flag to the tool a checklist wraps](#passing-a-flag-to-the-tool-a-checklist-wraps)
+below has the investigation behind why no config-only override for this
+exists, rather than only asserting it does not.
 
 ## Changing the protected branches pattern
 
@@ -175,6 +177,78 @@ intended. Verified directly: with `--branch trunk --pattern
 (?i)release/.*` and no other configuration, a commit to `trunk` is
 blocked, a commit to `main` is not, and a commit to `release/1.0` is
 blocked.
+
+## Passing a flag to the tool a checklist wraps
+
+Every `checklist-*` id's baked-in `args:` is one string, the checklist
+name `run-checklist.sh` needs (see above). There is no way to add a
+flag on top of that from a consumer's own `.pre-commit-config.yaml`,
+for any `checklist-*` id, on any release of this library so far. That
+gap was investigated before writing this section, not assumed, and
+three separate facts about pre-commit itself close it off:
+
+- A nested `pre-commit run --config <checklist>.yaml` invocation, the
+  shape every `checklist-*` id runs, cannot have one hook's `args:`
+  influenced at runtime through its own command line. `pre-commit run`
+  takes exactly one optional positional argument, a hook id that
+  restricts which hook in the config runs, not arguments to hand that
+  hook; there is no `--` passthrough and no flag anywhere in it that
+  injects extra args into a specific hook's tool invocation. Confirmed
+  by reading pre-commit 4.5.1's own argument parser
+  (`pre_commit/main.py`, `_add_run_options`): the full, closed list of
+  flags `run` accepts is `--verbose`, `--all-files`/`--files`,
+  `--show-diff-on-failure`, `--fail-fast`, `--hook-stage`, and a set of
+  git ref/branch flags for stages other than `pre-commit` itself
+  (`commit-msg`, `pre-push`, and so on). None of them touch a hook's
+  own `args:`.
+- pre-commit does not interpolate environment variables, or anything
+  else, into a `.pre-commit-config.yaml` (or a checklist file here,
+  which is the same format) when it loads one. A config file is parsed
+  with a plain YAML safe loader and nothing else; a `${SOME_VAR}` sitting
+  in a checklist's `args:` list would reach the tool as that literal
+  text, unexpanded, not a substituted value. Confirmed by reading
+  pre-commit 4.5.1's own config loader (`pre_commit/yaml.py`,
+  `pre_commit/clientlib.py`): neither references `os.environ`, or any
+  templating step, at all.
+- Even on a hook id that does not route through `run-checklist.sh`, a
+  consumer's own `args:` on that hook entry fully replaces the
+  manifest's baked-in `args:` rather than merging with it (this is the
+  entire reason the [earlier warning](#do-not-put-args-on-a-checklist--id-that-routes-through-run-checklistsh)
+  on this page exists). Confirmed by reading pre-commit 4.5.1's own
+  hook-merge code (`pre_commit/repository.py`, the `_hook()` function):
+  it is a plain dict update, one key at a time, last value wins, no
+  list ever gets concatenated with another. A `--` separator convention,
+  for example `args: [checklist-dev-shell, --, --severity=warning]`,
+  would not get any help from pre-commit here either; something would
+  still have to read the tail after `--` and act on it, and the only
+  place free to do that is `run-checklist.sh` itself, generating a
+  different checklist file than the one reviewed and tagged in this
+  repository, on every commit, for every consumer who sets the
+  convention.
+
+That last option, generating an overridden checklist file on the fly,
+was considered and rejected, not overlooked. Doing it safely needs a
+YAML-aware rewrite step, a dependency `run-checklist.sh` does not
+otherwise carry, because a text level substitution against arbitrary
+YAML (the only kind of rewrite a plain shell script can do without that
+new dependency) is exactly how a malformed override turns into invalid
+YAML that breaks every hook in the checklist, not just the one flag it
+targeted. And even done correctly, the config that actually ran that
+commit is a transient file nobody reviewed or committed, which fights
+[`docs/versioning.md`](versioning.md)'s entire contract that a
+checklist's `args:` only change when this repository itself cuts a
+release. `SKIP` already covers the "drop this tool entirely" half of
+this need (see above) with none of that cost, because it is
+pre-commit's own environment variable, read by its own nested run, not
+a mechanism this repository invented. The "change a flag on this tool"
+half has no equivalent, and does not get one here: the supported path
+is the one the [ticket prefix](#ticket-prefixes-in-branch-names-and-commit-messages)
+and [protected branches](#changing-the-protected-branches-pattern)
+examples above already use, add the upstream hook (or, like
+`checklist-dev-dotenv`, a `repo: local` entry that shells out directly)
+yourself, pointed at whatever the checklist wraps, with the flag you
+need. See [`docs/hook-catalogue.md`](hook-catalogue.md#which-dotenv-linter)
+for a concrete, verified worked example doing exactly that.
 
 ## Allowlisting one secret finding (detect-secrets)
 
