@@ -105,17 +105,57 @@ add dotenv-linter as their own hook entry pointed at the same image
 instead of going through this checklist id; see
 [`docs/overrides.md`](overrides.md).
 
-## Pin `stages:` too, if you install more than the pre-commit stage
+## `stages:` depends on why you installed more than the pre-commit stage
 
 `checklist-git-commit-msg` is the one id here that isn't meant to run at
-the `pre-commit` git stage: it needs `stages: [commit-msg]`. If your
-`default_install_hook_types` includes anything beyond `pre-commit`
-(`commit-msg`, `pre-push`, ...), every *other* hook id also needs an
-explicit `stages: [pre-commit]`, or pre-commit will run it again at
-each of those other stages too. That's wasted work at best; at worst,
-a hook re-run outside the context it expects can fail outright: cspell
-does exactly this, exiting non-zero on a commit-msg-stage invocation
-where it is handed zero matching files. Every shipped template that
-enables `commit-msg` (`recommended.yaml`, `full.yaml`) already sets
-`stages: [pre-commit]` on every hook that needs it; keep doing that if
-you add more hooks of your own to either file.
+the `pre-commit` git stage: it needs `stages: [commit-msg]`. Beyond
+that one id, what `stages:` the rest of your hooks need depends on
+*why* `default_install_hook_types` includes something beyond
+`pre-commit`, and the two common reasons want opposite answers.
+Pick the one that matches your setup; do not apply the first one by
+default just because it is listed first.
+
+### Installing `commit-msg` only, no re-sweep planned
+
+If `commit-msg` is the only extra stage, and nothing is meant to run
+your fast hooks again at any other stage, pin every *other* hook id to
+an explicit `stages: [pre-commit]`. Without it, pre-commit runs each of
+them again at the commit-msg stage too, which is wasted work at best;
+at worst, a hook re-run outside the context it expects fails outright:
+cspell does exactly this, exiting non-zero on a commit-msg-stage
+invocation where it is handed zero matching files. Every shipped
+template that enables `commit-msg` (`recommended.yaml`, `full.yaml`)
+already sets `stages: [pre-commit]` on every hook that needs it; keep
+doing that if you add more hooks of your own to either file.
+
+### Re-sweeping the fast hooks at `pre-push` for CI parity
+
+A different, equally legitimate setup installs `pre-push` too and
+re-runs the same fast hooks there on purpose, so a single
+`pre-commit run --all-files --hook-stage pre-push` gives CI one command
+that exercises everything, matching what already ran locally at commit
+time. Applying the previous section's advice here (`stages: [pre-commit]`
+on every hook) is exactly wrong: pre-commit skips a hook at a stage it
+is not pinned to without printing a failure, so every hook you pin to
+`pre-commit` only stops answering to `--hook-stage pre-push` silently.
+CI's one command then "passes" having actually run nothing, which is
+worse than a failure, because nothing in the output says so. Confirmed
+directly: a hook with no `stages:` key at all runs at both
+`--hook-stage pre-commit` and `--hook-stage pre-push` once
+`default_install_hook_types` includes both; a hook pinned to
+`stages: [pre-commit]` runs at the first and is simply absent, with no
+error, from the second.
+
+For this setup, leave the hook ids you want re-swept with no `stages:`
+key at all (pre-commit's default is every installed stage, which is
+exactly the re-sweep you want), and reserve an explicit `stages:` for
+the ids that must answer a different question at a different stage
+rather than the same question again: `checklist-git-commit-msg`
+(`stages: [commit-msg]`, as above regardless of setup), and, if you also
+use it, `checklist-git-protected-branches`. That one checks which
+branch `HEAD` is on right now rather than file content, so re-running it
+at `pre-push` is not a repeat of the same answer, it can be a different
+one (a `workflow_dispatch` CI run can legitimately be checked out on
+`main`); pin it to `stages: [pre-commit]` so a push-time re-run of a
+question about local commit intent does not fail a run that was never
+about that.
