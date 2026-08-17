@@ -33,6 +33,7 @@ repos:
         entry: ./scripts/run-checklist.sh
         args: [checklist-basic]
         stages: [pre-commit]
+        require_serial: true
         verbose: true
 
       - id: checklist-spell
@@ -41,6 +42,7 @@ repos:
         entry: ./scripts/run-checklist.sh
         args: [checklist-spell]
         stages: [pre-commit]
+        require_serial: true
         verbose: true
 
       - id: checklist-json
@@ -50,6 +52,7 @@ repos:
         args: [checklist-json]
         stages: [pre-commit]
         types: [json]
+        require_serial: true
         verbose: true
 
       - id: checklist-markdown
@@ -59,6 +62,7 @@ repos:
         args: [checklist-markdown]
         stages: [pre-commit]
         types: [markdown]
+        require_serial: true
         verbose: true
 
       - id: checklist-toml
@@ -68,6 +72,7 @@ repos:
         args: [checklist-toml]
         stages: [pre-commit]
         types: [toml]
+        require_serial: true
         verbose: true
 
       - id: checklist-xml
@@ -77,6 +82,7 @@ repos:
         args: [checklist-xml]
         stages: [pre-commit]
         types: [xml]
+        require_serial: true
         verbose: true
 
       - id: checklist-yaml
@@ -86,6 +92,7 @@ repos:
         args: [checklist-yaml]
         stages: [pre-commit]
         types: [yaml]
+        require_serial: true
         verbose: true
 
       - id: checklist-security-credentials
@@ -94,6 +101,7 @@ repos:
         entry: ./scripts/run-checklist.sh
         args: [checklist-security-credentials]
         stages: [pre-commit, pre-merge-commit]
+        require_serial: true
         verbose: true
 
       - id: checklist-git-valid-branches
@@ -103,6 +111,7 @@ repos:
         stages: [pre-commit, pre-merge-commit]
         pass_filenames: false
         always_run: true
+        require_serial: true
         verbose: true
 
       - id: checklist-git-protected-branches
@@ -113,6 +122,7 @@ repos:
         stages: [pre-commit, pre-merge-commit]
         pass_filenames: false
         always_run: true
+        require_serial: true
         verbose: true
 
       - id: checklist-git-commit-msg
@@ -121,6 +131,7 @@ repos:
         entry: ./scripts/check-commit-msg.sh
         stages: [commit-msg]
         files: ^\.git/COMMIT_EDITMSG$
+        require_serial: true
         verbose: true
 
       - id: checklist-github-actions
@@ -130,6 +141,7 @@ repos:
         args: [checklist-github-actions]
         stages: [pre-commit]
         files: ^\.github/
+        require_serial: true
         verbose: true
 
       # Defect 2 fix: the file selector below is `files:` matching dotfile
@@ -143,6 +155,7 @@ repos:
         args: [checklist-dev-dotenv]
         stages: [pre-commit]
         files: '(^|/)\.env(\..+)?$'
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-editorconfig
@@ -151,6 +164,7 @@ repos:
         entry: ./scripts/run-checklist.sh
         args: [checklist-dev-editorconfig]
         stages: [pre-commit]
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-shell
@@ -160,6 +174,7 @@ repos:
         args: [checklist-dev-shell]
         stages: [pre-commit]
         types: [shell]
+        require_serial: true
         verbose: true
 
       # Defect 3 fix: `types_or: [python]` combined with
@@ -174,6 +189,7 @@ repos:
         args: [checklist-dev-python]
         stages: [pre-commit]
         files: '(\.py$|(^|/)requirements\.txt$)'
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-terraform
@@ -183,6 +199,7 @@ repos:
         args: [checklist-dev-terraform]
         stages: [pre-commit]
         files: \.tf$
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-javascript
@@ -192,6 +209,7 @@ repos:
         args: [checklist-dev-javascript]
         stages: [pre-commit]
         types: [javascript]
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-typescript
@@ -201,6 +219,7 @@ repos:
         args: [checklist-dev-typescript]
         stages: [pre-commit]
         files: \.ts$
+        require_serial: true
         verbose: true
 
       - id: checklist-dev-docker
@@ -210,4 +229,5 @@ repos:
         args: [checklist-dev-docker]
         stages: [pre-commit]
         types: [dockerfile]
+        require_serial: true
         verbose: true

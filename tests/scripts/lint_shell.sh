@@ -114,6 +114,18 @@ run_and_capture "${RUN_SCRIPT}"
 run_and_capture "${RUN_SCRIPT}" checklist-does-not-exist tests/fixtures/checklist-toml/should-pass/config.toml
 [ "${EXIT}" -eq 2 ] && pass "run-checklist.sh: unknown checklist name exits 2" || fail "run-checklist.sh: unknown checklist should exit 2" "exit=${EXIT} ${OUT}"
 
+# Defect 4: a consumer args: override on a checklist-* hook id replaces
+# the baked-in checklist-name argument, so run-checklist.sh receives
+# whatever the consumer put in args: (here simulated with a flag-shaped
+# string) as its first argument instead. This must fail loudly, pointing
+# at the actual cause, not just exit nonzero.
+run_and_capture "${RUN_SCRIPT}" --some-flag tests/fixtures/checklist-toml/should-pass/config.toml
+if [ "${EXIT}" -eq 2 ] && echo "${OUT}" | grep -q "docs/overrides.md" && echo "${OUT}" | grep -q "args:"; then
+  pass "run-checklist.sh: an args:-shaped first argument exits 2 with a pointer to the args: hazard in docs/overrides.md"
+else
+  fail "run-checklist.sh: an args:-shaped first argument should exit 2 and explain the args: override hazard" "exit=${EXIT} ${OUT}"
+fi
+
 run_and_capture "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/should-pass/config.toml
 [ "${EXIT}" -eq 0 ] && pass "run-checklist.sh: valid checklist against a passing fixture exits 0" || fail "run-checklist.sh: passing fixture should exit 0" "exit=${EXIT} ${OUT}"
 

@@ -1,9 +1,67 @@
 ---
-# Style-checks .env files. The hook's own definition already scopes itself
-# to `.env*` files (types: [text], files: '\.env*'), so no selector is
-# needed here.
+# Runs dotenv-linter/dotenv-linter (Rust, https://github.com/dotenv-linter/dotenv-linter),
+# not wemake-services/dotenv-linter (Python, https://github.com/wemake-services/dotenv-linter).
+# Both projects share the name "dotenv-linter" and nothing else: different
+# language, different rule set, different maintainers. An earlier version
+# of this checklist pinned the Python project, which most consumers do not
+# expect from the name alone, and which has no flag equivalent to the Rust
+# project's --ignore-checks. See docs/hook-catalogue.md for the full
+# comparison; switching projects here is a breaking change for any
+# consumer already on checklist-dev-dotenv, documented in that file.
+#
+# This is a `repo: local` hook rather than a `repo: https://github.com/dotenv-linter/dotenv-linter`
+# entry, on purpose: that project's own .pre-commit-hooks.yaml uses
+# `language: docker`, which has pre-commit build the image locally from
+# that repo's Dockerfile. That Dockerfile's `FROM builder-${TARGETARCH}`
+# multi-arch stage only resolves under BuildKit/buildx; confirmed on a
+# plain Docker Engine install with no buildx plugin, `docker build`
+# fails outright with "invalid reference format" before dotenv-linter
+# ever runs. Pulling the project's own published image instead
+# (docker.io/dotenvlinter/dotenv-linter, tag matching the GitHub release)
+# and running it directly sidesteps that build step entirely; confirmed
+# working against both should-pass and should-fail fixtures.
+#
+# The bind mount adds the `Z` SELinux relabel option pre-commit's own
+# docker-language support always adds for exactly this reason: confirmed
+# on this repo's own development host (SELinux enforcing) that podman,
+# without `Z`, silently reports "Nothing to check" and exits 0 on files
+# it never actually saw, a false pass. Docker did not need it here, but
+# nothing about that is guaranteed on every host, so the flag is kept
+# for both runtimes rather than relied upon working by accident.
+#
+# `dotenvlinter/dotenv-linter` (no registry host) resolves under Docker's
+# default docker.io registry, but podman's short-name resolution refuses
+# to guess a registry non-interactively; the image reference below is
+# fully qualified (`docker.io/...`) so both runtimes resolve it the same
+# way without a prompt.
+#
+# No selector-only escape hatch exists for a consumer who disagrees with
+# one check: this hook id routes through scripts/run-checklist.sh like
+# every other checklist-* id except the two git-message ones, so args:
+# on checklist-dev-dotenv itself replaces the checklist-name argument
+# instead of reaching dotenv-linter (see docs/overrides.md's warning on
+# this). --ignore-checks and --exclude are real flags on the underlying
+# tool, and DOTENV_LINTER_IGNORE_CHECKS is a real environment variable it
+# reads, but that variable cannot reach the container either: pre-commit's
+# own docker-language driver never forwards host environment variables
+# into `docker run`, and this hook does not either, on purpose, so its
+# behavior does not silently depend on whatever is set in a consumer's
+# shell. A consumer who needs either flag should add dotenv-linter as
+# their own hook entry, pointed at the same image, instead of going
+# through this checklist id; see docs/overrides.md.
 repos:
-  - repo: https://github.com/wemake-services/dotenv-linter
-    rev: 0.9.0
+  - repo: local
     hooks:
       - id: dotenv-linter
+        name: dotenv-linter (dotenv-linter/dotenv-linter, Rust)
+        language: system
+        files: '(^|/)\.env(\..+)?$'
+        entry: >-
+          bash -c '
+          runtime=$(command -v docker || command -v podman) || {
+          echo "dotenv-linter needs docker or podman on PATH (see docs/hook-catalogue.md)." >&2;
+          exit 1;
+          };
+          exec "${runtime}" run --rm -v "$(pwd):/src:ro,Z" -w /src
+          docker.io/dotenvlinter/dotenv-linter:4.0.0 check --skip-updates "$@"
+          ' --

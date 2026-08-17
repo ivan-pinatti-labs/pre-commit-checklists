@@ -84,5 +84,8 @@ carry. A pattern that keeps each PR reviewable:
 
 ## Overriding a specific finding
 
-See [`docs/overrides.md`](overrides.md) for inline-ignore syntax across
-the tools this library wraps, including MegaLinter's own linters.
+MegaLinter has no inline-ignore syntax of its own; each underlying
+linter it runs keeps its own convention, and `DISABLE`/`DISABLE_LINTERS`
+above turn a whole linter off rather than ignoring one finding. See
+[`docs/overrides.md`](overrides.md#megalinter-specific-overrides) for
+which of those conventions this library already documents.
