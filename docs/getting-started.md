@@ -6,6 +6,22 @@ message/branch guards), plus the config files those checklists expect to
 find in your repo. You add one `repo:` entry to your own
 `.pre-commit-config.yaml` and select the hook ids you want.
 
+## Which path do I use?
+
+Pick exactly one, based on whether the repo exists yet. Doing both leaves
+you undoing one or the other.
+
+- **Starting a repo that does not exist yet**: use the
+  [`ivan-pinatti/github-template`](https://github.com/ivan-pinatti/github-template)
+  GitHub template repository instead of anything on this page. Click
+  **Use this template** and you get a repo with the pinned
+  `.pre-commit-config.yaml`, workflows, bot configs, and community files
+  already committed. Nothing to run.
+- **Adding this library to a repo that already exists**: keep reading.
+  `scripts/install.sh` below bootstraps an existing repo in place, and
+  `--community-files` adds the same community files `github-template`
+  ships with, if you want them.
+
 ## Requirements
 
 - [`pre-commit`](https://pre-commit.com/#install) itself.
@@ -63,17 +79,56 @@ The script:
    `.markdownlint.yaml`, `.lycheeignore`, `.mega-linter.yml`) into your
    repo, without clobbering files that already exist (pass `--force` to
    overwrite).
-2. Appends the MegaLinter/pre-commit log entries from
+2. With `--community-files`, also copies the GitHub community health
+   files from [`templates/community/`](../templates/community/): issue
+   templates, a pull request template, `CODE_OF_CONDUCT.md`,
+   `CONTRIBUTING.md`, `SECURITY.md`, and a commented-out `FUNDING.yml`.
+   Off by default: plenty of consumers already have their own, and
+   silently replacing one would be a bad surprise. Same no-clobber rule
+   as everything else the script writes.
+3. Appends the MegaLinter/pre-commit log entries from
    [`templates/gitignore.fragment`](../templates/gitignore.fragment) to
    your `.gitignore`.
-3. Generates `.secrets.baseline` with `detect-secrets scan`.
-4. Runs `pre-commit install` in your repo, which also wires up the
+4. Generates `.secrets.baseline` with `detect-secrets scan`.
+5. Runs `pre-commit install` in your repo, which also wires up the
    `commit-msg` git hook stage if the template you chose uses it.
 
 Piped mode needs `curl` or `wget`; without either, or if a fetch fails,
 or if `--template`/`--ref` names something that does not exist, the
 script exits with a specific status and a message saying which. Run
-`./scripts/install.sh --help` for the full flag list, including `--ref`.
+`./scripts/install.sh --help` for the full flag list, including `--ref`
+and `--community-files`.
+
+### Community health files
+
+The files under [`templates/community/`](../templates/community/) are
+generic on purpose: they land in other people's repos, so nothing in
+them names this project or its maintainer. A few spots need a value only
+the consumer can supply (a security-advisory URL, a code-of-conduct
+contact method), and those use glaringly unfinished placeholders, such
+as `OWNER/REPO` or `[INSERT CONTACT METHOD]`, rather than something that
+looks plausible but points at the wrong repo. Search for bracketed
+placeholders after installing, and fill them in before you publish.
+
+`FUNDING.yml` is entirely commented out for the same reason: an active
+entry would point donations at whoever last edited the template, not at
+the consumer's own project. Uncomment and fill in your own accounts, or
+leave it as is for no Sponsor button.
+
+This is also where the standalone `ivan-pinatti/github-templates` repo
+(the one that used to hold copy-paste issue/PR template files) landed;
+that repo is retired, and `--community-files` is its replacement.
+
+**`templates/` in this repository is the canonical source for these
+files.** `ivan-pinatti/github-template` (the "Use this template" repo
+from the section above) holds a materialized snapshot of the same
+files, committed directly rather than fetched at use-time. When a
+template changes here, `github-template` needs a manual refresh to
+match; it is not automatic. This does not apply to the `.pre-commit-config.yaml`
+that `github-template` ships: that file pins `rev:` to a release of
+this library, so Dependabot keeps it current on its own. It is only the
+copied community/community-adjacent files that can drift, and only a
+human re-syncing them keeps that from happening.
 
 ## Option B: by hand
 
