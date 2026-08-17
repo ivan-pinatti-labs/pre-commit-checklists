@@ -184,7 +184,13 @@ configurations measured the same (0.59 to 0.62 seconds either way):
 it is safe on every checklist-* id regardless of how many files a given
 consumer repository hands it, including the file-scoped ones
 (`checklist-dev-terraform`, `checklist-dev-typescript`, and so on) that
-will rarely see more than a handful of matches in most repositories.
+will rarely see more than a handful of matches in most repositories. It
+is also safe at the other extreme: pre-commit still splits an argument
+list too long for the operating system to exec in one call, regardless
+of `require_serial`, it just runs those splits one after another
+instead of in parallel, rather than raising an error. `require_serial`
+only removes the splitting pre-commit otherwise does purely to spread
+work across CPU cores.
 
 This is set once, in `.pre-commit-hooks.yaml`, not repeated in
 `templates/pre-commit-config/*.yaml`. Confirmed directly: a consumer
