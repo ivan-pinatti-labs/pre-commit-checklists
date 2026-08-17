@@ -4,7 +4,11 @@
   Bootstraps a target repository with this library: copies a chosen
   pre-commit-config template plus the supporting tool configs into
   --target, generates a detect-secrets baseline, and runs
-  `pre-commit install`.
+  `pre-commit install`. Pass --community-files to also copy the GitHub
+  community health files (issue templates, pull request template,
+  CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, a commented-out
+  FUNDING.yml) from templates/community/; this is opt in, not the
+  default, since plenty of consumers already have their own.
 
   Runs in one of two modes, detected automatically, no flag needed:
     - Local: invoked from a checkout of this repo (./scripts/install.sh,
@@ -23,8 +27,10 @@
     0 - success
     1 - usage/argument error
     2 - target directory not found
-    3 - the template, or an expected supporting file, was not found at
-        the chosen --template / --ref (bad template name, or bad ref)
+    3 - the template, or an expected supporting file (including a
+        community file, when --community-files is given), was not
+        found at the chosen --template / --ref (bad template name, bad
+        ref, or a ref from before --community-files existed)
     4 - a file already exists at the destination and --force was not given
     5 - a required command (pre-commit or detect-secrets) is not installed
     6 - neither curl nor wget is installed (remote mode only)
@@ -54,10 +60,11 @@ __template="recommended"
 __target=""
 __force=false
 __ref=""
+__community_files=false
 
 usage() {
   cat <<EOF
-Usage: $(basename "${0}") [--target <path>] [--template <name>] [--ref <tag|branch>] [--force]
+Usage: $(basename "${0}") [--target <path>] [--template <name>] [--ref <tag|branch>] [--force] [--community-files]
 
 Copies a pre-commit-config template and the supporting tool configs into
 --target, generates --target/.secrets.baseline, and runs
@@ -66,23 +73,32 @@ automatically: run from a local clone (copies off disk), or piped into
 bash (fetches from GitHub instead).
 
 Arguments:
-  --target <path>      Repository to bootstrap. Must already exist.
-                        Defaults to the current directory in the piped
-                        form; required when run from a local clone.
-  --template <name>    One of the files in templates/pre-commit-config/,
-                        without the .yaml extension. Default: recommended.
-                        (minimal, recommended, full, python, shell,
-                        terraform, javascript, typescript)
-  --ref <tag|branch>   Piped form only: the git ref to fetch templates
-                        from. Default: this repository's latest release
-                        tag, falling back to 'main' if it has no release
-                        yet.
-  --force               Overwrite files already present at the destination.
+  --target <path>         Repository to bootstrap. Must already exist.
+                          Defaults to the current directory in the piped
+                          form; required when run from a local clone.
+  --template <name>       One of the files in templates/pre-commit-config/,
+                          without the .yaml extension. Default: recommended.
+                          (minimal, recommended, full, python, shell,
+                          terraform, javascript, typescript)
+  --ref <tag|branch>      Piped form only: the git ref to fetch templates
+                          from. Default: this repository's latest release
+                          tag, falling back to 'main' if it has no release
+                          yet.
+  --force                 Overwrite files already present at the destination.
+  --community-files       Also copy the GitHub community health files from
+                          templates/community/ (issue templates, a pull
+                          request template, CODE_OF_CONDUCT.md,
+                          CONTRIBUTING.md, SECURITY.md, a commented-out
+                          FUNDING.yml). Off by default. These land with
+                          generic placeholders; search the copied files
+                          for bracketed tokens (e.g. OWNER/REPO) and fill
+                          them in before publishing.
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/${GITHUB_OWNER_REPO}/main/scripts/install.sh \\
     | bash -s -- --template recommended
   $(basename "${0}") --target ../my-repo --template python
+  $(basename "${0}") --target ../my-repo --community-files
 EOF
   exit 1
 }
@@ -103,6 +119,10 @@ while [ $# -gt 0 ]; do
     ;;
   --force)
     __force=true
+    shift
+    ;;
+  --community-files)
+    __community_files=true
     shift
     ;;
   -h | --help)
@@ -173,6 +193,10 @@ if [ "${MODE}" = "local" ]; then
   TEMPLATES_DIR="${LOCAL_REPO_ROOT}/templates"
   if [ ! -f "${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml" ]; then
     echo "Error: no template named '${__template}' in templates/pre-commit-config/." >&2
+    exit 3
+  fi
+  if [ "${__community_files}" = true ] && [ ! -f "${TEMPLATES_DIR}/community/CONTRIBUTING.md" ]; then
+    echo "Error: no templates/community/ directory found next to this checkout." >&2
     exit 3
   fi
 else
@@ -270,6 +294,20 @@ else
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required ".mega-linter.yml" "could not find templates/.mega-linter.yml at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
+
+  if [ "${__community_files}" = true ]; then
+    mkdir -p "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE"
+    __not_found_suffix="at ref '${__ref}'. --community-files needs a ref that includes templates/community/; pass --ref <tag|branch> to pick a newer one."
+    fetch_required "community/.github/ISSUE_TEMPLATE/bug_report.md" "could not find templates/community/.github/ISSUE_TEMPLATE/bug_report.md ${__not_found_suffix}"
+    fetch_required "community/.github/ISSUE_TEMPLATE/feature_request.md" "could not find templates/community/.github/ISSUE_TEMPLATE/feature_request.md ${__not_found_suffix}"
+    fetch_required "community/.github/ISSUE_TEMPLATE/question.md" "could not find templates/community/.github/ISSUE_TEMPLATE/question.md ${__not_found_suffix}"
+    fetch_required "community/.github/ISSUE_TEMPLATE/config.yml" "could not find templates/community/.github/ISSUE_TEMPLATE/config.yml ${__not_found_suffix}"
+    fetch_required "community/.github/PULL_REQUEST_TEMPLATE.md" "could not find templates/community/.github/PULL_REQUEST_TEMPLATE.md ${__not_found_suffix}"
+    fetch_required "community/.github/FUNDING.yml" "could not find templates/community/.github/FUNDING.yml ${__not_found_suffix}"
+    fetch_required "community/CODE_OF_CONDUCT.md" "could not find templates/community/CODE_OF_CONDUCT.md ${__not_found_suffix}"
+    fetch_required "community/CONTRIBUTING.md" "could not find templates/community/CONTRIBUTING.md ${__not_found_suffix}"
+    fetch_required "community/SECURITY.md" "could not find templates/community/SECURITY.md ${__not_found_suffix}"
+  fi
 fi
 
 # --- Provision the target repo, identically regardless of mode ----------
@@ -299,6 +337,19 @@ copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
 copy_file "${TEMPLATES_DIR}/.markdownlint.yaml" "${__target}/.markdownlint.yaml" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
 copy_file "${TEMPLATES_DIR}/.mega-linter.yml" "${__target}/.mega-linter.yml" || true
+
+if [ "${__community_files}" = true ]; then
+  mkdir -p "${__target}/.github/ISSUE_TEMPLATE"
+  copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/bug_report.md" "${__target}/.github/ISSUE_TEMPLATE/bug_report.md" || true
+  copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/feature_request.md" "${__target}/.github/ISSUE_TEMPLATE/feature_request.md" || true
+  copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/question.md" "${__target}/.github/ISSUE_TEMPLATE/question.md" || true
+  copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/config.yml" "${__target}/.github/ISSUE_TEMPLATE/config.yml" || true
+  copy_file "${TEMPLATES_DIR}/community/.github/PULL_REQUEST_TEMPLATE.md" "${__target}/.github/PULL_REQUEST_TEMPLATE.md" || true
+  copy_file "${TEMPLATES_DIR}/community/.github/FUNDING.yml" "${__target}/.github/FUNDING.yml" || true
+  copy_file "${TEMPLATES_DIR}/community/CODE_OF_CONDUCT.md" "${__target}/CODE_OF_CONDUCT.md" || true
+  copy_file "${TEMPLATES_DIR}/community/CONTRIBUTING.md" "${__target}/CONTRIBUTING.md" || true
+  copy_file "${TEMPLATES_DIR}/community/SECURITY.md" "${__target}/SECURITY.md" || true
+fi
 
 # Append the gitignore fragment once, marked so re-running is idempotent.
 __marker="# --- pre-commit-checklists (scripts/install.sh) ---"
@@ -340,3 +391,11 @@ Done. Next steps in '${__target}':
   2. Review .secrets.baseline and commit it.
   3. Run: pre-commit run --all-files
 EOF
+
+if [ "${__community_files}" = true ]; then
+  cat <<EOF
+  4. The community files carry generic placeholders (e.g. OWNER/REPO,
+    [INSERT CONTACT METHOD]). Search CODE_OF_CONDUCT.md and SECURITY.md
+    for bracketed tokens and fill them in before publishing.
+EOF
+fi
