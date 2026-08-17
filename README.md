@@ -134,6 +134,21 @@ TRC-20 accepts TRX, USDT, and USDC. See the
 
 ---
 
+## Which path do I use?
+
+Pick exactly one, based on whether the repo exists yet. Doing both leaves
+you undoing one or the other.
+
+- **Starting a repo that does not exist yet**: use the
+  [`ivan-pinatti/github-template`](https://github.com/ivan-pinatti/github-template)
+  GitHub template repository instead of the Quickstart below. Click **Use
+  this template** and you get a repo with the pinned
+  `.pre-commit-config.yaml`, workflows, bot configs, and community files
+  already committed. Nothing to run.
+- **Adding this library to a repo that already exists**: use the
+  Quickstart below. `--community-files` adds the same community files
+  `github-template` ships with, if you want them.
+
 ## Quickstart
 
 Requirements: [`pre-commit`](https://pre-commit.com/#install) itself, and
@@ -170,7 +185,12 @@ without the `.yaml` extension: `minimal`, `recommended`, `full`, `python`,
 chosen config plus its supporting tool configs into your repo, generates a
 `.secrets.baseline`, and runs `pre-commit install`. Piped or local, it
 fetches or copies templates pinned to a `--ref` (default: the latest
-release tag, falling back to `main` while this repository has none). See
+release tag, falling back to `main` while this repository has none). Add
+`--community-files` to also copy the GitHub community health files from
+[`templates/community/`](templates/community/) (issue templates, a pull
+request template, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`,
+a commented-out `FUNDING.yml`); it is opt in, and comes with generic
+placeholders to fill in before publishing. See
 [`docs/getting-started.md`](docs/getting-started.md) for the full walkthrough,
 including doing it by hand instead, and
 [`docs/versioning.md`](docs/versioning.md) for what the `rev:` pin means.
@@ -216,7 +236,9 @@ don't recur.
 
 ## Documentation
 
-- [`docs/getting-started.md`](docs/getting-started.md): full setup walkthrough
+- [`docs/getting-started.md`](docs/getting-started.md): full setup walkthrough,
+  including which of the two setup paths to use and the `--community-files`
+  flag (the replacement for the retired `ivan-pinatti/github-templates` repo)
 - [`docs/hook-catalogue.md`](docs/hook-catalogue.md): source data for the table above
 - [`docs/overrides.md`](docs/overrides.md): skip a hook, exclude a path, require
   ticket prefixes, allowlist a secret

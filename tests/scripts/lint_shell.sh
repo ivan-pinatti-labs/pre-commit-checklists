@@ -182,6 +182,85 @@ if [ "${EXIT}" -eq 0 ] && echo "${OUT}" | grep -q "already exists"; then
 else
   fail "install.sh: re-running without --force should skip existing files and still exit 0" "exit=${EXIT} ${OUT}"
 fi
+
+if [ -e "${__target}/CONTRIBUTING.md" ] || [ -e "${__target}/.github" ]; then
+  fail "install.sh: community files should not appear without --community-files" "$(ls -la "${__target}")"
+else
+  pass "install.sh: --community-files is opt in, no community files without the flag"
+fi
 rm -rf "${__target}"
+
+section "install.sh --community-files"
+__target=$(mktemp -d /tmp/pcc-install-community.XXXXXX)
+git init -q "${__target}"
+echo "pre-commit 4.5.1" >"${__target}/.tool-versions"
+run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files
+__community_files_expected="
+.github/ISSUE_TEMPLATE/bug_report.md
+.github/ISSUE_TEMPLATE/feature_request.md
+.github/ISSUE_TEMPLATE/question.md
+.github/ISSUE_TEMPLATE/config.yml
+.github/PULL_REQUEST_TEMPLATE.md
+.github/FUNDING.yml
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+"
+__all_present=true
+for __f in ${__community_files_expected}; do
+  [ -f "${__target}/${__f}" ] || __all_present=false
+done
+if [ "${EXIT}" -eq 0 ] && [ "${__all_present}" = true ]; then
+  pass "install.sh --community-files: writes every issue/PR template, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, and FUNDING.yml"
+else
+  fail "install.sh --community-files: expected all community files to be written" "exit=${EXIT} ${OUT}"
+fi
+
+# No-clobber: a consumer retrofitting an existing repo very likely already
+# has their own CONTRIBUTING.md; re-running without --force must not
+# replace it.
+echo "PRE-EXISTING CONTRIBUTING CONTENT" >"${__target}/CONTRIBUTING.md"
+run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files
+if [ "${EXIT}" -eq 0 ] && grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
+  pass "install.sh --community-files: re-running without --force does not clobber an existing CONTRIBUTING.md"
+else
+  fail "install.sh --community-files: existing CONTRIBUTING.md should survive a re-run without --force" "exit=${EXIT} ${OUT}"
+fi
+
+run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files --force
+if [ "${EXIT}" -eq 0 ] && ! grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
+  pass "install.sh --community-files --force: overwrites an existing CONTRIBUTING.md"
+else
+  fail "install.sh --community-files --force: should overwrite an existing CONTRIBUTING.md" "exit=${EXIT} ${OUT}"
+fi
+rm -rf "${__target}"
+
+# Generic-content gate: the shipped community templates must never carry
+# this library's own name, repo URL, or maintainer identity into a
+# consumer's repo. This is the one thing --community-files must never
+# regress.
+__community_dir="${REPO_ROOT}/templates/community"
+if matches=$(grep -rIn -i 'ivan-pinatti\|ivan pinatti' "${__community_dir}" 2>/dev/null); then
+  fail "install.sh --community-files: templates/community/ must not hardcode the maintainer's name or repo" "${matches}"
+else
+  pass "install.sh --community-files: templates/community/ carries no hardcoded maintainer name or repo URL"
+fi
+
+# Local-mode guard: --community-files against a checkout that predates this
+# feature (no templates/community/ directory) must fail loudly with exit 3,
+# not silently skip the community files.
+__old_checkout=$(mktemp -d /tmp/pcc-old-checkout.XXXXXX)
+mkdir -p "${__old_checkout}/scripts" "${__old_checkout}/templates/pre-commit-config"
+cp "${INSTALL_SCRIPT}" "${__old_checkout}/scripts/install.sh"
+cp "${REPO_ROOT}/templates/pre-commit-config/minimal.yaml" "${__old_checkout}/templates/pre-commit-config/minimal.yaml"
+for __f in .editorconfig .cspell.json .yamllint.yml .markdownlint.yaml .lycheeignore .mega-linter.yml gitignore.fragment; do
+  cp "${REPO_ROOT}/templates/${__f}" "${__old_checkout}/templates/${__f}"
+done
+__target=$(mktemp -d /tmp/pcc-install-old-checkout.XXXXXX)
+git init -q "${__target}"
+echo "pre-commit 4.5.1" >"${__target}/.tool-versions"
+run_and_capture "${__old_checkout}/scripts/install.sh" --target "${__target}" --template minimal --community-files
+[ "${EXIT}" -eq 3 ] && pass "install.sh --community-files: a checkout with no templates/community/ exits 3" || fail "install.sh --community-files: a checkout with no templates/community/ should exit 3" "exit=${EXIT} ${OUT}"
+rm -rf "${__old_checkout}" "${__target}"
 
 summarize

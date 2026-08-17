@@ -1,0 +1,15 @@
+---
+# Set to true to keep GitHub's "open a blank issue" option alongside the
+# templates below. false forces reporters through one of the templates.
+blank_issues_enabled: false
+
+# Add entries here to point at your own sponsorship, discussion, or support
+# channels; each one becomes a link on the "new issue" chooser page. Left
+# commented out, no extra links are shown, and no donations are pointed
+# anywhere. See GitHub's docs on configuring the issue template chooser
+# for the full syntax.
+#
+# contact_links:
+#   - name: Sponsor this project
+#     url: https://github.com/sponsors/REPLACE_WITH_YOUR_USERNAME
+#     about: Support ongoing maintenance.
