@@ -6,16 +6,30 @@
   --target, generates a detect-secrets baseline, and runs
   `pre-commit install`.
 
+  Runs in one of two modes, detected automatically, no flag needed:
+    - Local: invoked from a checkout of this repo (./scripts/install.sh,
+      or bash scripts/install.sh), copies the template files straight
+      off disk.
+    - Remote: invoked piped into bash (curl ... | bash -s -- ...), where
+      there is no checkout to copy from, so the same files are fetched
+      over HTTPS from raw.githubusercontent.com instead, pinned to
+      --ref.
+
   This is the one script in this library that reaches outside its own
-  repo: it writes into whatever --target points at, never into this repo.
+  repo: it writes into whatever --target points at (or, in remote mode
+  with no --target given, the current directory), never into this repo.
 
   Exit status codes:
     0 - success
     1 - usage/argument error
     2 - target directory not found
-    3 - template not found
+    3 - the template, or an expected supporting file, was not found at
+        the chosen --template / --ref (bad template name, or bad ref)
     4 - a file already exists at the destination and --force was not given
     5 - a required command (pre-commit or detect-secrets) is not installed
+    6 - neither curl nor wget is installed (remote mode only)
+    7 - a network fetch failed for a reason other than "not found":
+        DNS, connection, or timeout (remote mode only)
     non-zero - whatever the failing command returned
 '
 
@@ -28,31 +42,40 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-HERE=$(dirname "$(realpath "${0}")")
-TEMPLATES_DIR="${HERE}/../templates"
+readonly GITHUB_OWNER_REPO="ivan-pinatti/pre-commit-checklists"
 
 __template="recommended"
 __target=""
 __force=false
+__ref=""
 
 usage() {
   cat <<EOF
-Usage: $(basename "${0}") --target <path> [--template <name>] [--force]
+Usage: $(basename "${0}") [--target <path>] [--template <name>] [--ref <tag|branch>] [--force]
 
-Copies a pre-commit-config template and the supporting tool configs from
-templates/ into --target, generates --target/.secrets.baseline, and runs
-'pre-commit install' inside --target.
+Copies a pre-commit-config template and the supporting tool configs into
+--target, generates --target/.secrets.baseline, and runs
+'pre-commit install' inside --target. Works two ways, detected
+automatically: run from a local clone (copies off disk), or piped into
+bash (fetches from GitHub instead).
 
 Arguments:
-  --target <path>     Repository to bootstrap. Must already exist.
-  --template <name>   One of the files in templates/pre-commit-config/,
-                      without the .yaml extension. Default: recommended.
-                      (minimal, recommended, full, python, shell,
-                      terraform, javascript, typescript)
-  --force              Overwrite files already present at the destination.
+  --target <path>      Repository to bootstrap. Must already exist.
+                        Defaults to the current directory in the piped
+                        form; required when run from a local clone.
+  --template <name>    One of the files in templates/pre-commit-config/,
+                        without the .yaml extension. Default: recommended.
+                        (minimal, recommended, full, python, shell,
+                        terraform, javascript, typescript)
+  --ref <tag|branch>   Piped form only: the git ref to fetch templates
+                        from. Default: this repository's latest release
+                        tag, falling back to 'main' if it has no release
+                        yet.
+  --force               Overwrite files already present at the destination.
 
 Examples:
-  $(basename "${0}") --target ../my-repo
+  curl -fsSL https://raw.githubusercontent.com/${GITHUB_OWNER_REPO}/main/scripts/install.sh \\
+    | bash -s -- --template recommended
   $(basename "${0}") --target ../my-repo --template python
 EOF
   exit 1
@@ -66,6 +89,10 @@ while [ $# -gt 0 ]; do
     ;;
   --template)
     __template="${2:-}"
+    shift 2
+    ;;
+  --ref)
+    __ref="${2:-}"
     shift 2
     ;;
   --force)
@@ -82,9 +109,46 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# --- Mode detection: local checkout, or piped into bash -----------------
+
+# Local mode is used when this script can find its own repo root on
+# disk: it was checked out, not piped in. Piping a script into
+# `bash -s --` runs it straight from stdin, which leaves BASH_SOURCE
+# empty (there is no source file for a script read from a pipe), so the
+# check below naturally falls through to remote mode in that case; no
+# flag needed to tell the two apart.
+detect_local_repo_root() {
+  if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    __candidate=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+    if [ -d "${__candidate}/templates/pre-commit-config" ]; then
+      printf '%s\n' "${__candidate}"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+MODE="remote"
+LOCAL_REPO_ROOT=""
+if LOCAL_REPO_ROOT=$(detect_local_repo_root); then
+  MODE="local"
+fi
+
+STAGING_DIR=""
+cleanup_staging() {
+  if [ -n "${STAGING_DIR}" ] && [ -d "${STAGING_DIR}" ]; then
+    rm -rf "${STAGING_DIR}"
+  fi
+}
+trap cleanup_staging EXIT
+
 if [ -z "${__target}" ]; then
-  echo "Error: --target is required." >&2
-  usage
+  if [ "${MODE}" = "remote" ]; then
+    __target=$(pwd)
+  else
+    echo "Error: --target is required." >&2
+    usage
+  fi
 fi
 
 if [ ! -d "${__target}" ]; then
@@ -94,11 +158,115 @@ fi
 
 __target=$(realpath "${__target}")
 
-__config_template="${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml"
-if [ ! -f "${__config_template}" ]; then
-  echo "Error: no template named '${__template}' in templates/pre-commit-config/." >&2
-  exit 3
+# --- Resolve TEMPLATES_DIR: local files, or a freshly fetched staging ---
+# --- directory standing in for them -------------------------------------
+
+TEMPLATES_DIR=""
+
+if [ "${MODE}" = "local" ]; then
+  TEMPLATES_DIR="${LOCAL_REPO_ROOT}/templates"
+  if [ ! -f "${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml" ]; then
+    echo "Error: no template named '${__template}' in templates/pre-commit-config/." >&2
+    exit 3
+  fi
+else
+  FETCHER=""
+  if command -v curl >/dev/null 2>&1; then
+    FETCHER="curl"
+  elif command -v wget >/dev/null 2>&1; then
+    FETCHER="wget"
+  else
+    echo "Error: neither curl nor wget is installed; install one and re-run." >&2
+    exit 6
+  fi
+
+  # Fetches $1 (a URL) into $2. Returns 0 on success, 2 if the server
+  # reported the resource does not exist (HTTP 404, the shape of a bad
+  # --template or --ref), 1 for any other fetch failure (DNS,
+  # connection, timeout, ...).
+  fetch_url() {
+    __url="${1}"
+    __dest="${2}"
+    __status=0
+    if [ "${FETCHER}" = "curl" ]; then
+      # An `if cmd; then ...; fi` with no `else` returns exit status 0
+      # when cmd fails, not cmd's own status, so the real status is
+      # captured via `||` before that ever runs.
+      curl -fsSL "${__url}" -o "${__dest}" || __status=$?
+      [ "${__status}" -eq 0 ] && return 0
+      rm -f "${__dest}"
+      [ "${__status}" -eq 22 ] && return 2
+      return 1
+    fi
+    wget -q "${__url}" -O "${__dest}" || __status=$?
+    [ "${__status}" -eq 0 ] && return 0
+    rm -f "${__dest}"
+    [ "${__status}" -eq 8 ] && return 2
+    return 1
+  }
+
+  # Only used to pick a default --ref: the latest GitHub release tag, or
+  # empty if this repository has no release yet, in which case the
+  # caller falls back to 'main'. Any failure here (no releases, rate
+  # limiting, a network blip) is swallowed on purpose: this is a
+  # convenience default, and a release-less repo is an expected state,
+  # not an error. A hard fetch failure still surfaces later, when the
+  # actual template files are fetched against whichever ref was chosen.
+  latest_release_tag() {
+    __api_url="https://api.github.com/repos/${GITHUB_OWNER_REPO}/releases/latest"
+    __body=""
+    if [ "${FETCHER}" = "curl" ]; then
+      __body=$(curl -fsSL "${__api_url}" 2>/dev/null) || true
+    else
+      __body=$(wget -qO- "${__api_url}" 2>/dev/null) || true
+    fi
+    printf '%s' "${__body}" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true
+  }
+
+  if [ -z "${__ref}" ]; then
+    __resolved_ref=$(latest_release_tag)
+    if [ -n "${__resolved_ref}" ]; then
+      __ref="${__resolved_ref}"
+    else
+      __ref="main"
+      echo "No published release found for ${GITHUB_OWNER_REPO}; falling back to --ref main. Pass --ref <tag> once a release exists, for a reproducible install." >&2
+    fi
+  fi
+
+  REMOTE_BASE_URL="https://raw.githubusercontent.com/${GITHUB_OWNER_REPO}/${__ref}/templates"
+  STAGING_DIR=$(mktemp -d)
+  TEMPLATES_DIR="${STAGING_DIR}"
+  mkdir -p "${TEMPLATES_DIR}/pre-commit-config"
+
+  # Fetches templates/$1 into TEMPLATES_DIR/$1, exiting with a clear
+  # message on either failure shape described above.
+  fetch_required() {
+    __rel="${1}"
+    __not_found_message="${2}"
+    __dest="${TEMPLATES_DIR}/${__rel}"
+    __rc=0
+    fetch_url "${REMOTE_BASE_URL}/${__rel}" "${__dest}" || __rc=$?
+    if [ "${__rc}" -eq 2 ]; then
+      echo "Error: ${__not_found_message}" >&2
+      exit 3
+    elif [ "${__rc}" -ne 0 ]; then
+      echo "Error: failed to fetch ${REMOTE_BASE_URL}/${__rel} (ref '${__ref}'). Check your network connection." >&2
+      exit 7
+    fi
+  }
+
+  fetch_required "pre-commit-config/${__template}.yaml" \
+    "no template named '${__template}' at ref '${__ref}' (checked ${REMOTE_BASE_URL}/pre-commit-config/${__template}.yaml). Pass --ref <tag|branch> to fetch a different revision."
+  fetch_required ".editorconfig" "could not find templates/.editorconfig at ref '${__ref}'."
+  fetch_required ".cspell.json" "could not find templates/.cspell.json at ref '${__ref}'."
+  fetch_required ".yamllint.yml" "could not find templates/.yamllint.yml at ref '${__ref}'."
+  fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
+  fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
+  fetch_required ".mega-linter.yml" "could not find templates/.mega-linter.yml at ref '${__ref}'."
+  fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 fi
+
+# --- Provision the target repo, identically regardless of mode ----------
 
 copy_file() {
   __src="${1}"
@@ -118,7 +286,7 @@ echo "Bootstrapping '${__target}' from the '${__template}' template."
 # copy_file returns 4 for an intentional skip (destination exists, no
 # --force). That is not a fatal condition here, just per-file, so it is
 # swallowed with `|| true` rather than letting errexit abort the run.
-copy_file "${__config_template}" "${__target}/.pre-commit-config.yaml" || true
+copy_file "${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml" "${__target}/.pre-commit-config.yaml" || true
 copy_file "${TEMPLATES_DIR}/.editorconfig" "${__target}/.editorconfig" || true
 copy_file "${TEMPLATES_DIR}/.cspell.json" "${__target}/.cspell.json" || true
 copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
