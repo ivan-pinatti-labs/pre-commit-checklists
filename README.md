@@ -138,14 +138,29 @@ TRC-20 accepts TRX, USDT, and USDC. See the
 
 Requirements: [`pre-commit`](https://pre-commit.com/#install) itself, and
 [`detect-secrets`](https://github.com/Yelp/detect-secrets) if you use the
-credentials checklist (recommended, and in every template).
+credentials checklist (recommended, and in every template). Run this from
+inside the repo you want to set up; it defaults `--target` to the current
+directory.
 
 ```shell
-git clone https://github.com/ivan-pinatti/pre-commit-checklists
-cd pre-commit-checklists
-./scripts/install.sh --target /path/to/your-repo --template recommended
-cd /path/to/your-repo
+curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh \
+  | bash -s -- --template recommended
 pre-commit run --all-files
+```
+
+Piping a script straight into `bash` is convenient, but it is also running
+code you have not read. If that is not a trade-off you want to make, audit
+it first, or skip the script and clone the repo instead:
+
+```shell
+# Audit first, then run it
+curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh -o install.sh
+less install.sh
+bash install.sh --template recommended
+
+# Or clone and run it locally, no piping at all
+git clone https://github.com/ivan-pinatti/pre-commit-checklists
+./pre-commit-checklists/scripts/install.sh --target /path/to/your-repo --template recommended
 ```
 
 `--template` is any file under
@@ -153,7 +168,9 @@ pre-commit run --all-files
 without the `.yaml` extension: `minimal`, `recommended`, `full`, `python`,
 `shell`, `terraform`, `javascript`, `typescript`. The script copies the
 chosen config plus its supporting tool configs into your repo, generates a
-`.secrets.baseline`, and runs `pre-commit install`. See
+`.secrets.baseline`, and runs `pre-commit install`. Piped or local, it
+fetches or copies templates pinned to a `--ref` (default: the latest
+release tag, falling back to `main` while this repository has none). See
 [`docs/getting-started.md`](docs/getting-started.md) for the full walkthrough,
 including doing it by hand instead, and
 [`docs/versioning.md`](docs/versioning.md) for what the `rev:` pin means.

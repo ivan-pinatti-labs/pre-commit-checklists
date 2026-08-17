@@ -20,13 +20,35 @@ find in your repo. You add one `repo:` entry to your own
 
 ## Option A: `scripts/install.sh`
 
-Clone this library, then run its bootstrap script against your repo:
+The script runs two ways, detected automatically, no flag needed to tell
+them apart:
 
-```shell
-git clone https://github.com/ivan-pinatti/pre-commit-checklists
-cd pre-commit-checklists
-./scripts/install.sh --target /path/to/your-repo --template recommended
-```
+- **Piped**, from inside the repo you want to set up. There is no
+  checkout to copy from in this mode, so the script fetches templates
+  over HTTPS from `raw.githubusercontent.com` instead, pinned to
+  `--ref` (default: the latest release tag, falling back to `main`
+  while this repository has no release yet).
+
+  ```shell
+  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh \
+    | bash -s -- --template recommended
+  ```
+
+  Piping a script into `bash` runs code you have not read. Audit it
+  first if you would rather not do that blind:
+
+  ```shell
+  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh -o install.sh
+  less install.sh
+  bash install.sh --template recommended
+  ```
+
+- **Local**, from a clone of this repo, against any target:
+
+  ```shell
+  git clone https://github.com/ivan-pinatti/pre-commit-checklists
+  ./pre-commit-checklists/scripts/install.sh --target /path/to/your-repo --template recommended
+  ```
 
 `--template` is any file in
 [`templates/pre-commit-config/`](../templates/pre-commit-config/) by
@@ -35,8 +57,9 @@ name, without the `.yaml` extension: `minimal`, `recommended`, `full`,
 
 The script:
 
-1. Copies the chosen `.pre-commit-config.yaml` and the supporting tool
-   configs (`.editorconfig`, `.cspell.json`, `.yamllint.yml`,
+1. Copies (local mode) or fetches (piped mode) the chosen
+   `.pre-commit-config.yaml` and the supporting tool configs
+   (`.editorconfig`, `.cspell.json`, `.yamllint.yml`,
    `.markdownlint.yaml`, `.lycheeignore`, `.mega-linter.yml`) into your
    repo, without clobbering files that already exist (pass `--force` to
    overwrite).
@@ -47,7 +70,10 @@ The script:
 4. Runs `pre-commit install` in your repo, which also wires up the
    `commit-msg` git hook stage if the template you chose uses it.
 
-Run `./scripts/install.sh --help` for the full flag list.
+Piped mode needs `curl` or `wget`; without either, or if a fetch fails,
+or if `--template`/`--ref` names something that does not exist, the
+script exits with a specific status and a message saying which. Run
+`./scripts/install.sh --help` for the full flag list, including `--ref`.
 
 ## Option B: by hand
 
