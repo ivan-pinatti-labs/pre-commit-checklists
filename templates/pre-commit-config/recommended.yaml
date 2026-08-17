@@ -60,8 +60,9 @@ repos:
       - id: checklist-dev-editorconfig
         stages: [pre-commit]
 
-      # Lints .env / .env.* files. Selector required: the hook's own
-      # default type is `text`, which is too broad to leave unscoped here.
+      # Lints .env / .env.* files with dotenv-linter/dotenv-linter (Rust);
+      # see docs/hook-catalogue.md#which-dotenv-linter. Selector required:
+      # this id has no default file type of its own to fall back on.
       - id: checklist-dev-dotenv
         files: '(^|/)\.env(\..+)?$'
         stages: [pre-commit]
