@@ -253,7 +253,7 @@ __old_checkout=$(mktemp -d /tmp/pcc-old-checkout.XXXXXX)
 mkdir -p "${__old_checkout}/scripts" "${__old_checkout}/templates/pre-commit-config"
 cp "${INSTALL_SCRIPT}" "${__old_checkout}/scripts/install.sh"
 cp "${REPO_ROOT}/templates/pre-commit-config/minimal.yaml" "${__old_checkout}/templates/pre-commit-config/minimal.yaml"
-for __f in .editorconfig .cspell.json .yamllint.yml .markdownlint.yaml .lycheeignore .mega-linter.yml gitignore.fragment; do
+for __f in .editorconfig .cspell.json .yamllint.yml .markdownlint.yaml .lycheeignore gitignore.fragment; do
   cp "${REPO_ROOT}/templates/${__f}" "${__old_checkout}/templates/${__f}"
 done
 __target=$(mktemp -d /tmp/pcc-install-old-checkout.XXXXXX)
