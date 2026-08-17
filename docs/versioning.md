@@ -31,6 +31,17 @@ that shells out to a nested `pre-commit run --config <checklist>.yaml`
 [`docs/hook-catalogue.md`](hook-catalogue.md)), so it cannot and does not
 touch (2).
 
+`checklists/checklist-dev-dotenv.yaml` is the one exception to (2)'s
+shape: it is a `repo: local` hook, so it has no `rev:` field at all. Its
+upstream pin is the image tag inside its own `entry:` string
+(`docker.io/dotenvlinter/dotenv-linter:X.Y.Z`; see
+[`docs/hook-catalogue.md`](hook-catalogue.md#which-dotenv-linter) for
+why). A Renovate custom manager in
+[`.github/renovate.json5`](../.github/renovate.json5) watches that
+string the same way the built-in pre-commit manager watches every other
+checklist's `rev:` field, so this pin still moves only when this
+library cuts a release, same contract as every other checklist here.
+
 (2) only moves when **this repo** cuts a new release: its own
 `make autoupdate` bumps every checklist's upstream hook pins, that
 change gets reviewed and tagged, and the new tag is what your `rev:`

@@ -42,4 +42,23 @@
       "/^checklists/checklist-.+\\.ya?ml$/",
     ],
   },
+
+  // checklist-dev-dotenv.yaml is a `repo: local` hook (see
+  // docs/hook-catalogue.md#which-dotenv-linter for why), so it has no
+  // `rev:` field for the manager above to watch. Its pin is the image tag
+  // inside its own entry: string instead; this custom manager watches
+  // that tag the same way, so it does not rot silently either.
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: [
+        "/^checklists/checklist-dev-dotenv\\.ya?ml$/",
+      ],
+      matchStrings: [
+        "docker\\.io/dotenvlinter/dotenv-linter:(?<currentValue>[0-9.]+)",
+      ],
+      datasourceTemplate: "docker",
+      depNameTemplate: "dotenvlinter/dotenv-linter",
+    },
+  ],
 }

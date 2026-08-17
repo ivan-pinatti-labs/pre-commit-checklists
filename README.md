@@ -201,7 +201,7 @@ before writing your own.
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-github-actions` | actionlint-docker | `files: ^\.github/` | Docker (actionlint-docker runs in a container) |
-| `checklist-dev-dotenv` | dotenv-linter | `files: '(^\|/)\.env(\..+)?$'` | none |
+| `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust; not the same-named Python project, see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#which-dotenv-linter)) | `files: '(^\|/)\.env(\..+)?$'` | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (also bakes in `files: \.(sh\|bash)$`) | none |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |

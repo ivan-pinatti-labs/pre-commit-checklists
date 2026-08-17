@@ -31,7 +31,7 @@ build your own selection from scratch.
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-github-actions` | actionlint-docker | `files: ^\.github/` | Docker (actionlint-docker runs in a container) |
-| `checklist-dev-dotenv` | dotenv-linter | `files: '(^\|/)\.env(\..+)?$'` | none |
+| `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (the hook's own `.pre-commit-hooks.yaml` entry additionally bakes in `files: \.(sh\|bash)$`) | none |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |
@@ -53,6 +53,57 @@ fixed in the table above and in every shipped template. If you write
 your own selector for a hook id, prefer one `files:` regex over
 combining `types:`/`types_or:` with `files:` unless you have checked
 what the AND actually resolves to.
+
+## Which dotenv-linter
+
+Two unrelated projects share the name "dotenv-linter":
+
+- [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter),
+  Rust, 14 named checks, a `--ignore-checks CHECK_NAME[,CHECK_NAME...]`
+  flag and a matching `DOTENV_LINTER_IGNORE_CHECKS` environment variable,
+  an `--exclude` path flag, tagged releases up to v4.0.0.
+- [wemake-services/dotenv-linter](https://github.com/wemake-services/dotenv-linter),
+  Python, a wider rule set with no CLI flag to bypass one rule (only
+  inline `# dotenv:disable[ViolationName]` comments in the `.env` file
+  itself), tagged releases up to 0.9.0.
+
+Both are actively maintained; this is not a maintenance-status pick.
+`checklist-dev-dotenv` runs the Rust project, because that is what most
+people mean by "dotenv-linter" and what an earlier version of this
+checklist did not do: it ran the Python one, silently, and a consumer
+migrating a real repo onto this library got nine findings on a normal
+`.env.example` with no quick way to quiet any of them. If you adopted
+`checklist-dev-dotenv` on an earlier release expecting the Python
+project's rule set, this is a breaking change; see the release notes for
+the version that made this switch.
+
+The checklist does not consume the Rust project's own
+`.pre-commit-hooks.yaml` (`language: docker`, building the image from
+that repo's own Dockerfile on first use). That Dockerfile's
+`FROM builder-${TARGETARCH}` line only resolves under BuildKit/buildx;
+on a plain Docker Engine install with no buildx plugin, confirmed
+`docker build` fails with "invalid reference format" before
+dotenv-linter ever runs, an install-time failure with no obvious
+connection to the tool it belongs to. `checklists/checklist-dev-dotenv.yaml`
+instead runs the project's own published image
+(`docker.io/dotenvlinter/dotenv-linter`) directly via `docker run` (or
+`podman run`, whichever is on `PATH`), which needs no local image build
+at all. That file's own header comment has the full reasoning, including
+why the bind mount carries the `Z` SELinux relabel option: confirmed on
+an SELinux-enforcing host that podman, without it, reports "Nothing to
+check" and exits 0 on files it was never able to read, a false pass.
+
+Because `checklist-dev-dotenv` still routes through
+`scripts/run-checklist.sh` like every other checklist-* id (see
+[the args: hazard](overrides.md#dont-put-args-on-a-checklist--id-that-routes-through-run-checklistsh)),
+there is no way to hand it `--ignore-checks` or `--exclude` from a
+consumer's own `.pre-commit-config.yaml`, and the environment variable
+does not help either: neither pre-commit's own `language: docker` support
+nor this checklist's `docker run` invocation forwards the calling shell's
+environment into the container. A consumer who needs either flag should
+add dotenv-linter as their own hook entry pointed at the same image
+instead of going through this checklist id; see
+[`docs/overrides.md`](overrides.md).
 
 ## Pin `stages:` too, if you install more than the pre-commit stage
 
