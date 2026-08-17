@@ -11,10 +11,10 @@ reviews:
     # CodeRabbit is a GitHub App posting a check, not a workflow job, so it
     # cannot be ordered after the linters with `needs:` the way a workflow
     # job can. Skipping drafts is the lever instead: open a pull request as
-    # a draft (see CLAUDE.md, "Pull requests"), let pre-commit and
-    # MegaLinter finish, then mark it ready. CodeRabbit then reviews once,
-    # against a diff the mechanical linters and checklists have already
-    # cleaned, instead of re-reviewing after every fixup commit.
+    # a draft (see CLAUDE.md, "Pull requests"), let pre-commit finish, then
+    # mark it ready. CodeRabbit then reviews once, against a diff the
+    # mechanical linters and checklists have already cleaned, instead of
+    # re-reviewing after every fixup commit.
     #
     # This is the default. Stated explicitly because the review order
     # depends on it, and a default that quietly changed would change the
