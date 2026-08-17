@@ -3,18 +3,20 @@
 # Automatically fix problems markdownlint-cli2 knows how to fix.
 fix: true
 
-# MD013: line-length. Relaxed to 100 to match .editorconfig, and turned
-# off inside code blocks and tables, where wrapping is usually wrong.
+# MD013: line-length. This is the one tool in this repo that enforces
+# Markdown line length; .editorconfig's [*.md] section deliberately sets
+# max_line_length = 0 and defers to this rule instead, since MD013 has
+# the exceptions that matter (code blocks, tables, an inline disable
+# comment for unwrappable tokens such as long URLs) and
+# editorconfig-checker has none of them.
 MD013:
   line_length: 100
   code_blocks: false
   tables: false
 
 # MD033: no-inline-html. The README's Support block needs raw HTML for the
-# centred badge row and the sponsor QR grid, and the hook catalogue tables
-# need raw HTML so long cells can wrap across physical lines and stay
-# under the .editorconfig line-length limit; Markdown has no equivalent
-# for any of that. Allow only the elements those blocks actually use, so
-# unrelated inline HTML elsewhere still gets flagged.
+# centred badge row and the sponsor QR grid; Markdown has no equivalent for
+# either. Allow only the elements that block actually uses, so unrelated
+# inline HTML elsewhere still gets flagged.
 MD033:
-  allowed_elements: [a, br, code, div, img, table, td, th, tr]
+  allowed_elements: [a, br, code, div, img, table, td, tr]
