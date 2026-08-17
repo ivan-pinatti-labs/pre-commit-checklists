@@ -11,6 +11,48 @@ SKIP=checklist-spell git commit -m "fix: typo in a string cspell won't parse"
 
 Comma-separate multiple ids: `SKIP=checklist-spell,checklist-markdown`.
 
+## Keeping the validator, dropping the formatter or network check
+
+`checklist-json` and `checklist-yaml` bundle a formatter (Prettier)
+alongside a plain syntax check; `checklist-markdown` bundles a link
+checker (`markdown-link-check`) that needs network access alongside a
+lint-only tool (`markdownlint-cli2`). Neither is a knob you set in your
+own `.pre-commit-config.yaml`, but `SKIP` reaches inside a checklist the
+same way it reaches a checklist id: `scripts/run-checklist.sh` starts
+its nested `pre-commit run` as a subprocess, and `SKIP` is an
+environment variable that subprocess inherits like any other, so naming
+the *inner* hook id skips just that tool, not the whole checklist:
+
+```shell
+# Keep check-json, skip the Prettier reformat
+SKIP=prettier-json git commit -m "chore: commit a generated JSON export as-is"
+
+# Keep check-yaml (and, optionally, yamllint), skip the Prettier reformat
+SKIP=prettier-yaml git commit -m "chore: commit a generated YAML export as-is"
+
+# Keep markdownlint-cli2, skip the network-dependent link check
+SKIP=markdown-link-check git commit -m "docs: edit without a network connection"
+```
+
+Verified directly, through the full outer-hook-then-nested-run path
+(not just the inner config file in isolation): with
+`SKIP=prettier-json` set, `pre-commit run checklist-json` on a validly
+formatted-but-not-Prettier-canonical JSON file still runs `check-json`
+(passes) and reports `prettier-json` as `Skipped` rather than
+reformatting the file, where the same run with no `SKIP` set reformats
+it and reports the hook `Failed` (files were modified). The same holds
+for `SKIP=markdown-link-check` against a Markdown file with an
+unreachable link: `markdownlint-cli2` still runs, `markdown-link-check`
+is skipped rather than attempted.
+
+This is a per-commit (or, exported in a shell profile or a CI job's
+environment, a standing) override, not a config-file setting: there is
+no persistent, no-argument way to make `checklist-yaml` mean "just
+check-yaml and yamllint" from your own `.pre-commit-config.yaml` today.
+See [`docs/hook-catalogue.md`](hook-catalogue.md#adopting-part-of-a-bundled-checklist)
+for the other options considered for that gap and why this is the one
+implemented so far.
+
 ## Skip a hook entirely, for a repo
 
 Delete its entry from your `.pre-commit-config.yaml`. There is no

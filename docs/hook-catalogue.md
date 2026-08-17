@@ -199,3 +199,56 @@ needs it stated explicitly; this repository's own dogfood
 [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) is exactly that
 shape, and states it on every checklist-* id in that file for the same
 reason.
+
+## Adopting part of a bundled checklist
+
+Three checklists bundle a plain validator together with a second tool
+that a consumer may not want at all: `checklist-json` and
+`checklist-yaml` also run Prettier, a formatter, not just a syntax
+check; `checklist-markdown` also runs `markdown-link-check`, which needs
+network access to do its job. A repository with generated or
+vendor-owned JSON/YAML (a dashboard export, a lockfile-adjacent state
+file) does not want Prettier rewriting it on every commit, and a
+repository whose policy is that committing must not depend on network
+reachability does not want a link checker deciding whether a commit
+succeeds. `checklist-dev-shell` (shfmt) and `checklist-dev-python`
+(ruff-format) bundle a formatter the same way, but neither has been
+reported as friction the way the three above have: shfmt and ruff-format
+are the idiomatic, expected companion to shellcheck and ruff-check for
+most repositories in a way Prettier reformatting a Grafana export, or a
+link checker requiring network access to lint markdown, are not.
+
+There is no way today to adopt just the validator from any of these
+checklist ids from a consumer's own `.pre-commit-config.yaml`. Three
+ways to close that gap were considered:
+
+- **Split the id** (for example `checklist-yaml` keeps check-yaml and
+  yamllint, a new `checklist-yaml-format` adds Prettier on top). Gives a
+  consumer a real choice at the config level, with no override needed.
+  Costs a new hook id per split (more surface to document and keep
+  selectors correct on, per the earlier section on why the selector
+  matters), and is a deliberate, reviewed decision about this library's
+  hook surface, not something to retrofit across several checklists
+  inside one sprint that exists to document friction, not restructure
+  the catalogue on the strength of one migration's findings.
+- **Document a `SKIP` recipe.** `SKIP` is an environment variable
+  `scripts/run-checklist.sh`'s nested `pre-commit run` inherits like any
+  other subprocess does, so `SKIP=<inner-hook-id>` reaches the specific
+  tool inside a checklist the same way it reaches a checklist id itself
+  at the outer level. No new hook id, no config change, works today.
+  Costs a consumer having to know and set the exact inner hook id
+  (`prettier-json`, `prettier-yaml`, `markdown-link-check`), and only
+  skips it, it does not select "check-yaml and yamllint but not
+  Prettier" as a persistent, no-argument default the way a split id
+  would.
+- **Leave it as is and document the limitation.** Zero cost to this
+  library, but leaves the gap open with no path out short of forking a
+  checklist file.
+
+The `SKIP` recipe is the smallest change that actually closes the gap
+consumers hit, and it was verified rather than assumed: see
+[`docs/overrides.md`](overrides.md#keeping-the-validator-dropping-the-formatter-or-network-check)
+for the confirmed-working recipe. Splitting hook ids remains on the
+table as a future, deliberate minor-version addition if demand for a
+persistent default (rather than a per-commit or per-CI-job override)
+shows up; it is not implemented here.
