@@ -95,7 +95,7 @@ check" and exits 0 on files it was never able to read, a false pass.
 
 Because `checklist-dev-dotenv` still routes through
 `scripts/run-checklist.sh` like every other checklist-* id (see
-[the args: hazard](overrides.md#dont-put-args-on-a-checklist--id-that-routes-through-run-checklistsh)),
+[the args: hazard](overrides.md#do-not-put-args-on-a-checklist--id-that-routes-through-run-checklistsh)),
 there is no way to hand it `--ignore-checks` or `--exclude` from a
 consumer's own `.pre-commit-config.yaml`, and the environment variable
 does not help either: neither pre-commit's own `language: docker` support

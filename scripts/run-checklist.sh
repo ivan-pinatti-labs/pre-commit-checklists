@@ -11,6 +11,15 @@
     1 - non-zero exit from usage/argument errors
     2 - checklist file not found
     non-zero - whatever `pre-commit run` returns
+
+  A checklist-file-not-found error (exit 2) is almost always a consumer
+  args: override on a checklist-* hook id in their own
+  .pre-commit-config.yaml, not a typo here: every checklist-* id except
+  checklist-git-valid-branches and checklist-git-commit-msg calls this
+  script with the checklist name as its first argument, and a consumer
+  args: entry replaces that argument instead of adding to it. See
+  docs/overrides.md, "Do not put args: on a checklist-* id that routes
+  through run-checklist.sh".
 '
 
 # Print commands as they run, and dump the environment, when DEBUG=true.
@@ -53,6 +62,14 @@ CONFIG_PATH="${CHECKLISTS_DIR}/${CHECKLIST_NAME}.yaml"
 
 if [ ! -f "${CONFIG_PATH}" ]; then
   echo "Error: checklist '${CHECKLIST_NAME}' not found at '${CONFIG_PATH}'." >&2
+  echo "" >&2
+  echo "This usually means the args: of a checklist-* hook id were" >&2
+  echo "overridden in your .pre-commit-config.yaml. Every checklist-* hook" >&2
+  echo "id except checklist-git-valid-branches and checklist-git-commit-msg" >&2
+  echo "calls this script with the checklist name as its first argument;" >&2
+  echo "an args: entry on one of those ids in your own config replaces that" >&2
+  echo "name instead of adding to it. See docs/overrides.md, \"Do not put" >&2
+  echo "args: on a checklist-* id that routes through run-checklist.sh\"." >&2
   exit 2
 fi
 

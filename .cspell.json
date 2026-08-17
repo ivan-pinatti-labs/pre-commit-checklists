@@ -4,11 +4,13 @@
   "ignorePaths": [".secrets.baseline"],
   "words": [
     "behaviour",
+    "buildx",
     "cspell",
     "devskim",
     "dogfood",
     "dogfoods",
     "dotenv",
+    "dotenvlinter",
     "editmsg",
     "editorconfig",
     "errexit",
@@ -36,11 +38,13 @@
     "sarif",
     "shellcheck",
     "shfmt",
+    "targetarch",
     "tflint",
     "tfvars",
     "unwrappable",
     "urllib",
     "venv",
+    "wemake",
     "xkcd",
     "yamllint"
   ]
