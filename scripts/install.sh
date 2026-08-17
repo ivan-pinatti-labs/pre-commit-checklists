@@ -33,9 +33,15 @@
     non-zero - whatever the failing command returned
 '
 
+# `set -x` alone, deliberately. A bare `export` prints every inherited
+# environment variable's value, which in CI includes whatever a neighbouring
+# step exported (a token, a registry credential), and someone reaching for
+# DEBUG=true to troubleshoot a failed bootstrap should not risk leaking one
+# into a build log. The trace already shows the resolved paths, the fetch
+# URLs, and every command run, which is what is actually useful here. Same
+# contract as run-checklist.sh, check-branch-name.sh, check-commit-msg.sh.
 if [ "${DEBUG:-false}" = true ]; then
   set -x
-  export
 fi
 
 set -o errexit
