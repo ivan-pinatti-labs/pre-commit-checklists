@@ -49,11 +49,31 @@ git -C "${__scratch}" config user.name "test"
 echo x >"${__scratch}/f"
 git -C "${__scratch}" add f
 
+# GITHUB_HEAD_REF is unset on a developer machine and set by GitHub Actions
+# on every pull_request event, so it must be cleared here or these cases
+# silently stop testing what they claim to. check-branch-name.sh prefers that
+# variable over the working tree's branch on purpose, because a pull_request
+# checkout is a detached merge ref and `git symbolic-ref HEAD` is useless
+# there. The consequence is that in CI the scratch repo below was ignored
+# entirely and every case validated the real PR branch instead: two of them
+# happened to expect the opposite result and failed, and the rest passed for
+# the wrong reason. The precedence itself is asserted separately, further
+# down, rather than left implicit.
 check_branch() {
   __branch="${1}"
   shift
   git -C "${__scratch}" checkout -q -B "${__branch}"
-  run_and_capture bash -c "cd '${__scratch}' && '${BRANCH_SCRIPT}' $*"
+  run_and_capture env -u GITHUB_HEAD_REF bash -c "cd '${__scratch}' && '${BRANCH_SCRIPT}' $*"
+}
+
+# Same clearing, but returns the environment override to the caller so the
+# precedence rule can be exercised deliberately.
+check_branch_with_head_ref() {
+  __branch="${1}"
+  __head_ref="${2}"
+  shift 2
+  git -C "${__scratch}" checkout -q -B "${__branch}"
+  run_and_capture env "GITHUB_HEAD_REF=${__head_ref}" bash -c "cd '${__scratch}' && '${BRANCH_SCRIPT}' $*"
 }
 
 check_branch "main"
@@ -73,6 +93,16 @@ check_branch "proj-123-add-thing" --ticket-prefixes PROJ
 
 check_branch "random-no-ticket" --ticket-prefixes PROJ
 [ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: --ticket-prefixes PROJ rejects a branch with no ticket" || fail "check-branch-name.sh: --ticket-prefixes PROJ should reject a non-ticket branch (exit 1)" "exit=${EXIT} ${OUT}"
+
+# GITHUB_HEAD_REF precedence. This is the behaviour that made two cases above
+# fail on the first real CI run, so it is asserted rather than assumed: the
+# environment variable must win over the working tree's branch in both
+# directions, otherwise a pull_request run would validate the wrong name.
+check_branch_with_head_ref "main" "BadBranchName"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides a valid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred over the checked out branch" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "BadBranchName" "feature/add-thing"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides an invalid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred even when the checked out branch is invalid" "exit=${EXIT} ${OUT}"
 
 rm -rf "${__scratch}"
 
