@@ -13,9 +13,8 @@ project as easy and transparent as possible, whether it's:
 
 | Stage | What runs | What you do |
 | --- | --- | --- |
-| Open as a **draft** | The `pre-commit` job and `MegaLinter` (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever it reports |
+| Open as a **draft** | `pre-commit`, `MegaLinter`, and the `self-test` job all run on the same push (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever they report |
 | **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
-| | The `self-test` job (`tests/run_tests.sh`) | Wait for it to go green |
 | Merge | | |
 
 Opening as a draft first means the cheap, mechanical checks run before
