@@ -1,18 +1,39 @@
 ---
+# cspell:words zizmor
+#
 # Test-only override of checklists/checklist-github-actions.yaml.
 #
 # actionlint-docker's own hook manifest anchors its `files:` selector to
 # `^\.github/workflows/` at the repo root. A fixture living under
-# tests/fixtures/ can never satisfy that path, and this repo's real
-# .github/workflows/ is owned by a different part of the build (Sprint 4,
-# not landed yet), so tests/ cannot write there either. This file re-points
-# the same pinned actionlint-docker hook at any YAML file, purely so the
-# test runner can exercise the tool's real behaviour against a fixture kept
-# inside tests/. It intentionally does not exercise the real path selector;
-# see tests/README.md for what this test does and does not prove.
+# tests/fixtures/ can never satisfy that path, and even now that this
+# repo's real .github/workflows/ exists, tests/ has no business writing
+# real content there, that tree belongs to a different part of the build.
+# This file re-points the same pinned actionlint-docker hook at any YAML
+# file, purely so the test runner can exercise the tool's real behaviour
+# against a fixture kept inside tests/. It intentionally does not
+# exercise the real path selector; see tests/README.md for what this
+# test does and does not prove.
+#
+# The zizmor local hook below has the identical problem: its own `files:`
+# in checklists/checklist-github-actions.yaml is anchored to
+# `^\.github/workflows/.*\.ya?ml$` for the same reason actionlint-docker's
+# is, and a repo: local hook has no upstream manifest for a consumer
+# override to reach into, so the whole hook definition is repeated here
+# rather than just a files: key. Keep entry, language, and
+# additional_dependencies in sync with checklists/checklist-github-actions.yaml
+# by hand; nothing enforces that automatically.
 repos:
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:
       - id: actionlint-docker
+        files: \.ya?ml$
+
+  - repo: local
+    hooks:
+      - id: zizmor
+        name: zizmor (GitHub Actions workflow security audit)
+        language: python
+        additional_dependencies: ["zizmor==1.29.0"]
+        entry: zizmor --no-online-audits
         files: \.ya?ml$

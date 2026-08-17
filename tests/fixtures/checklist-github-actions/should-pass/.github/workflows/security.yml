@@ -1,0 +1,21 @@
+---
+# Deliberately the security conscious counterpart to the flaw this
+# checklist's should-fail fixture demonstrates: a pinned action reference,
+# persist-credentials: false on checkout, and an explicit permissions
+# block. Confirmed clean under both actionlint and zizmor
+# (--no-online-audits) before being committed here.
+name: security-clean-example
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: echo "build"

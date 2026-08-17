@@ -1,5 +1,7 @@
 # pre-commit-checklists
 
+<!-- cspell:words zizmor -->
+
 ![GitHub issues](https://img.shields.io/github/issues-raw/ivan-pinatti/pre-commit-checklists?logo=Github&style=for-the-badge)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/ivan-pinatti?logo=Github&style=for-the-badge)
 ![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti/pre-commit-checklists?logo=Github&style=for-the-badge)
@@ -220,7 +222,7 @@ before writing your own.
 | `checklist-git-valid-branches` | `scripts/check-branch-name.sh` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
-| `checklist-github-actions` | actionlint-docker | `files: ^\.github/` | Docker (actionlint-docker runs in a container) |
+| `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned v1.29.0; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#zizmor-offline-by-default) for the token opt in) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker); Python (zizmor via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust; not the same-named Python project, see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#which-dotenv-linter)) | `files: '(^\|/)\.env(\..+)?$'` | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (also bakes in `files: \.(sh\|bash)$`) | none |
