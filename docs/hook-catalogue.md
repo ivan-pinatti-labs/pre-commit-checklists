@@ -103,7 +103,43 @@ nor this checklist's `docker run` invocation forwards the calling shell's
 environment into the container. A consumer who needs either flag should
 add dotenv-linter as their own hook entry pointed at the same image
 instead of going through this checklist id; see
-[`docs/overrides.md`](overrides.md).
+[`docs/overrides.md`](overrides.md#passing-a-flag-to-the-tool-a-checklist-wraps)
+for the investigation behind why no config-only override exists.
+
+Concretely, that means the same `repo: local` entry
+`checklists/checklist-dev-dotenv.yaml` uses, copied into a consumer's
+own `.pre-commit-config.yaml`, with the flag added:
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: dotenv-linter
+        name: dotenv-linter (dotenv-linter/dotenv-linter, Rust)
+        language: system
+        files: '(^|/)\.env(\..+)?$'
+        entry: >-
+          bash -c '
+          runtime=$(command -v docker || command -v podman) || {
+          echo "dotenv-linter needs docker or podman on PATH." >&2;
+          exit 1;
+          };
+          exec "${runtime}" run --rm -v "$(pwd):/src:ro,Z" -w /src
+          docker.io/dotenvlinter/dotenv-linter:4.0.0 check --skip-updates
+          --ignore-checks LowercaseKey,UnorderedKey "$@"
+          ' --
+```
+
+Verified directly, through `pre-commit run` rather than the underlying
+image alone: against a `.env` file with a lowercase key listed out of
+order (`api_key` before `API_KEY`), `checklist-dev-dotenv`'s own entry
+(no `--ignore-checks`) fails with one `LowercaseKey` and one
+`UnorderedKey` finding; the entry above, with those two check names
+added to `--ignore-checks`, passes the identical file with zero
+findings. Swap in whatever check names, or an `--exclude` pattern, a
+given repository needs; the
+[dotenv-linter README](https://github.com/dotenv-linter/dotenv-linter)'s
+"Available checks" list names every check `--ignore-checks` accepts.
 
 ## `stages:` depends on why you installed more than the pre-commit stage
 

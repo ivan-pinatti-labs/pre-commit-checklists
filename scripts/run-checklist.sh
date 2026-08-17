@@ -22,10 +22,19 @@
   through run-checklist.sh".
 '
 
-# Print commands as they run, and dump the environment, when DEBUG=true.
+# Print commands as they run when DEBUG=true. This deliberately does not
+# also dump the environment (an earlier version of this script ran
+# `export` here, printing every inherited variable, name and value, into
+# hook output): this script's own nested `pre-commit run` inherits the
+# calling shell's environment, including any secret a CI job exports for
+# an unrelated step (a token, a credential), and a consumer reaching for
+# DEBUG=true to troubleshoot a failing hook should not have to worry that
+# doing so leaks one into a build log. `set -x` alone still shows the
+# resolved checklist path and the exact nested `pre-commit run` command,
+# which is what a consumer actually needs to see; see check-branch-name.sh
+# and check-commit-msg.sh for the same DEBUG=true contract.
 if [ "${DEBUG:-false}" = true ]; then
   set -x
-  export
 fi
 
 set -o errexit

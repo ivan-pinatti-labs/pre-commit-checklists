@@ -132,6 +132,24 @@ run_and_capture "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/sho
 run_and_capture "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/should-fail/config.toml
 [ "${EXIT}" -ne 0 ] && pass "run-checklist.sh: valid checklist against a failing fixture exits nonzero" || fail "run-checklist.sh: failing fixture should exit nonzero" "exit=${EXIT} ${OUT}"
 
+# DEBUG=true must trace commands without dumping the environment: an
+# earlier version of this script ran `export` here, which would print a
+# canary variable's value straight into hook output, exactly the shape a
+# real CI secret would leak in. set -x tracing itself (the exec line
+# below) must still be present, so this also guards against DEBUG=true
+# silently becoming a no-op.
+PCC_TEST_SECRET_CANARY="super-secret-value-123" run_and_capture env DEBUG=true "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/should-pass/config.toml # pragma: allowlist secret
+if echo "${OUT}" | grep -q "super-secret-value-123"; then
+  fail "run-checklist.sh: DEBUG=true must not leak an inherited environment variable's value" "${OUT}"
+else
+  pass "run-checklist.sh: DEBUG=true does not leak an inherited environment variable's value"
+fi
+if echo "${OUT}" | grep -q "exec pre-commit run --config"; then
+  pass "run-checklist.sh: DEBUG=true still traces the nested pre-commit run command"
+else
+  fail "run-checklist.sh: DEBUG=true should still trace the nested pre-commit run command" "${OUT}"
+fi
+
 section "install.sh"
 run_and_capture "${INSTALL_SCRIPT}"
 [ "${EXIT}" -eq 1 ] && pass "install.sh: missing --target exits 1 (usage)" || fail "install.sh: missing --target should exit 1" "exit=${EXIT} ${OUT}"
