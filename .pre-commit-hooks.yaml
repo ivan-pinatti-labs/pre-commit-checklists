@@ -4,6 +4,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-basic
+  require_serial: true
   verbose: true
 
 - id: checklist-spell
@@ -12,6 +13,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-spell
+  require_serial: true
   verbose: true
 
 - id: checklist-markdown
@@ -20,6 +22,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-markdown
+  require_serial: true
   verbose: true
 
 - id: checklist-json
@@ -28,6 +31,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-json
+  require_serial: true
   verbose: true
 
 - id: checklist-toml
@@ -36,6 +40,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-toml
+  require_serial: true
   verbose: true
 
 - id: checklist-xml
@@ -44,6 +49,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-xml
+  require_serial: true
   verbose: true
 
 - id: checklist-yaml
@@ -52,6 +58,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-yaml
+  require_serial: true
   verbose: true
 
 - id: checklist-security-credentials
@@ -60,6 +67,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-security-credentials
+  require_serial: true
   verbose: true
 
 - id: checklist-git-valid-branches
@@ -67,6 +75,7 @@
   language: script
   entry: ./scripts/check-branch-name.sh
   args: []
+  require_serial: true
   verbose: true
 
 - id: checklist-git-commit-msg
@@ -74,6 +83,7 @@
   language: script
   entry: ./scripts/check-commit-msg.sh
   args: []
+  require_serial: true
   verbose: true
 
 - id: checklist-git-protected-branches
@@ -82,6 +92,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-git-protected-branches
+  require_serial: true
   verbose: true
 
 - id: checklist-github-actions
@@ -90,6 +101,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-github-actions
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-dotenv
@@ -98,6 +110,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-dotenv
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-editorconfig
@@ -106,6 +119,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-editorconfig
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-shell
@@ -114,6 +128,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-shell
+  require_serial: true
   verbose: true
   files: \.(sh|bash)$
 
@@ -123,6 +138,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-python
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-terraform
@@ -131,6 +147,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-terraform
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-javascript
@@ -139,6 +156,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-javascript
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-typescript
@@ -147,6 +165,7 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-typescript
+  require_serial: true
   verbose: true
 
 - id: checklist-dev-docker
@@ -155,4 +174,5 @@
   entry: ./scripts/run-checklist.sh
   args:
     - checklist-dev-docker
+  require_serial: true
   verbose: true

@@ -159,3 +159,43 @@ one (a `workflow_dispatch` CI run can legitimately be checked out on
 `main`); pin it to `stages: [pre-commit]` so a push-time re-run of a
 question about local commit intent does not fail a run that was never
 about that.
+
+## Every checklist-* id sets require_serial: true
+
+Every checklist-* hook id in [`.pre-commit-hooks.yaml`](../.pre-commit-hooks.yaml)
+carries `require_serial: true`. Without it, pre-commit is free to shard
+the file list it hands a hook into up to one batch per CPU core, and
+each batch pays for its own invocation of `scripts/run-checklist.sh`,
+which itself starts a second, nested `pre-commit run` against a
+checklist file in this library. On a repository with enough matching
+files, that turns one checklist id into dozens of nested bootstraps
+running in parallel instead of one.
+
+Measured directly: 650 tracked files against `checklist-basic` with no
+`require_serial`, on a 32-core machine, sharded into 31 batches (one
+`check-added-large-files...Passed` line per batch, printed 31 times,
+not once) and took 3.0 to 3.15 seconds across three runs. The identical
+run with `require_serial: true` added produced one batch, one clean set
+of status lines, and took 0.82 seconds across three runs, about 3.7
+times faster here, on top of no longer looking like the same hook ran
+dozens of times. On a small, non-sharding file count (5 files) the two
+configurations measured the same (0.59 to 0.62 seconds either way):
+`require_serial: true` costs nothing when there is nothing to shard, so
+it is safe on every checklist-* id regardless of how many files a given
+consumer repository hands it, including the file-scoped ones
+(`checklist-dev-terraform`, `checklist-dev-typescript`, and so on) that
+will rarely see more than a handful of matches in most repositories.
+
+This is set once, in `.pre-commit-hooks.yaml`, not repeated in
+`templates/pre-commit-config/*.yaml`. Confirmed directly: a consumer
+`.pre-commit-config.yaml` that references a hook id by `repo:` + `rev:`
+and does not mention `require_serial` at all still inherits `true` from
+the manifest, pre-commit only overrides the keys a consumer's own hook
+entry actually sets. Every template here uses exactly that `repo:` +
+`rev:` shape, so none of them need `require_serial:` written out; adding
+it there would be redundant, not additive. A `repo: local` hook, which
+does not read this library's manifest at all, is the one shape that
+needs it stated explicitly; this repository's own dogfood
+[`.pre-commit-config.yaml`](../.pre-commit-config.yaml) is exactly that
+shape, and states it on every checklist-* id in that file for the same
+reason.
