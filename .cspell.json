@@ -37,8 +37,9 @@
     "shellcheck",
     "shfmt",
     "tflint",
-    "urllib",
     "tfvars",
+    "unwrappable",
+    "urllib",
     "venv",
     "xkcd",
     "yamllint"

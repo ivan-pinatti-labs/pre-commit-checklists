@@ -35,7 +35,16 @@ indent_size = 2
 # exists to catch.
 indent_style = space
 indent_size = unset
-max_line_length = 100
+# max_line_length is off here on purpose: markdownlint's MD013 already
+# enforces Markdown line length, and it has the exceptions that matter
+# (tables: false, code_blocks: false, an inline disable comment for
+# unwrappable tokens such as long URLs). editorconfig-checker has no
+# such escape hatch, so leaving both tools enforcing the same rule meant
+# the one without exceptions won, which forced workarounds like
+# rewriting Markdown tables as raw HTML just so long cells could wrap.
+# (off, not 0: editorconfig-checker reads a literal 0 as "lines must be
+# 0 characters long", not "unlimited".)
+max_line_length = off
 trim_trailing_whitespace = false
 
 [Makefile]
