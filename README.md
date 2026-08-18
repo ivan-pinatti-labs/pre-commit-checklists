@@ -242,8 +242,6 @@ don't recur.
 - [`docs/hook-catalogue.md`](docs/hook-catalogue.md): source data for the table above
 - [`docs/overrides.md`](docs/overrides.md): skip a hook, exclude a path, require
   ticket prefixes, allowlist a secret
-- [`docs/megalinter.md`](docs/megalinter.md): running the optional MegaLinter
-  pass alongside these checklists
 - [`docs/versioning.md`](docs/versioning.md): what the `rev:` pin means and how it moves
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md),
   [`docs/CODE_OF_CONDUCT.md`](docs/CODE_OF_CONDUCT.md),

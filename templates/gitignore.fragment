@@ -2,7 +2,8 @@
 # you. Do NOT add .secrets.baseline here: it is meant to be committed, so
 # detect-secrets has something to diff future scans against.
 
-# MegaLinter
+# MegaLinter is no longer part of this library, but a repo that ran it
+# before might still carry these paths locally, so they stay ignored.
 megalinter-reports/
 mega-linter.log
 
