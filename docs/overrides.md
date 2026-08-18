@@ -277,9 +277,20 @@ More at the
 ## Ignoring a link (lychee / markdown-link-check)
 
 `checklist-markdown` runs `markdown-link-check`, which reads
-`.markdown-link-check.json` if present. See its
+`.markdown-link-check.json` at your repository root if that file exists.
+`scripts/install.sh` drops a starter there; see its
 [own docs](https://github.com/tcort/markdown-link-check#config-file-format)
 for the ignore-pattern format.
+
+The tool itself does **not** auto-discover that file: it only reads a
+config passed with `--config`, and pointed at a path that does not exist
+it aborts with `ERROR: Config file not accessible.` before checking a
+single link. `checklists/checklist-markdown.yaml` therefore wraps it and
+passes `--config` only when the file is present, which is why deleting
+`.markdown-link-check.json` quietly restores the unconfigured default
+instead of breaking the hook. This page previously described the
+auto-discovery as the tool's own behaviour, which was wrong: a
+`.markdown-link-check.json` created on that advice was never read.
 
 If you separately run [lychee](https://lychee.cli.rs/) (not part of any
 checklist here, but `templates/.lycheeignore` ships a starter for it),

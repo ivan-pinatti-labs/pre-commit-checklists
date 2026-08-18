@@ -291,6 +291,7 @@ else
   fetch_required ".cspell.json" "could not find templates/.cspell.json at ref '${__ref}'."
   fetch_required ".yamllint.yml" "could not find templates/.yamllint.yml at ref '${__ref}'."
   fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
+  fetch_required ".markdown-link-check.json" "could not find templates/.markdown-link-check.json at ref '${__ref}'."
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
@@ -334,6 +335,7 @@ copy_file "${TEMPLATES_DIR}/.editorconfig" "${__target}/.editorconfig" || true
 copy_file "${TEMPLATES_DIR}/.cspell.json" "${__target}/.cspell.json" || true
 copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
 copy_file "${TEMPLATES_DIR}/.markdownlint.yaml" "${__target}/.markdownlint.yaml" || true
+copy_file "${TEMPLATES_DIR}/.markdown-link-check.json" "${__target}/.markdown-link-check.json" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
 
 if [ "${__community_files}" = true ]; then

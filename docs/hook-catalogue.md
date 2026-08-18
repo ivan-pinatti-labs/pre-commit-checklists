@@ -23,7 +23,7 @@ build your own selection from scratch.
 | --- | --- | --- | --- |
 | `checklist-basic` | check-added-large-files (max 1024kb), check-case-conflict, check-docstring-first, check-illegal-windows-names, check-merge-conflict, check-symlinks, destroyed-symlinks, end-of-file-fixer, mixed-line-ending, trailing-whitespace | all files (no selector needed) | none |
 | `checklist-spell` | cspell, config from `.cspell.json` | all files cspell can read (no selector needed) | `.cspell.json` at repo root |
-| `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | `.markdownlint.yaml` for markdownlint-cli2's own rules |
+| `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | Node; `.markdownlint.yaml` for markdownlint-cli2's own rules, `.markdown-link-check.json` optionally for link ignores (see [`docs/overrides.md`](overrides.md#ignoring-a-link-lychee--markdown-link-check)) |
 | `checklist-json` | check-json, Prettier | `types: [json]` | Node (Prettier runs via `language: node`) |
 | `checklist-yaml` | check-yaml, yamllint, Prettier | `types: [yaml]` | `.yamllint.yml`; Node for Prettier |
 | `checklist-toml` | check-toml | `types: [toml]` | none |

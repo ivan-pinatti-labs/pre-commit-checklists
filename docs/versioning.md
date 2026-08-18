@@ -33,8 +33,9 @@ that shells out to a nested `pre-commit run --config <checklist>.yaml`
 [`docs/hook-catalogue.md`](hook-catalogue.md)), so it cannot and does not
 touch (2).
 
-`checklists/checklist-dev-dotenv.yaml` and
-`checklists/checklist-github-actions.yaml` are exceptions to (2)'s shape:
+`checklists/checklist-dev-dotenv.yaml`,
+`checklists/checklist-github-actions.yaml` and
+`checklists/checklist-markdown.yaml` are exceptions to (2)'s shape:
 each carries a `repo: local` hook, so each has no `rev:` field at all for
 that hook. Their upstream pins live somewhere else inside the file
 instead: the image tag inside dotenv-linter's own `entry:` string
@@ -43,9 +44,14 @@ instead: the image tag inside dotenv-linter's own `entry:` string
 why), and the PyPI version inside zizmor's `additional_dependencies:`
 list (`zizmor==X.Y.Z`; see
 [`docs/hook-catalogue.md`](hook-catalogue.md#zizmor-offline-by-default)
-for why zizmor is also `repo: local`). A Renovate custom manager in
+for why zizmor is also `repo: local`), and the npm version inside
+markdown-link-check's `additional_dependencies:` list
+(`markdown-link-check@X.Y.Z`; it is `repo: local` so the checklist can
+pass `--config` conditionally, see
+[`docs/overrides.md`](overrides.md#ignoring-a-link-lychee--markdown-link-check)).
+A Renovate custom manager in
 [`.github/renovate.json5`](../.github/renovate.json5) watches each of
-those strings the same way the built-in pre-commit manager watches every
+those three strings the same way the built-in pre-commit manager watches every
 other checklist's `rev:` field, so both pins still move only when this
 library cuts a release, same contract as every other checklist here.
 
