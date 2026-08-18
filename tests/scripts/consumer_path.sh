@@ -85,10 +85,19 @@ repos:
         types: [toml]
       - id: checklist-dev-dotenv
         files: '(^|/)\.env(\..+)?\$'
+      - id: checklist-dev-shell
+        types: [shell]
 EOF
 
 printf 'key = "value"\n' >"${__consumer}/good.toml"
 printf 'API_KEY=abc123\n' >"${__consumer}/.env"
+# An extensionless shell dotfile. identify tags this `shell`, so a consumer
+# selecting the id with `types: [shell]` must reach it. This file is the
+# regression guard for the id having baked in `files: \.(sh|bash)$`, which
+# pre-commit ANDed with the consumer's types: and dropped the file silently.
+# Only reachable through this path: the dogfood .pre-commit-config.yaml in
+# this repo restates each hook by hand and never carried that regex.
+printf '# shellcheck shell=bash\nalias ll="ls -alF"\n' >"${__consumer}/.bashrc"
 git -C "${__consumer}" add -A -f
 
 set +o errexit
@@ -96,16 +105,46 @@ OUT=$(cd "${__consumer}" && "${PC}" run --config .pre-commit-config.yaml --all-f
 EXIT=$?
 set -o errexit
 
-if [ "${EXIT}" -eq 0 ] && echo "${OUT}" | grep -q "checklist-toml" && echo "${OUT}" | grep -q "checklist-dev-dotenv"; then
-  pass "consumer path: repo:+rev: clone resolves .pre-commit-hooks.yaml and runs both hook ids"
+# The last clause is deliberately a negative match rather than another
+# grep for the hook id: the id also appears on the `- hook id:` line of a
+# skipped hook, so grepping for it alone would pass while the hook matched
+# nothing. assert_selected below cannot cover this either; it only fails
+# when *every* hook was skipped, not one out of three.
+if [ "${EXIT}" -eq 0 ] &&
+  echo "${OUT}" | grep -q "checklist-toml" &&
+  echo "${OUT}" | grep -q "checklist-dev-dotenv" &&
+  ! echo "${OUT}" | grep -q "Bash/Shell Script Checklist\.*(no files to check)Skipped"; then
+  pass "consumer path: repo:+rev: clone resolves .pre-commit-hooks.yaml and runs all three hook ids"
 else
-  fail "consumer path: expected both hook ids to run successfully" "exit=${EXIT}
+  fail "consumer path: expected all three hook ids to run successfully" "exit=${EXIT}
 ${OUT}"
 fi
 
 # shellcheck disable=SC2034 # read by assert_selected in tests/lib/harness.sh
 HOOK_OUTPUT="${OUT}"
 assert_selected "consumer path/selection"
+
+# Negative control for the extensionless dotfile specifically: break the
+# .bashrc and require the run to fail. If checklist-dev-shell were skipping
+# files without a .sh/.bash extension, this run would pass, which is exactly
+# the defect this guards. Restored to valid afterwards so the TOML negative
+# control below is attributable to bad.toml alone.
+printf '# shellcheck shell=bash\nlocal name="not inside a function"\n' >"${__consumer}/.bashrc"
+git -C "${__consumer}" add -A -f
+set +o errexit
+OUT_SH=$(cd "${__consumer}" && "${PC}" run --config .pre-commit-config.yaml --all-files --verbose 2>&1)
+EXIT_SH=$?
+set -o errexit
+
+if [ "${EXIT_SH}" -ne 0 ] && echo "${OUT_SH}" | grep -q "SC2168"; then
+  pass "consumer path: checklist-dev-shell reaches an extensionless shell dotfile"
+else
+  fail "consumer path: a broken .bashrc should have failed checklist-dev-shell" "exit=${EXIT_SH}
+${OUT_SH}"
+fi
+
+printf '# shellcheck shell=bash\nalias ll="ls -alF"\n' >"${__consumer}/.bashrc"
+git -C "${__consumer}" add -A -f
 
 # Negative control: a bad fixture through the same repo:+rev: path must
 # still fail, proving this is not just "everything passes once cloned".
