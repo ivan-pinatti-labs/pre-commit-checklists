@@ -1,4 +1,5 @@
-# MegaLinter
+# MegaLinter is no longer part of this library, but a checkout that ran it
+# before might still carry these paths locally, so they stay ignored.
 megalinter-reports/
 mega-linter.log
 

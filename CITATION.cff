@@ -19,7 +19,6 @@ url: https://github.com/ivan-pinatti/pre-commit-checklists
 keywords:
   - pre-commit
   - linting
-  - megalinter
   - code-quality
   - git-hooks
 version: 1.0.0

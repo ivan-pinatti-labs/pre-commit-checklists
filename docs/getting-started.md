@@ -76,7 +76,7 @@ The script:
 1. Copies (local mode) or fetches (piped mode) the chosen
    `.pre-commit-config.yaml` and the supporting tool configs
    (`.editorconfig`, `.cspell.json`, `.yamllint.yml`,
-   `.markdownlint.yaml`, `.lycheeignore`, `.mega-linter.yml`) into your
+   `.markdownlint.yaml`, `.lycheeignore`) into your
    repo, without clobbering files that already exist (pass `--force` to
    overwrite).
 2. With `--community-files`, also copies the GitHub community health
@@ -86,7 +86,7 @@ The script:
    Off by default: plenty of consumers already have their own, and
    silently replacing one would be a bad surprise. Same no-clobber rule
    as everything else the script writes.
-3. Appends the MegaLinter/pre-commit log entries from
+3. Appends the pre-commit log entries from
    [`templates/gitignore.fragment`](../templates/gitignore.fragment) to
    your `.gitignore`.
 4. Generates `.secrets.baseline` with `detect-secrets scan`.
@@ -175,8 +175,6 @@ files it touches.
   plain [Conventional Commits](https://www.conventionalcommits.org/), or
   to change which linter finding gets ignored where, see
   [`docs/overrides.md`](overrides.md).
-- To run MegaLinter alongside these checklists, see
-  [`docs/megalinter.md`](megalinter.md).
 
 ## Upgrading later
 

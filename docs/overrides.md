@@ -316,19 +316,3 @@ a_very_long_key: "a value that would otherwise trip the line-length rule"
 <!-- markdownlint-disable-next-line MD013 -->
 A very long line that would otherwise trip the line-length rule.
 ```
-
-## MegaLinter-specific overrides
-
-MegaLinter does not have one inline-ignore syntax of its own: it runs
-dozens of underlying linters, and each keeps its own convention for
-ignoring one finding. For a linter this library also wraps directly
-(yamllint, markdownlint, cspell, detect-secrets), the sections above
-apply unchanged, MegaLinter is invoking the same binary. For any other
-linter MegaLinter enables, check that linter's own documentation, linked
-from [MegaLinter's descriptor list](https://megalinter.io/latest/config-file/).
-
-What is repo-wide, not per-linter or per-line, is `DISABLE`/`DISABLE_LINTERS`
-in `.mega-linter.yml`, which turns a whole descriptor or linter off
-entirely rather than ignoring one finding. See
-[`docs/megalinter.md`](megalinter.md) for that file and how MegaLinter
-itself is run.

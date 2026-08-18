@@ -90,16 +90,3 @@ repos:
       - id: checklist-dev-docker
         types: [dockerfile]
         stages: [pre-commit]
-
-  # MegaLinter is not a checklist hook id: it is a separate multi-linter
-  # tool this library also ships config for (templates/.mega-linter.yml).
-  # It is heavier than the checklists above and is usually run at the
-  # pre-push stage or in CI rather than on every commit. Uncomment to run
-  # it locally as well; see docs/megalinter.md before you do.
-  #
-  # - repo: https://github.com/oxsecurity/megalinter
-  #   rev: v10.0.0 # pin explicitly; MegaLinter is not part of this
-  #                # library's own release cycle
-  #   hooks:
-  #     - id: megalinter-full
-  #       stages: [pre-push]
