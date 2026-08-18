@@ -9,6 +9,20 @@ project as easy and transparent as possible, whether it's:
 - Proposing a new checklist or hook id
 - Becoming a maintainer
 
+## The short version
+
+| Stage | What runs | What you do |
+| --- | --- | --- |
+| Open as a **draft** | `pre-commit`, `MegaLinter`, and the `self-test` job all run on the same push (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever they report |
+| **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
+| Merge | | |
+
+Opening as a draft first means the cheap, mechanical checks run before
+CodeRabbit spends a review on a diff that pre-commit or MegaLinter might
+still rewrite. If either job can auto-fix what it finds, it pushes that fix
+back to your branch as its own commit; pull before you push again so you are
+not racing your own history.
+
 ## GitHub Flow
 
 This project uses [GitHub Flow](https://guides.github.com/introduction/flow/index.html),
@@ -30,16 +44,19 @@ so all code changes happen through pull requests.
    you intended it to match. `types:`/`types_or:` and `files:` are ANDed by
    pre-commit, not ORed; see that doc's "Why the selector matters" section
    before writing either.
-5. Open the pull request as a **draft**. Mark it ready once it's green.
-6. Adhere to [Conventional Commits](https://www.conventionalcommits.org/) for
+5. Run `make test` (or `tests/run_tests.sh`) if your change touches a
+   checklist, a script, or a template; see [`tests/README.md`](../tests/README.md)
+   for what each phase needs installed and how to run just one of them.
+6. Open the pull request as a **draft**. Mark it ready once it's green.
+7. Adhere to [Conventional Commits](https://www.conventionalcommits.org/) for
    your commit messages and PR title; this repository is versioned with
    [Semantic Versioning](https://semver.org/). No ticket prefix: that's an
    opt-in override for consumers of this library, not a convention of this
    repository's own history.
-7. Update the documentation accordingly, including
+8. Update the documentation accordingly, including
    [`docs/hook-catalogue.md`](hook-catalogue.md) and the README catalogue
    table if you touched a hook id.
-8. Issue the pull request.
+9. Issue the pull request.
 
 ## Any contributions you make will be under the Apache License 2.0
 
@@ -70,6 +87,16 @@ that triggered (or should have triggered) it, and what you expected instead.
   `checklist-dev-shell` in this repo's own dogfood config.
 - Run `make run` before pushing; it runs both the `pre-commit` and
   `pre-push` stage hooks this repo dogfoods on itself, over every file.
+
+## Scripts
+
+Helper scripts live flat in [`scripts/`](../scripts/), no subfolders, and
+each is either wired up as a hook's `entry:` in
+[`.pre-commit-hooks.yaml`](../.pre-commit-hooks.yaml) or run directly by a
+contributor or consumer (`install.sh`). Follow the coding style above; the
+`shell` phase of `tests/run_tests.sh` runs shellcheck plus behavioral tests
+against everything under `scripts/*.sh`, so a new script needs a matching
+test there, not just a passing lint.
 
 ## License
 

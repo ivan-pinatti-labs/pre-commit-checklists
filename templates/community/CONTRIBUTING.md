@@ -9,6 +9,18 @@ project as easy and transparent as possible, whether that means:
 - Proposing a new feature
 - Becoming a maintainer
 
+## The short version
+
+| Stage | What runs | What you do |
+| --- | --- | --- |
+| Open as a **draft** | CI or pre-commit hooks, if this repo has any | Fix what they report |
+| **Mark ready for review** | Review, once checks are green | Address the feedback |
+| Merge | | |
+
+<!-- Replace the "What runs" column once this repository's actual
+  checks exist, and whether review waits for a draft to be marked
+  ready. Delete the table if that distinction does not apply here. -->
+
 ## GitHub Flow
 
 This project uses [GitHub Flow](https://guides.github.com/introduction/flow/index.html),
@@ -49,11 +61,20 @@ bug report template will prompt for the details that help the most.
 A good bug report explains what you expected to happen, what actually
 happened instead, and the smallest set of steps that reproduces it.
 
-## Use a consistent coding style
+## Use a Consistent Coding Style
 
 Match whatever `.editorconfig`, linter, or formatter configuration already
 lives in this repository. If none exists yet, ask a maintainer before
 introducing one, rather than mixing styles across a single pull request.
+
+## Scripts
+
+If this repository ships helper scripts (commonly under `scripts/`), match
+whatever is already there: a consistent naming scheme, a shebang line
+appropriate to the language, and, for shell scripts, a strict-mode preamble
+such as `set -euo pipefail`. Document what a script does and, if it can fail
+in more than one way, what each exit status means. Never commit secrets or
+another environment's live state; commit a sanitized example file instead.
 
 ## License
 

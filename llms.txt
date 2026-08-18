@@ -35,7 +35,6 @@ for common cases and a handful of languages.
 - pre-commit
 - Bash, for the dispatcher and validation scripts under `scripts/`
 - detect-secrets, for the credentials checklist
-- MegaLinter, optional and separate from the checklist hook ids
 - GNU Make
 
 ## License
