@@ -13,15 +13,15 @@ project as easy and transparent as possible, whether it's:
 
 | Stage | What runs | What you do |
 | --- | --- | --- |
-| Open as a **draft** | `pre-commit`, `MegaLinter`, and the `self-test` job all run on the same push (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever they report |
+| Open as a **draft** | `Pre-Commit Checks` and `Self-Test Suite` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever `Pre-Commit Checks` or `Self-Test Suite` report |
 | **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
 | Merge | | |
 
 Opening as a draft first means the cheap, mechanical checks run before
-CodeRabbit spends a review on a diff that pre-commit or MegaLinter might
-still flag. Neither job auto-fixes or pushes anything back to your branch;
-a hook that finds something wrong, even something it could fix locally,
-fails the job, and you commit and push the fix yourself.
+CodeRabbit spends a review on a diff that pre-commit might still flag.
+That job doesn't auto-fix or push anything back to your branch; a hook
+that finds something wrong, even something it could fix locally, fails
+the job, and you commit and push the fix yourself.
 
 ## GitHub Flow
 
