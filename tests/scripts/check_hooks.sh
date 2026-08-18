@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# cspell:words zizmor
+
 : '
   Phase 1 + Phase 2: per-checklist fixture tests.
 
@@ -22,14 +24,17 @@
     "passes" pre-commit, because a hook matching zero files exits 0.
 
   checklist-github-actions is a special case: actionlint-docker own hook
-  manifest anchors files to ^\.github/workflows/ at the repo root, so
-  a fixture under tests/fixtures/ can never match it there, and this repo
-  real .github/workflows/ is out of scope for tests/ to write into (owned
-  by a part of the build that has not landed). Phase 1 for this one hook
-  therefore runs against tests/config/checklist-github-actions.override.yaml
-  instead, which points the same pinned actionlint-docker hook at any
-  YAML file. Phase 2 (dogfood wiring) is skipped for this hook and reported
-  as a known gap; see tests/README.md.
+  manifest anchors files to ^\.github/workflows/ at the repo root, and the
+  zizmor local hook in the same checklist file anchors its own files to
+  ^\.github/workflows/.*\.ya?ml$ for the identical reason, so a fixture
+  under tests/fixtures/ can never match either hook there. Phase 1 for
+  this one hook therefore runs against
+  tests/config/checklist-github-actions.override.yaml instead, which
+  re-points both pinned hooks at any YAML file. Phase 2 (dogfood wiring,
+  against this repo own real .github/workflows/) is handled separately by
+  test_github_actions_dogfood_wiring below, against real files rather
+  than fixtures, since a fixture cannot satisfy either hook own real
+  selector; see tests/README.md.
 
   checklist-git-valid-branches, checklist-git-commit-msg and
   checklist-git-protected-branches are not file-content hooks (branch name

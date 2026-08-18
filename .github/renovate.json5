@@ -1,4 +1,5 @@
 {
+  // cspell:words zizmor pypi
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
   // Dependabot handles the root .pre-commit-config.yaml and GitHub Actions
@@ -48,6 +49,12 @@
   // `rev:` field for the manager above to watch. Its pin is the image tag
   // inside its own entry: string instead; this custom manager watches
   // that tag the same way, so it does not rot silently either.
+  // checklist-github-actions.yaml's zizmor hook is also `repo: local` (see
+  // docs/hook-catalogue.md and that checklist's own header comment for
+  // why), so it too has no `rev:` field for the manager above to watch.
+  // Its pin lives inside additional_dependencies instead, as a normal
+  // PyPI version pin; this custom manager watches that the same way the
+  // one above watches the dotenv-linter image tag.
   customManagers: [
     {
       customType: "regex",
@@ -59,6 +66,17 @@
       ],
       datasourceTemplate: "docker",
       depNameTemplate: "dotenvlinter/dotenv-linter",
+    },
+    {
+      customType: "regex",
+      managerFilePatterns: [
+        "/^checklists/checklist-github-actions\\.ya?ml$/",
+      ],
+      matchStrings: [
+        "zizmor==(?<currentValue>[0-9.]+)",
+      ],
+      datasourceTemplate: "pypi",
+      depNameTemplate: "zizmor",
     },
   ],
 }

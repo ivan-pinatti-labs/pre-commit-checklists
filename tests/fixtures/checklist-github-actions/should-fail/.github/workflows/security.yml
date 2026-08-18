@@ -1,0 +1,22 @@
+---
+# A workflow actionlint accepts without complaint (valid syntax, valid
+# job and step structure, a pinned action reference), yet carries three
+# real security flaws only zizmor catches: pull_request_target on a
+# workflow that checks out and runs against the pull request's own
+# content (dangerous-triggers), a checkout step that leaves the
+# repository's push credentials on disk for later steps to read
+# (artipacked), and no permissions: block, so the job runs with the
+# repository's full default token permissions (excessive-permissions).
+# Confirmed directly: actionlint (1.7.12) exits 0 against this file;
+# zizmor (--no-online-audits) exits 14 with exactly these three findings.
+name: security-flawed-example
+on:
+  pull_request_target:
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Greet the author
+        run: echo "thanks for the pull request"

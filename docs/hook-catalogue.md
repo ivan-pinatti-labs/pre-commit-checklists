@@ -1,5 +1,7 @@
 # Hook catalogue
 
+<!-- cspell:words zizmor zizmorcore artipacked -->
+
 Source data for every hook id exposed in
 [`.pre-commit-hooks.yaml`](../.pre-commit-hooks.yaml). Each id dispatches
 to a checklist file under [`checklists/`](../checklists/) (or, for the
@@ -30,7 +32,7 @@ build your own selection from scratch.
 | `checklist-git-valid-branches` | `scripts/check-branch-name.sh` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
-| `checklist-github-actions` | actionlint-docker | `files: ^\.github/` | Docker (actionlint-docker runs in a container) |
+| `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned v1.29.0, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (the hook's own `.pre-commit-hooks.yaml` entry additionally bakes in `files: \.(sh\|bash)$`) | none |
@@ -140,6 +142,90 @@ findings. Swap in whatever check names, or an `--exclude` pattern, a
 given repository needs; the
 [dotenv-linter README](https://github.com/dotenv-linter/dotenv-linter)'s
 "Available checks" list names every check `--ignore-checks` accepts.
+
+## Zizmor: offline by default
+
+`checklist-github-actions` runs [zizmor](https://docs.zizmor.sh/) alongside
+actionlint. actionlint checks workflow syntax and semantics; zizmor checks
+workflow *security*: credential persistence through `actions/checkout`
+(`artipacked`), template injection through untrusted input reaching a
+shell or script step (`template-injection`), overly broad permissions
+(`excessive-permissions`), unpinned action references (`unpinned-uses`),
+and several more, listed at
+[docs.zizmor.sh/audits](https://docs.zizmor.sh/audits/). Confirmed
+directly: actionlint's own "expression" rule already catches the
+narrower case of a known untrusted GitHub context value
+(`github.event.pull_request.title` and similar) interpolated straight
+into a `run:` or `script:` block, so the two tools overlap there; they do
+not overlap on credential persistence, permissions, or unpinned
+references, none of which actionlint checks at all.
+
+zizmor has no first party `.pre-commit-hooks.yaml` of its own (a plain
+request for one against its GitHub repository returns 404), so this is a
+`repo: local` hook, `language: python`, pinned via
+`additional_dependencies: ["zizmor==1.29.0"]` rather than a `repo:` +
+`rev:` entry. See [`docs/versioning.md`](versioning.md) for what that
+means for how this pin moves.
+
+**zizmor 1.29.0 needs Python 3.10 or newer; neither hook definition sets
+`language_version`, on purpose.** PyPI reports `requires_python: >=3.10`
+for this pin, but that floor is a fact about zizmor, not something a
+`language: python` hook enforces on its own, so it is documented here,
+in `README.md`, and in `tests/README.md` instead. Setting
+`language_version: python3.10` looks like the obvious way to encode that
+floor and was tried directly: confirmed on a machine whose only
+interpreter is Python 3.14 and has no `python3.10` on `PATH` at all, that
+setting makes pre-commit try to build the hook's virtualenv with
+`python3.10` specifically, `-mvirtualenv` fails outright with
+`RuntimeError: failed to find interpreter for Builtin discover of
+python_spec='python3.10'`, and the hook never runs, pre-commit exits 3
+before zizmor gets a chance to see a single file. `language_version`
+selects one exact interpreter; it is not a minimum version check, so it
+turns "works on 3.10 and any newer Python" into "works on exactly 3.10",
+breaking every consumer already fine on 3.11 through 3.14 to guard
+against the one who is not. `language_version: python3` was also tried,
+confirmed to behave identically to leaving the key out entirely (both
+resolve to whichever `python3` is already running `pre-commit` itself),
+so it buys nothing beyond what omitting the key already does.
+`minimum_pre_commit_version` does not help either: confirmed against
+pre-commit's own source, that key gates the version of the `pre-commit`
+tool itself, not the Python interpreter its hooks run under, so it
+cannot express this requirement at all. Leaving `language_version`
+unset is what actually keeps this hook working across 3.10 and up; a
+consumer whose ambient `python3` predates 3.10 gets a clear failure
+straight from pip's own resolver at install time (`Ignored the following
+versions that require a different python version: ... 1.29.0
+Requires-Python >=3.10`, confirmed directly against PyPI), not a
+mysterious one, which is what documenting the floor here is for.
+
+**The hook runs `zizmor --no-online-audits` rather than plain `zizmor`,
+by design.** Without that flag, zizmor auto detects any
+`GH_TOKEN`/`GITHUB_TOKEN`/`ZIZMOR_GITHUB_TOKEN` in the calling
+environment and, if one is present, attempts online audits (chiefly
+`impostor-commit`, which needs the GitHub API to confirm a pinned commit
+SHA actually belongs to the repository it claims to) that need real,
+working GitHub API access. Confirmed directly: with no token set at all,
+zizmor limits itself to the offline audit set and exits normally; with a
+token set that the GitHub API rejects (wrong scope, expired, or simply
+not a real token, which an ordinary consumer CI job cannot always
+guarantee about whatever token happens to already be in its
+environment), the run instead aborts outright with `fatal: no audit was
+performed` and an HTTP 401 from the GitHub API, exit status 1, zero
+findings reported rather than a partial result. That failure mode has
+nothing to do with the workflow content being checked, so this checklist
+does not leave it to chance: `--no-online-audits` is baked into the
+hook's own `entry:`, and the result depends only on the files it is
+given, never on whether some ambient token happens to be valid on a
+given run.
+
+This means the audits that need connectivity, `impostor-commit` in
+particular, do not run through this checklist id at all. A consumer who
+wants them, and has a real token to spend on the extra GitHub API calls,
+can override the hook in their own `.pre-commit-config.yaml` with
+`entry: zizmor` (no flag) and a working `GH_TOKEN` exported in the
+environment `pre-commit` runs in; see
+[`docs/overrides.md`](overrides.md) for how a hook level override like
+that works.
 
 ## `stages:` depends on why you installed more than the pre-commit stage
 

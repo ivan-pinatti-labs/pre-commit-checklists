@@ -1,5 +1,7 @@
 # Tests
 
+<!-- cspell:words zizmor -->
+
 Self-tests for this library own checklists, hook wiring, and shell
 scripts. Nothing here consumes the library the way `templates/` teaches a
 real consumer to; instead it runs the checklists directly and, for the
@@ -186,7 +188,23 @@ hook fires because local work happens on `main`.
 - **`checklist-github-actions` needs `tests/config/checklist-github-actions.override.yaml`.**
   See "Known gaps" above; this override file exists solely so the hook
   own real behavior (does it actually lint the workflow file content) can
-  be tested from a fixture path outside `.github/workflows/`.
+  be tested from a fixture path outside `.github/workflows/`. The zizmor
+  local hook added to `checklists/checklist-github-actions.yaml` has the
+  identical anchoring problem as actionlint-docker (its own `files:` is
+  scoped to `^\.github/workflows/`), so the override file repeats the
+  whole local hook definition with a relaxed `files:`, not just a
+  selector override: a `repo: local` hook has no upstream manifest for a
+  consumer level override to reach into the way a `repo:` + `rev:` hook
+  does. Its should-fail fixture (`security.yml`) is written specifically
+  so actionlint accepts it (valid syntax, a pinned action reference) while
+  zizmor still rejects it (a `pull_request_target` trigger, no
+  `persist-credentials: false`, no `permissions:` block); confirmed
+  directly that actionlint exits 0 and zizmor exits 14 against that exact
+  file. Its should-pass fixtures needed the existing `ci.yml` updated
+  (pinned `actions/checkout` reference, `persist-credentials: false`, a
+  `permissions:` block added) alongside a new `security.yml`, since
+  `should-pass` now has to satisfy both hooks at once, not just
+  actionlint.
 
 ## What each phase needs installed
 
@@ -194,8 +212,11 @@ hook fires because local work happens on `main`.
 - `hooks`: `pre-commit`, network access (hook environments are built and
   cached on first use), Docker (for `actionlint-docker` and
   `hadolint-docker`), Node/npm (for the Prettier- and Biome-based
-  checklists), and a Terraform + `tflint` toolchain (for
-  `checklist-dev-terraform`).
+  checklists), Python 3.10+ and pip (for zizmor, installed into its own
+  `language: python` environment via `additional_dependencies`; that
+  floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
+  definition does not pin `language_version` to enforce it), and a
+  Terraform + `tflint` toolchain (for `checklist-dev-terraform`).
 - `shell`: `shellcheck`, `git`, `pre-commit`, `detect-secrets`.
 - `consumer` / `commit`: `git`, `pre-commit`, and everything `hooks` needs
   (the throwaway consumer repos exercise the same checklists).

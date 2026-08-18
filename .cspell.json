@@ -22,6 +22,7 @@
     "lycheeignore",
     "markdownlint",
     "mathieudutour",
+    "mvirtualenv",
     "myproject",
     "ncipollo",
     "neighbouring",
@@ -47,6 +48,7 @@
     "unwrappable",
     "urllib",
     "venv",
+    "virtualenv",
     "wemake",
     "xkcd",
     "yamllint"

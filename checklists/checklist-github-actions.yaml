@@ -1,6 +1,101 @@
 ---
+# cspell:words zizmor zizmorcore rhysd artipacked
+#
+# actionlint checks workflow syntax and semantics (unknown actions,
+# shellcheck issues inside run: blocks, type errors in expressions), not
+# workflow security. zizmor covers the gap actionlint leaves open:
+# credential persistence through checkout (artipacked), template
+# injection through untrusted input reaching a script or shell step, and
+# overly broad permissions. Confirmed directly against this library's own
+# workflows: actionlint reports zero findings on content zizmor flags as
+# a real, current security issue, so the two tools are complementary, not
+# redundant.
+#
+# zizmor has no first party .pre-commit-hooks.yaml (checked directly
+# against zizmorcore/zizmor; a plain https://raw.githubusercontent.com
+# request for .pre-commit-hooks.yaml at its default branch returns 404),
+# so this is a repo: local hook, in the same style checklist-json.yaml
+# and checklist-yaml.yaml already use for a PyPI/npm distributed tool
+# with no upstream pre-commit manifest of its own, rather than a
+# repo: + rev: entry. language: python, not language: system: pre-commit
+# builds a dedicated virtual environment and installs the pinned version
+# from additional_dependencies into it, so a consumer needs Python
+# available to pre-commit itself (already true for this whole library),
+# not a zizmor binary already on PATH.
+#
+# Pinned to v1.29.0 explicitly: zizmor releases roughly monthly and this
+# pin does not track any other tool's version in this library, it is
+# chosen on its own. See docs/versioning.md for how this pin moves
+# (a repo: local hook has no rev: field for the built in pre-commit
+# Renovate manager to watch, the same situation checklist-dev-dotenv.yaml
+# is in for its own upstream pin).
+#
+# zizmor 1.29.0 needs Python 3.10 or newer (PyPI's requires_python for
+# this pin), and this hook definition deliberately does not set
+# language_version to encode that. Confirmed directly on a machine with
+# only Python 3.14 and no python3.10 interpreter installed at all:
+# language_version: python3.10 makes pre-commit demand that exact
+# interpreter to build the hook's virtualenv, and when it is absent the
+# build fails outright, so the hook never runs, even though this same
+# machine's actual python3 (3.14) satisfies zizmor's floor easily.
+# language_version selects one exact interpreter, it does not express a
+# minimum, so pinning it here would turn "works on 3.10 and newer" into
+# "works on exactly 3.10" and break every consumer already fine on 3.11
+# through 3.14 to guard against the one who is not. See
+# docs/hook-catalogue.md for the full comparison against
+# language_version: python3 and minimum_pre_commit_version, neither of
+# which helps either; the Python 3.10+ floor itself is documented there,
+# in README.md, and in tests/README.md instead of enforced here.
+#
+# --no-online-audits is baked into entry on purpose, not left to a
+# consumer's environment. Without it, zizmor auto detects any
+# GH_TOKEN/GITHUB_TOKEN/ZIZMOR_GITHUB_TOKEN in the environment and
+# attempts online audits (impostor-commit, plus part of artipacked's own
+# check) that need real GitHub API access to verify a pinned commit SHA
+# belongs to the repository it claims to. Confirmed directly: with no
+# token set at all, zizmor already limits itself to offline audits and
+# exits normally; with a token present that GitHub API calls reject
+# (wrong scope, expired, or simply not a real token, which is exactly
+# what an ordinary consumer CI job cannot guarantee about its own
+# ambient token), the run instead aborts outright with "fatal: no audit
+# was performed" and a 401 Unauthorized from the GitHub API, exit status
+# 1, no findings at all rather than a partial result. That failure mode
+# is worse than losing one audit's coverage: it makes the hook fail for
+# a reason that has nothing to do with the workflow content it is
+# supposed to be checking. Baking --no-online-audits into entry makes
+# the hook's result depend only on the files it is given, never on
+# whether some ambient token happens to be valid this run. A consumer
+# who wants the online audits (impostor-commit in particular) and has a
+# real token to spend on them should override this hook in their own
+# .pre-commit-config.yaml with entry: zizmor (no flag) and export a
+# working GH_TOKEN themselves; see docs/overrides.md for how a hook
+# level override like that works.
+#
+# files: is scoped to .github/workflows/ to match actionlint-docker's own
+# hook manifest scope (checked directly: rhysd/actionlint's
+# .pre-commit-hooks.yaml anchors actionlint-docker's own files: to
+# ^\.github/workflows/, ANDed with types: ["yaml"]), so both tools in
+# this checklist see the same files. This is a single files: regex, not
+# combined with a types: key, on purpose: see "Why the selector matters"
+# in docs/hook-catalogue.md, and tests/scripts/test_selector_lint.py
+# statically guards against this file combining the two.
 repos:
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:
       - id: actionlint-docker
+
+  - repo: local
+    hooks:
+      - id: zizmor
+        name: zizmor (GitHub Actions workflow security audit)
+        description: >-
+          Audits GitHub Actions workflows for security issues actionlint
+          does not check, such as credential persistence, template
+          injection, and overly broad permissions. Runs the offline
+          audit set only by default; see docs/hook-catalogue.md for the
+          token opt in for the online audits this skips.
+        language: python
+        additional_dependencies: ["zizmor==1.29.0"]
+        entry: zizmor --no-online-audits
+        files: '^\.github/workflows/.*\.ya?ml$'
