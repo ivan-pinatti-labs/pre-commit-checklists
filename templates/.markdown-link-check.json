@@ -8,19 +8,24 @@
   ],
   "ignorePatterns": [
     {
-      "comment": "GitHub returns 404 for /stargazers on a repo with zero stars, so this badge target is dead until someone stars it and dead again if they unstar. Nothing to fix in the Markdown.",
+      "comment": [
+        "GitHub answers 404 on /stargazers for a repository with zero",
+        "stars, so this very common badge target is dead until someone",
+        "stars the repo, and dead again if the count returns to zero.",
+        "Nothing to fix in the Markdown; it can only be ignored."
+      ],
       "pattern": "^https://github\\.com/[^/]+/[^/]+/stargazers/?$"
     },
     {
-      "comment": "Rate-limits unauthenticated checkers hard enough to produce false failures.",
+      "comment": ["Rate-limits unauthenticated checkers into false failures."],
       "pattern": "^https?://api\\.github\\.com(:[0-9]+)?(/.*)?$"
     },
     {
-      "comment": "In-cluster Kubernetes service links never resolve from outside.",
+      "comment": ["In-cluster Kubernetes service links never resolve from outside."],
       "pattern": "^https?://.*\\.svc(\\.cluster\\.local)?(:[0-9]+)?(/.*)?$"
     },
     {
-      "comment": "Placeholder hosts that appear in generated auth examples.",
+      "comment": ["Placeholder hosts that appear in generated auth examples."],
       "pattern": "^https?://x-access-token(:[0-9]+)?(/.*)?$"
     }
   ],
