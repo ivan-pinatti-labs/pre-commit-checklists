@@ -167,6 +167,37 @@ request for one against its GitHub repository returns 404), so this is a
 `rev:` entry. See [`docs/versioning.md`](versioning.md) for what that
 means for how this pin moves.
 
+**zizmor 1.29.0 needs Python 3.10 or newer; neither hook definition sets
+`language_version`, on purpose.** PyPI reports `requires_python: >=3.10`
+for this pin, but that floor is a fact about zizmor, not something a
+`language: python` hook enforces on its own, so it is documented here,
+in `README.md`, and in `tests/README.md` instead. Setting
+`language_version: python3.10` looks like the obvious way to encode that
+floor and was tried directly: confirmed on a machine whose only
+interpreter is Python 3.14 and has no `python3.10` on `PATH` at all, that
+setting makes pre-commit try to build the hook's virtualenv with
+`python3.10` specifically, `-mvirtualenv` fails outright with
+`RuntimeError: failed to find interpreter for Builtin discover of
+python_spec='python3.10'`, and the hook never runs, pre-commit exits 3
+before zizmor gets a chance to see a single file. `language_version`
+selects one exact interpreter; it is not a minimum version check, so it
+turns "works on 3.10 and any newer Python" into "works on exactly 3.10",
+breaking every consumer already fine on 3.11 through 3.14 to guard
+against the one who is not. `language_version: python3` was also tried,
+confirmed to behave identically to leaving the key out entirely (both
+resolve to whichever `python3` is already running `pre-commit` itself),
+so it buys nothing beyond what omitting the key already does.
+`minimum_pre_commit_version` does not help either: confirmed against
+pre-commit's own source, that key gates the version of the `pre-commit`
+tool itself, not the Python interpreter its hooks run under, so it
+cannot express this requirement at all. Leaving `language_version`
+unset is what actually keeps this hook working across 3.10 and up; a
+consumer whose ambient `python3` predates 3.10 gets a clear failure
+straight from pip's own resolver at install time (`Ignored the following
+versions that require a different python version: ... 1.29.0
+Requires-Python >=3.10`, confirmed directly against PyPI), not a
+mysterious one, which is what documenting the floor here is for.
+
 **The hook runs `zizmor --no-online-audits` rather than plain `zizmor`,
 by design.** Without that flag, zizmor auto detects any
 `GH_TOKEN`/`GITHUB_TOKEN`/`ZIZMOR_GITHUB_TOKEN` in the calling

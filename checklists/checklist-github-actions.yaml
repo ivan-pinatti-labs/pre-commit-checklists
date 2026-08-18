@@ -30,6 +30,23 @@
 # Renovate manager to watch, the same situation checklist-dev-dotenv.yaml
 # is in for its own upstream pin).
 #
+# zizmor 1.29.0 needs Python 3.10 or newer (PyPI's requires_python for
+# this pin), and this hook definition deliberately does not set
+# language_version to encode that. Confirmed directly on a machine with
+# only Python 3.14 and no python3.10 interpreter installed at all:
+# language_version: python3.10 makes pre-commit demand that exact
+# interpreter to build the hook's virtualenv, and when it is absent the
+# build fails outright, so the hook never runs, even though this same
+# machine's actual python3 (3.14) satisfies zizmor's floor easily.
+# language_version selects one exact interpreter, it does not express a
+# minimum, so pinning it here would turn "works on 3.10 and newer" into
+# "works on exactly 3.10" and break every consumer already fine on 3.11
+# through 3.14 to guard against the one who is not. See
+# docs/hook-catalogue.md for the full comparison against
+# language_version: python3 and minimum_pre_commit_version, neither of
+# which helps either; the Python 3.10+ floor itself is documented there,
+# in README.md, and in tests/README.md instead of enforced here.
+#
 # --no-online-audits is baked into entry on purpose, not left to a
 # consumer's environment. Without it, zizmor auto detects any
 # GH_TOKEN/GITHUB_TOKEN/ZIZMOR_GITHUB_TOKEN in the environment and

@@ -212,8 +212,10 @@ hook fires because local work happens on `main`.
 - `hooks`: `pre-commit`, network access (hook environments are built and
   cached on first use), Docker (for `actionlint-docker` and
   `hadolint-docker`), Node/npm (for the Prettier- and Biome-based
-  checklists), Python + pip (for zizmor, installed into its own
-  `language: python` environment via `additional_dependencies`), and a
+  checklists), Python 3.10+ and pip (for zizmor, installed into its own
+  `language: python` environment via `additional_dependencies`; that
+  floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
+  definition does not pin `language_version` to enforce it), and a
   Terraform + `tflint` toolchain (for `checklist-dev-terraform`).
 - `shell`: `shellcheck`, `git`, `pre-commit`, `detect-secrets`.
 - `consumer` / `commit`: `git`, `pre-commit`, and everything `hooks` needs
