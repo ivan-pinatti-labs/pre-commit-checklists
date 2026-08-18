@@ -1,4 +1,5 @@
 ---
+# cspell:words zizmor
 name: New Tag & Release
 
 # A plain push to main (which is what a merged PR produces) tags and
@@ -35,6 +36,11 @@ jobs:
           # shallow clone can leave that tag out of the fetched history on a
           # repo with any real depth to it.
           fetch-depth: 0
+          # github-tag-action below creates the tag through the GitHub API
+          # (Octokit's github_token input, not a local git push), and
+          # nothing else in this job pushes, so the checkout has no use
+          # for a persisted credential.
+          persist-credentials: false
 
       # github-tag-action computes the next version from the commits since the
       # previous tag, and does not check whether HEAD already carries one. On a
@@ -64,6 +70,13 @@ jobs:
 
       - name: Create release
         if: steps.tag_version.outputs.new_tag != ''
+        # zizmor: ignore[superfluous-actions] the suggested replacement is
+        # a `gh release create` script step instead of this action. That
+        # is a style preference, not a security fix (this step is not one
+        # of the findings above), and swapping a maintained, widely used
+        # action for a hand rolled script here would trade a working
+        # release path for one this repository would then have to
+        # maintain itself, for no security benefit.
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
