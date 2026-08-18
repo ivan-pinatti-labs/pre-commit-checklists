@@ -1,4 +1,5 @@
 ---
+# cspell:words zizmor
 # Deliberately the security conscious counterpart to the flaw this
 # checklist's should-fail fixture demonstrates: a pinned action reference,
 # persist-credentials: false on checkout, and an explicit permissions
