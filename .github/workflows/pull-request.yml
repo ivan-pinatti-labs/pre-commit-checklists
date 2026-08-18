@@ -65,14 +65,15 @@ jobs:
         with:
           fetch-depth: 1
           ref: ${{ github.head_ref }}
-          # Left on, explicitly, rather than turned off: the "Commit and
-          # push auto-fixes" step below pushes to this same branch with
-          # exactly this checkout's persisted credential, so turning it
-          # off would break that push. The GITHUB_TOKEN backing it is
-          # scoped to this job and already read only on a fork pull
-          # request, which is what keeps that persistence reasonable
-          # here rather than a blanket exception.
-          persist-credentials: true
+          # Turned off, deliberately: "Run pre-commit" below shells out to
+          # a nested `pre-commit run` per checklist, which downloads and
+          # executes third party tool environments. A persisted, writable
+          # credential sitting in .git/config for that whole window would
+          # let any one of those hooks push to this branch, or anywhere
+          # else, under this job's identity. The "Commit and push
+          # auto-fixes" step supplies its own credential, scoped to that
+          # one push only, well after every hook has already run.
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -131,6 +132,16 @@ jobs:
 
       - name: Commit and push auto-fixes
         if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
+        env:
+          # Scoped to this one step, not the "Run pre-commit" step above:
+          # that step's nested `pre-commit run` per checklist inherits
+          # whatever this job's shell exports, and a token sitting in that
+          # environment would be as reachable by third party hook code as
+          # one persisted to .git/config. Naming it here, via env:, also
+          # keeps the token out of the literal script below, which is what
+          # lets it stay a plain shell variable rather than a
+          # zizmor template-injection finding.
+          PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           # This repo's own commit identity throughout, not
@@ -139,7 +150,25 @@ jobs:
           git config user.email "ivan-pinatti@users.noreply.github.com"
           git add -A
           git commit -m "style: apply pre-commit auto-fixes"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+          # The checkout above ran with persist-credentials: false, so
+          # there is no git credential on disk for any hook that already
+          # ran to have found. This is the only place in the job that
+          # materializes one, via -c on this single git invocation rather
+          # than a `git config` call that would write it to .git/config,
+          # so it never lands on disk and nothing after this step,
+          # including the pre-commit re-run below, can read it back.
+          basic_credential=$(printf 'x-access-token:%s' "${PUSH_TOKEN}" | base64 -w0)
+          # GitHub only redacts the exact PUSH_TOKEN string from logs; this
+          # base64 encoding of it is a different string that redaction
+          # would not catch on its own, so it is registered for masking
+          # explicitly too, the same defense actions/checkout's own
+          # persist-credentials implementation applies to this identical
+          # value.
+          echo "::add-mask::${basic_credential}"
+          auth_header="AUTHORIZATION: basic ${basic_credential}"
+          git -c http.https://github.com/.extraheader="${auth_header}" \
+            push origin "HEAD:${GITHUB_HEAD_REF}"
 
       # Pushing above used the job's own GITHUB_TOKEN, and GitHub does not
       # let a GITHUB_TOKEN-authored push trigger a new workflow run (a
