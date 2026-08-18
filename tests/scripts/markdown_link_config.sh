@@ -26,11 +26,17 @@
     C. config present, but its pattern does not match -> still fails, so a
                                 config file is not a blanket rubber stamp
 
-  The link used is a real one that is permanently dead in a useful way:
-  GitHub answers 404 on /stargazers for a repository with zero stars.
+  The dead link is served by a throwaway local HTTP server that answers
+  404 to everything, on an ephemeral port. An earlier draft used a real
+  GitHub URL instead and that was a mistake twice over: it made the test
+  depend on a third party staying broken, and the specific belief behind
+  the choice (that GitHub 404s /stargazers only for a repository with
+  zero stars) turned out to be wrong. GitHub answers 404 on that route
+  for unauthenticated clients regardless of star count, confirmed
+  against a repository with thousands. A local server removes the
+  guesswork and the network dependency in one go.
 
-  Needs network access (it resolves real URLs) and Node, same as the
-  hooks phase.
+  Needs Node, same as the hooks phase. No outbound network access.
 
   Exit status: 0 if every assertion passed, 1 otherwise.
 '
@@ -53,6 +59,10 @@ section "markdown-link-check: .markdown-link-check.json handling"
 __scratch=$(mktemp -d /tmp/pcc-mlc.XXXXXX)
 
 cleanup() {
+  if [ -n "${__server_pid:-}" ]; then
+    kill "${__server_pid}" 2>/dev/null || true
+    wait "${__server_pid}" 2>/dev/null || true
+  fi
   rm -rf "${__scratch}"
 }
 trap cleanup EXIT
@@ -64,9 +74,50 @@ cp "${REPO_ROOT}/.tool-versions" "${__scratch}/.tool-versions"
 cp "${REPO_ROOT}/checklists/checklist-markdown.yaml" "${__scratch}/cfg.yaml"
 cp "${REPO_ROOT}/templates/.markdownlint.yaml" "${__scratch}/.markdownlint.yaml"
 
-# GitHub returns 404 for /stargazers on a repo with zero stars.
-__dead_link="https://github.com/ivan-pinatti/rsync-crypt/stargazers"
-printf '# Title\n\nSome prose here.\n\n[stars](%s)\n' "${__dead_link}" \
+# A local server that answers 404 to everything, on a port the OS picks.
+# Binding port 0 inside the server itself avoids the find-a-free-port then
+# bind-it race that picking the port in a separate step would introduce.
+__port_file="${__scratch}/port"
+python3 - "${__port_file}" <<'PY' &
+import http.server
+import socketserver
+import sys
+
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_error(404)
+
+    def do_HEAD(self):
+        self.send_error(404)
+
+    def log_message(self, *args):
+        pass
+
+
+class Server(socketserver.TCPServer):
+    allow_reuse_address = True
+
+
+with Server(("127.0.0.1", 0), Handler) as httpd:
+    with open(sys.argv[1], "w", encoding="utf-8") as handle:
+        handle.write(str(httpd.server_address[1]))
+    httpd.serve_forever()
+PY
+__server_pid=$!
+
+for _ in $(seq 1 50); do
+  [ -s "${__port_file}" ] && break
+  sleep 0.1
+done
+if [ ! -s "${__port_file}" ]; then
+  fail "markdown-link-check: the local 404 server never reported a port" ""
+  summarize
+fi
+__port=$(cat "${__port_file}")
+__dead_link="http://127.0.0.1:${__port}/gone"
+
+printf '# Title\n\nSome prose here.\n\n[gone](%s)\n' "${__dead_link}" \
   >"${__scratch}/doc.md"
 git -C "${__scratch}" add -A -f
 
@@ -95,7 +146,7 @@ fi
 # --- B. config whose pattern matches: the link is ignored ---
 cat >"${__scratch}/.markdown-link-check.json" <<'EOF'
 {
-  "ignorePatterns": [{ "pattern": "^https://github\\.com/[^/]+/[^/]+/stargazers/?$" }]
+  "ignorePatterns": [{ "pattern": "^http://127\\.0\\.0\\.1:[0-9]+/gone$" }]
 }
 EOF
 git -C "${__scratch}" add -A -f

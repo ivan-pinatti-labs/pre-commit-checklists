@@ -285,13 +285,33 @@ else
     fi
   }
 
+  # Same as fetch_required, but a 404 is not fatal: the file is simply not
+  # present at this ref. Used for templates added after some published
+  # release, so that `--ref <older tag>` still installs everything that ref
+  # does have instead of aborting on the one file it predates. A network
+  # failure is still fatal, because that is not the same thing as absence.
+  fetch_optional() {
+    __rel="${1}"
+    __dest="${TEMPLATES_DIR}/${__rel}"
+    __rc=0
+    fetch_url "${REMOTE_BASE_URL}/${__rel}" "${__dest}" || __rc=$?
+    if [ "${__rc}" -eq 2 ]; then
+      echo "Note: templates/${__rel} does not exist at ref '${__ref}'; skipping it." >&2
+      rm -f "${__dest}"
+      return 0
+    elif [ "${__rc}" -ne 0 ]; then
+      echo "Error: failed to fetch ${REMOTE_BASE_URL}/${__rel} (ref '${__ref}'). Check your network connection." >&2
+      exit 7
+    fi
+  }
+
   fetch_required "pre-commit-config/${__template}.yaml" \
     "no template named '${__template}' at ref '${__ref}' (checked ${REMOTE_BASE_URL}/pre-commit-config/${__template}.yaml). Pass --ref <tag|branch> to fetch a different revision."
   fetch_required ".editorconfig" "could not find templates/.editorconfig at ref '${__ref}'."
   fetch_required ".cspell.json" "could not find templates/.cspell.json at ref '${__ref}'."
   fetch_required ".yamllint.yml" "could not find templates/.yamllint.yml at ref '${__ref}'."
   fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
-  fetch_required ".markdown-link-check.json" "could not find templates/.markdown-link-check.json at ref '${__ref}'."
+  fetch_optional ".markdown-link-check.json"
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
@@ -315,6 +335,14 @@ fi
 copy_file() {
   __src="${1}"
   __dest="${2}"
+
+  # A source that is not here at all comes from fetch_optional declining to
+  # fetch a template this ref predates. Report it and move on; letting cp
+  # fail into the caller's `|| true` would hide it behind a bare cp error.
+  if [ ! -e "${__src}" ]; then
+    echo "Skipping ${__dest}: $(basename "${__src}") is not part of this ref." >&2
+    return 5
+  fi
 
   if [ -e "${__dest}" ] && [ "${__force}" != true ]; then
     echo "Skipping ${__dest}: already exists (pass --force to overwrite)." >&2
