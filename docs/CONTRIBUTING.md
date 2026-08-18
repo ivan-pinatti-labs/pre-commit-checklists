@@ -19,9 +19,9 @@ project as easy and transparent as possible, whether it's:
 
 Opening as a draft first means the cheap, mechanical checks run before
 CodeRabbit spends a review on a diff that pre-commit or MegaLinter might
-still rewrite. If either job can auto-fix what it finds, it pushes that fix
-back to your branch as its own commit; pull before you push again so you are
-not racing your own history.
+still flag. Neither job auto-fixes or pushes anything back to your branch;
+a hook that finds something wrong, even something it could fix locally,
+fails the job, and you commit and push the fix yourself.
 
 ## GitHub Flow
 
