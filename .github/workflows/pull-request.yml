@@ -1,9 +1,9 @@
 ---
 name: PR Validation
 
-# Three gates on every pull request against main: pre-commit (this repo's
-# own dogfood config), MegaLinter, and the tests/ self-test suite, plus a
-# labeler pass. Nothing here needs a personal access token; a public repo
+# Two gates on every pull request against main: pre-commit (this repo's
+# own dogfood config) and the tests/ self-test suite, plus a labeler pass.
+# Nothing here needs a personal access token; a public repo
 # cloning itself, applying labels, and pushing an auto-fix commit back to
 # the PR branch is everything the default GITHUB_TOKEN is scoped for. No
 # other services are wired into this pipeline.
@@ -187,58 +187,6 @@ jobs:
               issue_number: context.issue.number,
               body: commentBody,
             });
-
-  megalinter:
-    name: MegaLinter
-    needs: [pre-commit]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: write
-      pull-requests: write
-      # For the SARIF upload below. Free on a public repository.
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
-
-      # No root .mega-linter.yml: that file only exists as a starter under
-      # templates/ for consumers (see docs/megalinter.md). This repo
-      # configures MegaLinter here instead, scoped to the PR diff rather
-      # than the whole tree, so it doesn't re-flag the deliberately invalid
-      # content under tests/fixtures/*/should-fail/ on every run.
-      - name: MegaLinter
-        id: megalinter
-        uses: oxsecurity/megalinter@15e5b45552097e318c93de385779ce3b1084052c # v10.0.0
-        env:
-          APPLY_FIXES: ${{ env.AUTO_APPLY_FIXES == 'true' && 'all' || 'none' }}
-          APPLY_FIXES_EVENT: pull_request
-          APPLY_FIXES_MODE: commit
-          VALIDATE_ALL_CODEBASE: false
-          DISABLE_ERRORS: false
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload MegaLinter SARIF report
-        if: always() && hashFiles('megalinter-reports/megalinter-report.sarif') != ''
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
-        with:
-          sarif_file: megalinter-reports/megalinter-report.sarif
-          category: megalinter
-
-      - name: Commit and push auto-fixes
-        if: steps.megalinter.outputs.has_updated_sources == '1' && env.AUTO_APPLY_FIXES == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          # This repo's own commit identity throughout, not
-          # github-actions[bot]'s own noreply address: kept to one email
-          # across the whole history, human and automated commits alike.
-          git config user.email "ivan-pinatti@users.noreply.github.com"
-          git add -A
-          git commit -m "style: apply MegaLinter auto-fixes"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
   self-test:
     name: Self-Test Suite

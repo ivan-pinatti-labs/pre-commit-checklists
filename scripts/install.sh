@@ -292,7 +292,6 @@ else
   fetch_required ".yamllint.yml" "could not find templates/.yamllint.yml at ref '${__ref}'."
   fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
-  fetch_required ".mega-linter.yml" "could not find templates/.mega-linter.yml at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
   if [ "${__community_files}" = true ]; then
@@ -336,7 +335,6 @@ copy_file "${TEMPLATES_DIR}/.cspell.json" "${__target}/.cspell.json" || true
 copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
 copy_file "${TEMPLATES_DIR}/.markdownlint.yaml" "${__target}/.markdownlint.yaml" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
-copy_file "${TEMPLATES_DIR}/.mega-linter.yml" "${__target}/.mega-linter.yml" || true
 
 if [ "${__community_files}" = true ]; then
   mkdir -p "${__target}/.github/ISSUE_TEMPLATE"

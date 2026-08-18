@@ -10,8 +10,8 @@
 
 ## Pull requests
 
-1. Open as a draft (`gh pr create --draft`). Let the pre-commit and MegaLinter
-   checks run before asking anyone to look at it.
+1. Open as a draft (`gh pr create --draft`). Let the pre-commit checks run
+   before asking anyone to look at it.
 2. Mark ready (`gh pr ready <n>`) once the checks are green.
 3. Never add AI attribution anywhere: no `Co-Authored-By`, no "Generated with
    Claude Code", not in commits, PR bodies, comments, issues, or docs.

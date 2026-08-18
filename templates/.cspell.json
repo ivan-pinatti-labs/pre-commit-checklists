@@ -10,7 +10,6 @@
     "isort",
     "lycheeignore",
     "markdownlint",
-    "megalinter",
     "prettier",
     "pycache",
     "pyproject",
