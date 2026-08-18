@@ -112,3 +112,4 @@ This document was adapted from the GitHub Gist
 
 See also: [README.md](../README.md), [docs/getting-started.md](getting-started.md),
 [docs/hook-catalogue.md](hook-catalogue.md)
+trailing whitespace violation line   
