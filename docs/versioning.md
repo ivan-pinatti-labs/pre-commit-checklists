@@ -1,5 +1,7 @@
 # Versioning contract
 
+<!-- cspell:words zizmor -->
+
 This library is versioned with [Semantic Versioning](https://semver.org/):
 tags look like `v1.2.3`. Consumers pin to one of those tags in their own
 `.pre-commit-config.yaml`:
@@ -31,15 +33,20 @@ that shells out to a nested `pre-commit run --config <checklist>.yaml`
 [`docs/hook-catalogue.md`](hook-catalogue.md)), so it cannot and does not
 touch (2).
 
-`checklists/checklist-dev-dotenv.yaml` is the one exception to (2)'s
-shape: it is a `repo: local` hook, so it has no `rev:` field at all. Its
-upstream pin is the image tag inside its own `entry:` string
+`checklists/checklist-dev-dotenv.yaml` and
+`checklists/checklist-github-actions.yaml` are exceptions to (2)'s shape:
+each carries a `repo: local` hook, so each has no `rev:` field at all for
+that hook. Their upstream pins live somewhere else inside the file
+instead: the image tag inside dotenv-linter's own `entry:` string
 (`docker.io/dotenvlinter/dotenv-linter:X.Y.Z`; see
 [`docs/hook-catalogue.md`](hook-catalogue.md#which-dotenv-linter) for
-why). A Renovate custom manager in
-[`.github/renovate.json5`](../.github/renovate.json5) watches that
-string the same way the built-in pre-commit manager watches every other
-checklist's `rev:` field, so this pin still moves only when this
+why), and the PyPI version inside zizmor's `additional_dependencies:`
+list (`zizmor==X.Y.Z`; see
+[`docs/hook-catalogue.md`](hook-catalogue.md#zizmor-offline-by-default)
+for why zizmor is also `repo: local`). A Renovate custom manager in
+[`.github/renovate.json5`](../.github/renovate.json5) watches each of
+those strings the same way the built-in pre-commit manager watches every
+other checklist's `rev:` field, so both pins still move only when this
 library cuts a release, same contract as every other checklist here.
 
 (2) only moves when **this repo** cuts a new release: its own
