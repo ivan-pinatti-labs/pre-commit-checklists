@@ -130,7 +130,6 @@
     - checklist-dev-shell
   require_serial: true
   verbose: true
-  files: \.(sh|bash)$
 
 - id: checklist-dev-python
   name: Development - Python Checklist
