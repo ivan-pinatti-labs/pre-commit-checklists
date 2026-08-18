@@ -35,8 +35,13 @@ repos:
       - id: checklist-markdown
         types: [markdown]
         stages: [pre-commit]
+      # json5 is included deliberately: check-json self-filters on its own
+      # types: [json] and skips .json5 (it is a strict JSON parser and would
+      # fail on comments and unquoted keys), while Prettier reads json5
+      # natively. A .json5 file therefore gets formatted and never
+      # syntax-checked, which is the correct split rather than a compromise.
       - id: checklist-json
-        types: [json]
+        types_or: [json, json5]
         stages: [pre-commit]
       - id: checklist-yaml
         types: [yaml]

@@ -214,7 +214,7 @@ before writing your own.
 | `checklist-basic` | check-added-large-files (max 1024kb), check-case-conflict, check-docstring-first, check-illegal-windows-names, check-merge-conflict, check-symlinks, destroyed-symlinks, end-of-file-fixer, mixed-line-ending, trailing-whitespace | all files (no selector needed) | none |
 | `checklist-spell` | cspell, config from `.cspell.json` | all files cspell can read (no selector needed) | `.cspell.json` at repo root |
 | `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | `.markdownlint.yaml` for markdownlint-cli2's own rules |
-| `checklist-json` | check-json, Prettier | `types: [json]` | Node (Prettier runs via `language: node`) |
+| `checklist-json` | check-json, Prettier | `types_or: [json, json5]` | Node (Prettier runs via `language: node`) |
 | `checklist-yaml` | check-yaml, yamllint, Prettier | `types: [yaml]` | `.yamllint.yml`; Node for Prettier |
 | `checklist-toml` | check-toml | `types: [toml]` | none |
 | `checklist-xml` | check-xml | `types: [xml]` | none |
