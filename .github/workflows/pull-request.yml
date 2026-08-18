@@ -4,10 +4,13 @@ name: PR Validation
 
 # Two gates on every pull request against main: pre-commit (this repo's
 # own dogfood config) and the tests/ self-test suite, plus a labeler pass.
-# Nothing here needs a personal access token; a public repo
-# cloning itself, applying labels, and pushing an auto-fix commit back to
-# the PR branch is everything the default GITHUB_TOKEN is scoped for. No
-# other services are wired into this pipeline.
+# Nothing here needs a personal access token; a public repo cloning
+# itself, applying labels, and pushing an auto-fix commit back to the PR
+# branch is everything the default GITHUB_TOKEN is scoped for. No other
+# services are wired into this pipeline. The auto-fix commit and push run
+# in their own job, separate from the pre-commit job that executes third
+# party hook code, so the only GITHUB_TOKEN ever minted with permission
+# to write to the repository is one that hook code never runs alongside.
 
 "on":
   pull_request:
@@ -57,8 +60,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
+    outputs:
+      changes: ${{ steps.pre-commit.outputs.changes }}
+      # Mirrors the workflow level AUTO_APPLY_FIXES flag into a job
+      # output: a job level if: below (on push-fixes) can only see the
+      # github, needs, vars and inputs contexts, not env, so push-fixes
+      # reads this output instead of env.AUTO_APPLY_FIXES directly.
+      apply_fixes: ${{ env.AUTO_APPLY_FIXES }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,12 +77,13 @@ jobs:
           ref: ${{ github.head_ref }}
           # Turned off, deliberately: "Run pre-commit" below shells out to
           # a nested `pre-commit run` per checklist, which downloads and
-          # executes third party tool environments. A persisted, writable
-          # credential sitting in .git/config for that whole window would
-          # let any one of those hooks push to this branch, or anywhere
-          # else, under this job's identity. The "Commit and push
-          # auto-fixes" step supplies its own credential, scoped to that
-          # one push only, well after every hook has already run.
+          # executes third party tool environments with write access to
+          # this whole checkout, .git included. This job's own
+          # GITHUB_TOKEN has no contents: write permission at all (see
+          # permissions: above), so a hook that plants a git hook or
+          # hijacks PATH here finds nothing worth stealing. The auto-fix
+          # commit and push happen in the separate push-fixes job below,
+          # on a checkout none of this hook code ever touched.
           persist-credentials: false
 
       - name: Set up Python
@@ -130,53 +141,34 @@ jobs:
 
           echo "changes=true" >> "${GITHUB_OUTPUT}"
 
-      - name: Commit and push auto-fixes
+      - name: Save auto-fix patch
         if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
-        env:
-          # Scoped to this one step, not the "Run pre-commit" step above:
-          # that step's nested `pre-commit run` per checklist inherits
-          # whatever this job's shell exports, and a token sitting in that
-          # environment would be as reachable by third party hook code as
-          # one persisted to .git/config. Naming it here, via env:, also
-          # keeps the token out of the literal script below, which is what
-          # lets it stay a plain shell variable rather than a
-          # zizmor template-injection finding.
-          PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          # This repo's own commit identity throughout, not
-          # github-actions[bot]'s own noreply address: kept to one email
-          # across the whole history, human and automated commits alike.
-          git config user.email "ivan-pinatti@users.noreply.github.com"
+          # Captures whatever the hooks above changed as a plain diff,
+          # staged first so new files a hook created are included too.
+          # Nothing here commits or pushes: this job's GITHUB_TOKEN cannot
+          # push (see permissions: above), and even if it could, the
+          # working tree, PATH and everything else a hook already ran
+          # against in this job is not state the privileged push should
+          # trust. The push-fixes job below applies this patch against
+          # its own, separate checkout instead of reusing any of it.
           git add -A
-          git commit -m "style: apply pre-commit auto-fixes"
+          git diff --staged --binary > pre-commit-fixes.patch
 
-          # The checkout above ran with persist-credentials: false, so
-          # there is no git credential on disk for any hook that already
-          # ran to have found. This is the only place in the job that
-          # materializes one, via -c on this single git invocation rather
-          # than a `git config` call that would write it to .git/config,
-          # so it never lands on disk and nothing after this step,
-          # including the pre-commit re-run below, can read it back.
-          basic_credential=$(printf 'x-access-token:%s' "${PUSH_TOKEN}" | base64 -w0)
-          # GitHub only redacts the exact PUSH_TOKEN string from logs; this
-          # base64 encoding of it is a different string that redaction
-          # would not catch on its own, so it is registered for masking
-          # explicitly too, the same defense actions/checkout's own
-          # persist-credentials implementation applies to this identical
-          # value.
-          echo "::add-mask::${basic_credential}"
-          auth_header="AUTHORIZATION: basic ${basic_credential}"
-          git -c http.https://github.com/.extraheader="${auth_header}" \
-            push origin "HEAD:${GITHUB_HEAD_REF}"
+      - name: Upload auto-fix patch
+        if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pre-commit-fixes-patch
+          path: pre-commit-fixes.patch
+          retention-days: 1
 
-      # Pushing above used the job's own GITHUB_TOKEN, and GitHub does not
-      # let a GITHUB_TOKEN-authored push trigger a new workflow run (a
-      # platform-level anti-recursion guard, not something this workflow
-      # controls), so nothing will re-run this job against the fixed code on
-      # its own. Re-running pre-commit here, in the same job, is what proves
-      # the fix actually cleared the findings, and its exit code is what the
-      # job (and therefore the required check) reports.
+      # Nothing pushed above, so re-running here, against the same
+      # already-fixed working tree the patch was taken from, is what
+      # proves the fix actually cleared the findings; its exit code is
+      # what this job (and therefore the required check) reports.
+      # push-fixes only runs once this job succeeds, so a fix this re-run
+      # finds incomplete is never pushed.
       - name: Re-run pre-commit after auto-fixes
         if: steps.pre-commit.outputs.changes == 'true' && env.AUTO_APPLY_FIXES == 'true'
         run: |
@@ -234,6 +226,85 @@ jobs:
               issue_number: context.issue.number,
               body: commentBody,
             });
+
+  push-fixes:
+    name: Push auto-fixes
+    needs: pre-commit
+    if: needs.pre-commit.outputs.changes == 'true' && needs.pre-commit.outputs.apply_fixes == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+          # This checkout never runs pre-commit, or any other third party
+          # hook code: it exists only to receive the patch the pre-commit
+          # job produced and push it. Nothing has touched this working
+          # tree, its .git directory, or this job's PATH, so there is no
+          # planted hook and no PATH hijack for the token below to be
+          # exposed to.
+          persist-credentials: false
+
+      - name: Download auto-fix patch
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pre-commit-fixes-patch
+
+      - name: Apply and commit auto-fixes
+        run: |
+          git apply --binary pre-commit-fixes.patch
+          git config user.name "github-actions[bot]"
+          # This repo's own commit identity throughout, not
+          # github-actions[bot]'s own noreply address: kept to one email
+          # across the whole history, human and automated commits alike.
+          git config user.email "ivan-pinatti@users.noreply.github.com"
+          git add -A
+
+          # No credential exists yet at this point (persist-credentials
+          # is false above, and PUSH_TOKEN below is not introduced until
+          # the next step), so a commit needs no defense against a
+          # credential leaking, only against a hook running at all.
+          # core.hooksPath and --no-verify are set anyway, belt and
+          # braces: this checkout has no hooks of its own to disable, but
+          # core.hooksPath covers every hook type a repo could have
+          # (post-commit included) while --no-verify only reaches
+          # pre-commit and commit-msg, so between the two, nothing this
+          # commit could trigger is left uncovered.
+          git -c core.hooksPath=/dev/null commit --no-verify \
+            -m "style: apply pre-commit auto-fixes"
+
+      - name: Push auto-fixes
+        env:
+          # Scoped to this one step, the last thing this job does. Nothing
+          # before it in this job has run any code this token could be
+          # exposed to, and nothing runs after it.
+          PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # This is the only place in the workflow that materializes a
+          # credential, via -c on this single git invocation rather than
+          # a `git config` call that would write it to .git/config, so it
+          # never lands on disk.
+          basic_credential=$(printf 'x-access-token:%s' "${PUSH_TOKEN}" | base64 -w0)
+          # GitHub only redacts the exact PUSH_TOKEN string from logs; this
+          # base64 encoding of it is a different string that redaction
+          # would not catch on its own, so it is registered for masking
+          # explicitly too, the same defense actions/checkout's own
+          # persist-credentials implementation applies to this identical
+          # value.
+          echo "::add-mask::${basic_credential}"
+          auth_header="AUTHORIZATION: basic ${basic_credential}"
+          # core.hooksPath and --no-verify again, for the one client side
+          # hook a push can still run (pre-push) that the commit above
+          # could not have triggered. Same belt and braces reasoning as
+          # the commit step: nothing legitimate to disable on this
+          # checkout, only a hypothetical planted hook.
+          git -c core.hooksPath=/dev/null \
+            -c http.https://github.com/.extraheader="${auth_header}" \
+            push --no-verify origin "HEAD:${GITHUB_HEAD_REF}"
 
   self-test:
     name: Self-Test Suite
