@@ -1,0 +1,10 @@
+// A JSON5 file: comments and unquoted keys, which check-json cannot parse
+// and self-filters away from via its own types: [json]. Prettier reads it
+// natively, and this file is already in Prettier's json5 style.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+
+  // Trailing commas are legal in json5 and would fail check-json.
+  labels: ["dependencies"],
+}

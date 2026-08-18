@@ -24,7 +24,7 @@ build your own selection from scratch.
 | `checklist-basic` | check-added-large-files (max 1024kb), check-case-conflict, check-docstring-first, check-illegal-windows-names, check-merge-conflict, check-symlinks, destroyed-symlinks, end-of-file-fixer, mixed-line-ending, trailing-whitespace | all files (no selector needed) | none |
 | `checklist-spell` | cspell, config from `.cspell.json` | all files cspell can read (no selector needed) | `.cspell.json` at repo root |
 | `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | `.markdownlint.yaml` for markdownlint-cli2's own rules |
-| `checklist-json` | check-json, Prettier | `types: [json]` | Node (Prettier runs via `language: node`) |
+| `checklist-json` | check-json, Prettier | `types_or: [json, json5]`; see [JSON5](#json5) | Node (Prettier runs via `language: node`) |
 | `checklist-yaml` | check-yaml, yamllint, Prettier | `types: [yaml]` | `.yamllint.yml`; Node for Prettier |
 | `checklist-toml` | check-toml | `types: [toml]` | none |
 | `checklist-xml` | check-xml | `types: [xml]` | none |
@@ -41,6 +41,33 @@ build your own selection from scratch.
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
+
+## JSON5
+
+`checklist-json` covers `.json5` as well as `.json`, and the two file types
+take different paths through it.
+
+`check-json` is a strict JSON parser (Python's `json.load`). Handed a
+`.json5` file it fails immediately on the first comment or unquoted key: a
+real `renovate.json5` produces `Expecting property name enclosed in double
+quotes: line 2 column 3`. It never sees one, because its own upstream hook
+manifest carries `types: [json]` and `identify` tags `.json5` as `json5`,
+not `json`. It self-filters, and the checklist reports it as
+`(no files to check)Skipped` on a json5-only run.
+
+Prettier reads json5 natively and formats it.
+
+So a `.json5` file is formatted but never syntax-checked, and a `.json`
+file gets both. That is the correct split, not a gap being papered over:
+there is no point running a strict JSON parser against a format defined by
+not being strict JSON. If you want json5 validated as well as formatted,
+add a json5-aware checker as your own hook entry; see
+[`docs/overrides.md`](overrides.md).
+
+The selector must be `types_or: [json, json5]`. A plain `types: [json]`
+matches neither the `json5` tag nor the file, so a repo whose only
+JSON-family file is a `.json5` (a `renovate.json5`, commonly) silently gets
+no coverage at all.
 
 ## Why the selector matters
 
