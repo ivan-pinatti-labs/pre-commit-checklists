@@ -47,9 +47,7 @@
   // here too would leave both bots able to open a pull request for the
   // same rev: pin, exactly the fight this split is meant to avoid.
   "pre-commit": {
-    managerFilePatterns: [
-      "/^checklists/checklist-.+\\.ya?ml$/",
-    ],
+    managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
   },
 
   // checklist-dev-dotenv.yaml is a `repo: local` hook (see
@@ -66,9 +64,7 @@
   customManagers: [
     {
       customType: "regex",
-      managerFilePatterns: [
-        "/^checklists/checklist-dev-dotenv\\.ya?ml$/",
-      ],
+      managerFilePatterns: ["/^checklists/checklist-dev-dotenv\\.ya?ml$/"],
       matchStrings: [
         "docker\\.io/dotenvlinter/dotenv-linter:(?<currentValue>[0-9.]+)",
       ],
@@ -77,12 +73,8 @@
     },
     {
       customType: "regex",
-      managerFilePatterns: [
-        "/^checklists/checklist-github-actions\\.ya?ml$/",
-      ],
-      matchStrings: [
-        "zizmor==(?<currentValue>[0-9.]+)",
-      ],
+      managerFilePatterns: ["/^checklists/checklist-github-actions\\.ya?ml$/"],
+      matchStrings: ["zizmor==(?<currentValue>[0-9.]+)"],
       datasourceTemplate: "pypi",
       depNameTemplate: "zizmor",
     },
