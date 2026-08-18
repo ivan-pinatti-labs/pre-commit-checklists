@@ -253,10 +253,16 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: pre-commit-fixes-patch
+          # Outside the checkout on purpose: the patch only needs to be
+          # readable by the apply step below, and a copy left inside the
+          # working tree would be untracked content `git add -A` cannot
+          # tell apart from a real auto-fix, landing the patch itself in
+          # the commit it is meant to produce.
+          path: ${{ runner.temp }}/pre-commit-fixes-patch
 
       - name: Apply and commit auto-fixes
         run: |
-          git apply --binary pre-commit-fixes.patch
+          git apply --binary "${{ runner.temp }}/pre-commit-fixes-patch/pre-commit-fixes.patch"
           git config user.name "github-actions[bot]"
           # This repo's own commit identity throughout, not
           # github-actions[bot]'s own noreply address: kept to one email
