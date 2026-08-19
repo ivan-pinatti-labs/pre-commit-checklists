@@ -214,59 +214,57 @@ else
   # reported the resource does not exist (HTTP 404, the shape of a bad
   # --template or --ref), 1 for any other fetch failure (DNS,
   # connection, timeout, ...).
-  # Reports the HTTP status for a URL, or 000 if the request never got
-  # one. Only consulted on the failure path, so the happy path still costs
-  # a single request.
-  http_status() {
-    __code=""
-    if [ "${FETCHER}" = "curl" ]; then
-      __code=$(curl -sSL -o /dev/null -w '%{http_code}' "${1}" 2>/dev/null) || __code=""
-    else
-      __code=$(wget --spider -S "${1}" 2>&1 |
-        awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}')
-    fi
-    # Normalize to exactly three digits. curl's %{http_code} already prints
-    # 000 when it never got a response, but it prints nothing at all if it
-    # fails before writing, and a doubled fallback would emit "000000".
-    case "${__code}" in
-    [0-9][0-9][0-9]) printf '%s' "${__code}" ;;
-    *) printf '000' ;;
-    esac
-  }
-
-  # Returns 0 on success, 2 only when the server specifically answered 404,
-  # and 1 for everything else: a network failure, or any other HTTP error.
+  # Returns 0 on success, 2 only when the server answered 404 for this very
+  # transfer, and 1 for everything else: a network failure, or any other HTTP
+  # status.
   #
-  # The 404 has to be identified precisely, because fetch_optional treats a
-  # 2 as "this ref does not carry that file, skip it" while everything else
-  # stays fatal. Neither curl's exit 22 nor wget's exit 8 is specific enough
-  # on its own: both mean "some HTTP status at or above 400", so a 403, a
-  # 429 from rate limiting, or a 500 would all have been read as a missing
-  # file and silently skipped, producing a quietly incomplete install out of
-  # a transient failure. Hence the extra status probe, on the failure path
-  # only.
+  # The 404 has to be identified precisely, because fetch_optional treats a 2
+  # as "this ref does not carry that file, skip it" while everything else stays
+  # fatal. Neither curl's exit 22 nor wget's exit 8 is specific enough on its
+  # own: both mean "some HTTP status at or above 400", so a 403, a 429 from
+  # rate limiting, or a 500 would all have been read as a missing file and
+  # silently skipped, turning a transient failure into a quietly incomplete
+  # install.
+  #
+  # The status is read from the transfer itself rather than from a second
+  # probe request. An earlier version of this called a separate http_status()
+  # helper after a failure, which meant the skip-or-fail decision was taken on
+  # evidence from a different request than the one that actually failed: a
+  # flaky or rate limited endpoint can answer 404 once and 429 the next time,
+  # and either answer would have decided the outcome depending on which
+  # request happened to see it.
+  #
+  # curl runs without -f so that %{http_code} is still reported on an HTTP
+  # error; the body it writes on failure is discarded with the destination
+  # file. wget has no equivalent of -w, so its status is parsed from the
+  # --server-response header dump, which needs -nv rather than -q because -q
+  # suppresses that output too.
   fetch_url() {
     __url="${1}"
     __dest="${2}"
     __status=0
+    __code=""
     if [ "${FETCHER}" = "curl" ]; then
-      # An `if cmd; then ...; fi` with no `else` returns exit status 0
-      # when cmd fails, not cmd's own status, so the real status is
-      # captured via `||` before that ever runs.
-      curl -fsSL "${__url}" -o "${__dest}" || __status=$?
-      [ "${__status}" -eq 0 ] && return 0
-      rm -f "${__dest}"
-      if [ "${__status}" -eq 22 ] && [ "$(http_status "${__url}")" = "404" ]; then
-        return 2
+      # An `if cmd; then ...; fi` with no `else` returns exit status 0 when cmd
+      # fails, not cmd's own status, so the real status is captured via `||`
+      # before that ever runs.
+      __code=$(curl -sSL -o "${__dest}" -w '%{http_code}' "${__url}" 2>/dev/null) || __status=$?
+      if [ "${__status}" -eq 0 ]; then
+        case "${__code}" in
+        2??) return 0 ;;
+        esac
       fi
+      rm -f "${__dest}"
+      [ "${__code}" = "404" ] && return 2
       return 1
     fi
-    wget -q "${__url}" -O "${__dest}" || __status=$?
-    [ "${__status}" -eq 0 ] && return 0
-    rm -f "${__dest}"
-    if [ "${__status}" -eq 8 ] && [ "$(http_status "${__url}")" = "404" ]; then
-      return 2
+    __code=$(wget -nv --server-response -O "${__dest}" "${__url}" 2>&1 |
+      awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}') || __status=$?
+    if [ -z "${__code}" ] || [ "${__code}" = "200" ]; then
+      [ -s "${__dest}" ] && return 0
     fi
+    rm -f "${__dest}"
+    [ "${__code}" = "404" ] && return 2
     return 1
   }
 

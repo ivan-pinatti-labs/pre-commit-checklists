@@ -19,12 +19,12 @@
   Three cases, in a scratch repo under /tmp so the library own root config
   is never involved:
 
-    A. no config file        -> the dead link fails the hook (the
-                                behaviour every existing consumer has today,
-                                which this change must not alter)
-    B. config ignores it     -> passes
-    C. config present, but its pattern does not match -> still fails, so a
-                                config file is not a blanket rubber stamp
+    1. no config file: the dead link fails the hook, which is the
+      behaviour every existing consumer has today and which this change
+      must not alter.
+    2. a config that ignores it: passes.
+    3. a config present whose pattern does not match: still fails, so a
+      config file is not a blanket rubber stamp.
 
   The dead link is served by a throwaway local HTTP server that answers
   404 to everything, on an ephemeral port. An earlier draft used a real
@@ -131,7 +131,7 @@ run_case() {
   (cd "${__scratch}" && "${PC}" run --config cfg.yaml --files doc.md 2>&1)
 }
 
-# --- A. no config file: unchanged behaviour for every existing consumer ---
+# Case 1: no config file. Unchanged behaviour for every existing consumer.
 set +o errexit
 OUT_A=$(run_case)
 EXIT_A=$?
@@ -144,7 +144,7 @@ else
 ${OUT_A}"
 fi
 
-# --- B. config whose pattern matches: the link is ignored ---
+# Case 2: a config whose pattern matches. The link is ignored.
 cat >"${__scratch}/.markdown-link-check.json" <<'EOF'
 {
   "ignorePatterns": [{ "pattern": "^http://127\\.0\\.0\\.1:[0-9]+/gone$" }]
@@ -164,7 +164,7 @@ else
 ${OUT_B}"
 fi
 
-# --- C. config present but not matching: still fails, not a rubber stamp ---
+# Case 3: a config present but not matching. Still fails, not a rubber stamp.
 cat >"${__scratch}/.markdown-link-check.json" <<'EOF'
 {
   "ignorePatterns": [{ "pattern": "^https?://example\\.invalid/" }]

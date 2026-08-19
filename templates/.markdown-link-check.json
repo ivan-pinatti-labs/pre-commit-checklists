@@ -4,18 +4,17 @@
     "auto-discover this file; the checklist passes --config explicitly, but",
     "only when the file exists, so deleting it restores the unconfigured",
     "default rather than breaking the hook.",
-    "https://github.com/tcort/markdown-link-check#config-file-format"
+    "https://github.com/tcort/markdown-link-check#config-file-format",
+    "",
+    "This file is for links no CI can resolve, not for links that are merely",
+    "broken. A GitHub stars badge pointing at /stargazers is the common case",
+    "and does NOT belong here: GitHub answers 404 on /stargazers and",
+    "/watchers for every client without a logged-in browser session, so the",
+    "honest fix is to point the badge at the repository itself, which",
+    "resolves and gets checked. Silencing a link the checker could otherwise",
+    "verify defeats the point of running it."
   ],
   "ignorePatterns": [
-    {
-      "comment": [
-        "GitHub answers 404 on /stargazers for a repository with zero",
-        "stars, so this very common badge target is dead until someone",
-        "stars the repo, and dead again if the count returns to zero.",
-        "Nothing to fix in the Markdown; it can only be ignored."
-      ],
-      "pattern": "^https://github\\.com/[^/]+/[^/]+/stargazers/?$"
-    },
     {
       "comment": ["Rate-limits unauthenticated checkers into false failures."],
       "pattern": "^https?://api\\.github\\.com(:[0-9]+)?(/.*)?$"
