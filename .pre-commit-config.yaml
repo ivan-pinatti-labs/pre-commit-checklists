@@ -44,7 +44,7 @@ repos:
         entry: ./scripts/run-checklist.sh
         args: [checklist-json]
         stages: [pre-commit]
-        types: [json]
+        types_or: [json, json5]
         require_serial: true
         verbose: true
 

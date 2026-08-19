@@ -15,6 +15,7 @@
     "dotenvlinter",
     "editmsg",
     "editorconfig",
+    "extensionless",
     "errexit",
     "hadolint",
     "isort",

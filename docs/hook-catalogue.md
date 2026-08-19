@@ -11,8 +11,8 @@ pins, which move independently of this table; see
 [`docs/versioning.md`](versioning.md).
 
 The "Matches" column is what you must add yourself: `.pre-commit-hooks.yaml`
-does not bake in a `types:`/`files:` selector for most ids (two
-exceptions are noted), so a bare `- id: checklist-json` with no selector
+does not bake in a `types:`/`files:` selector for most ids (the one
+exception is noted), so a bare `- id: checklist-json` with no selector
 runs against **every** file pre-commit hands it, which is usually not
 what you want. Every template in
 [`templates/pre-commit-config/`](../templates/pre-commit-config/)
@@ -24,7 +24,7 @@ build your own selection from scratch.
 | `checklist-basic` | check-added-large-files (max 1024kb), check-case-conflict, check-docstring-first, check-illegal-windows-names, check-merge-conflict, check-symlinks, destroyed-symlinks, end-of-file-fixer, mixed-line-ending, trailing-whitespace | all files (no selector needed) | none |
 | `checklist-spell` | cspell, config from `.cspell.json` | all files cspell can read (no selector needed) | `.cspell.json` at repo root |
 | `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | Node; `.markdownlint.yaml` for markdownlint-cli2's own rules, `.markdown-link-check.json` optionally for link ignores (see [`docs/overrides.md`](overrides.md#ignoring-a-link-lychee--markdown-link-check)) |
-| `checklist-json` | check-json, Prettier | `types: [json]` | Node (Prettier runs via `language: node`) |
+| `checklist-json` | check-json, Prettier | `types_or: [json, json5]`; see [JSON5](#json5) | Node (Prettier runs via `language: node`) |
 | `checklist-yaml` | check-yaml, yamllint, Prettier | `types: [yaml]` | `.yamllint.yml`; Node for Prettier |
 | `checklist-toml` | check-toml | `types: [toml]` | none |
 | `checklist-xml` | check-xml | `types: [xml]` | none |
@@ -35,12 +35,39 @@ build your own selection from scratch.
 | `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned v1.29.0, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
-| `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (the hook's own `.pre-commit-hooks.yaml` entry additionally bakes in `files: \.(sh\|bash)$`) | none |
+| `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, which covers extensionless files such as `.bashrc` and `.zshrc`; see [Why `checklist-dev-shell` has no baked selector](#why-checklist-dev-shell-has-no-baked-selector) | none |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |
 | `checklist-dev-terraform` | terraform-fmt, terraform-validate, tflint | `files: \.tf$` | Terraform CLI |
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
+
+## JSON5
+
+`checklist-json` covers `.json5` as well as `.json`, and the two file types
+take different paths through it.
+
+`check-json` is a strict JSON parser (Python's `json.load`). Handed a
+`.json5` file it fails immediately on the first comment or unquoted key: a
+real `renovate.json5` produces `Expecting property name enclosed in double
+quotes: line 2 column 3`. It never sees one, because its own upstream hook
+manifest carries `types: [json]` and `identify` tags `.json5` as `json5`,
+not `json`. It self-filters, and the checklist reports it as
+`(no files to check)Skipped` on a json5-only run.
+
+Prettier reads json5 natively and formats it.
+
+So a `.json5` file is formatted but never syntax-checked, and a `.json`
+file gets both. That is the correct split, not a gap being papered over:
+there is no point running a strict JSON parser against a format defined by
+not being strict JSON. If you want json5 validated as well as formatted,
+add a json5-aware checker as your own hook entry; see
+[`docs/overrides.md`](overrides.md).
+
+The selector must be `types_or: [json, json5]`. A plain `types: [json]`
+matches neither the `json5` tag nor the file, so a repo whose only
+JSON-family file is a `.json5` (a `renovate.json5`, commonly) silently gets
+no coverage at all.
 
 ## Why the selector matters
 
@@ -55,6 +82,32 @@ fixed in the table above and in every shipped template. If you write
 your own selector for a hook id, prefer one `files:` regex over
 combining `types:`/`types_or:` with `files:` unless you have checked
 what the AND actually resolves to.
+
+## Why `checklist-dev-shell` has no baked selector
+
+This id used to bake `files: \.(sh|bash)$` into `.pre-commit-hooks.yaml`.
+pre-commit ANDs a hook's manifest selector with the consumer's own, so a
+consumer following the guidance above (`types: [shell]`, which is what both
+shipped templates use) got the intersection: shell files that also end in
+`.sh` or `.bash`.
+
+Everything `identify` tags `shell` without one of those two extensions was
+dropped silently: `.bashrc`, `.bash_aliases`, `.bash_profile`, `.zshrc`,
+`.profile`, and any extensionless script carrying a shebang. A hook that
+matches zero files exits 0, so this presented as a clean pass rather than
+as missing coverage.
+
+The selector is gone; `types: [shell]` alone now decides. If you select a
+bare `- id: checklist-dev-shell` with no selector at all, every file
+pre-commit hands the hook reaches it. `shellcheck` and `shfmt` self-filter
+on their own `types: [shell]`, but `check-executables-have-shebangs` does
+not, so give the id a selector rather than relying on that.
+
+Note this was only ever reachable through the real consumer path
+(`repo: <url>` plus `rev:`). This repository's own dogfood
+`.pre-commit-config.yaml` restates each hook as `repo: local` and never
+carried the regex, which is why nothing here caught it;
+`tests/scripts/consumer_path.sh` now guards it specifically.
 
 ## Which dotenv-linter
 

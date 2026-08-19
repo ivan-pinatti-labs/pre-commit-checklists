@@ -214,7 +214,7 @@ before writing your own.
 | `checklist-basic` | check-added-large-files (max 1024kb), check-case-conflict, check-docstring-first, check-illegal-windows-names, check-merge-conflict, check-symlinks, destroyed-symlinks, end-of-file-fixer, mixed-line-ending, trailing-whitespace | all files (no selector needed) | none |
 | `checklist-spell` | cspell, config from `.cspell.json` | all files cspell can read (no selector needed) | `.cspell.json` at repo root |
 | `checklist-markdown` | markdownlint-cli2, markdown-link-check | `types: [markdown]` | `.markdownlint.yaml` for markdownlint-cli2's own rules |
-| `checklist-json` | check-json, Prettier | `types: [json]` | Node (Prettier runs via `language: node`) |
+| `checklist-json` | check-json, Prettier | `types_or: [json, json5]` | Node (Prettier runs via `language: node`) |
 | `checklist-yaml` | check-yaml, yamllint, Prettier | `types: [yaml]` | `.yamllint.yml`; Node for Prettier |
 | `checklist-toml` | check-toml | `types: [toml]` | none |
 | `checklist-xml` | check-xml | `types: [xml]` | none |
@@ -225,7 +225,7 @@ before writing your own.
 | `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned v1.29.0; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#zizmor-offline-by-default) for the token opt in) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker); Python 3.10+ (zizmor via `additional_dependencies`; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#zizmor-offline-by-default) for why that floor is documented rather than enforced through `language_version`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust; not the same-named Python project, see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#which-dotenv-linter)) | `files: '(^\|/)\.env(\..+)?$'` | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
-| `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]` (also bakes in `files: \.(sh\|bash)$`) | none |
+| `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, extensionless files such as `.bashrc` included | none |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |
 | `checklist-dev-terraform` | terraform-fmt, terraform-validate, tflint | `files: \.tf$` | Terraform CLI |
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
