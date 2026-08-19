@@ -76,9 +76,14 @@ The script:
 1. Copies (local mode) or fetches (piped mode) the chosen
    `.pre-commit-config.yaml` and the supporting tool configs
    (`.editorconfig`, `.cspell.json`, `.yamllint.yml`,
-   `.markdownlint.yaml`, `.lycheeignore`) into your
-   repo, without clobbering files that already exist (pass `--force` to
-   overwrite).
+   `.markdownlint.yaml`, `.lycheeignore`) into your repo, without clobbering
+   files that already exist (pass `--force` to overwrite).
+
+   `.markdown-link-check.json` is also copied, but only when the ref you
+   install from actually carries it. It was added after several releases, so
+   a `--ref` pointing at an older tag will note that it is absent and skip
+   it rather than failing the whole install. Everything else in that list is
+   required: a missing one is an error.
 2. With `--community-files`, also copies the GitHub community health
    files from [`templates/community/`](../templates/community/): issue
    templates, a pull request template, `CODE_OF_CONDUCT.md`,

@@ -1,11 +1,61 @@
 ---
+# markdown-link-check is a `repo: local` hook rather than a
+# `repo: https://github.com/tcort/markdown-link-check` + `rev:` entry, for
+# one reason: its config file is opt-in via `--config`, and its upstream
+# .pre-commit-hooks.yaml passes no args at all.
+#
+# The tool does NOT auto-discover `.markdown-link-check.json`. Confirmed
+# directly: with that file present in the working directory carrying an
+# ignorePatterns entry for a link, a bare `markdown-link-check doc.md` still
+# reports that link dead and exits 1, while the same run with
+# `--config .markdown-link-check.json` exits 0. docs/overrides.md claimed
+# the opposite until this hook was written, so a consumer who created the
+# file as documented got a file that was silently never read.
+#
+# `--config` cannot simply be added to the upstream hook's args either:
+# pointed at a path that does not exist, markdown-link-check fails outright
+# with "ERROR: Config file not accessible." and exit 1, before checking a
+# single link. Adding it unconditionally would therefore break every
+# consumer who has adopted checklist-markdown without that file, which is
+# all of them today.
+#
+# Hence the wrapper below: pass `--config` only when the file is actually
+# there. A consumer with no `.markdown-link-check.json` gets exactly the
+# previous behaviour, and one who creates it gets the behaviour the docs
+# always promised, with no version bump needed on their side.
+#
+# `sh -c`, not `bash -c`: this runs wherever pre-commit does, and nothing
+# here needs bash. The trailing `--` gives $0 a value so pre-commit's
+# filenames land in "$@" starting at $1.
+#
+# The markdown-link-check version below is a pinned npm package rather than
+# a `rev:` tag, so the built-in pre-commit Renovate manager cannot see it;
+# a custom manager in .github/renovate.json5 watches this line instead, the
+# same arrangement checklist-dev-dotenv and checklist-github-actions use
+# for their own pins. See docs/versioning.md.
 repos:
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.23.2
     hooks:
       - id: markdownlint-cli2
 
-  - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.15.0
+  - repo: local
     hooks:
       - id: markdown-link-check
+        name: markdown-link-check (honours .markdown-link-check.json if present)
+        description: >-
+          Extracts links from Markdown and checks they resolve. Reads
+          .markdown-link-check.json from the repository root when that
+          file exists; see docs/overrides.md for the ignore-pattern
+          format.
+        language: node
+        additional_dependencies: ["markdown-link-check@3.15.0"]
+        types: [markdown]
+        stages: [pre-commit, pre-push, manual]
+        entry: >-
+          sh -c '
+          if [ -f .markdown-link-check.json ]; then
+          exec markdown-link-check --config .markdown-link-check.json "$@";
+          fi;
+          exec markdown-link-check "$@";
+          ' --

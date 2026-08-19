@@ -1,0 +1,34 @@
+{
+  "comment": [
+    "Read by markdown-link-check via checklist-markdown. That tool does NOT",
+    "auto-discover this file; the checklist passes --config explicitly, but",
+    "only when the file exists, so deleting it restores the unconfigured",
+    "default rather than breaking the hook.",
+    "https://github.com/tcort/markdown-link-check#config-file-format",
+    "",
+    "This file is for links no CI can resolve, not for links that are merely",
+    "broken. A GitHub stars badge pointing at /stargazers is the common case",
+    "and does NOT belong here: GitHub answers 404 on /stargazers and",
+    "/watchers for every client without a logged-in browser session, so the",
+    "honest fix is to point the badge at the repository itself, which",
+    "resolves and gets checked. Silencing a link the checker could otherwise",
+    "verify defeats the point of running it."
+  ],
+  "ignorePatterns": [
+    {
+      "comment": ["Rate-limits unauthenticated checkers into false failures."],
+      "pattern": "^https?://api\\.github\\.com(:[0-9]+)?(/.*)?$"
+    },
+    {
+      "comment": ["In-cluster Kubernetes service links never resolve from outside."],
+      "pattern": "^https?://.*\\.svc(\\.cluster\\.local)?(:[0-9]+)?(/.*)?$"
+    },
+    {
+      "comment": ["Placeholder hosts that appear in generated auth examples."],
+      "pattern": "^https?://x-access-token(:[0-9]+)?(/.*)?$"
+    }
+  ],
+  "retryOn429": true,
+  "retryCount": 3,
+  "aliveStatusCodes": [200, 206]
+}

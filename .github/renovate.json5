@@ -78,5 +78,15 @@
       datasourceTemplate: "pypi",
       depNameTemplate: "zizmor",
     },
+    {
+      // markdown-link-check is a repo: local hook so the checklist can pass
+      // --config conditionally, which leaves no rev: field for the built-in
+      // pre-commit manager to watch. Same arrangement as the two above.
+      customType: "regex",
+      managerFilePatterns: ["/^checklists/checklist-markdown\\.ya?ml$/"],
+      matchStrings: ["markdown-link-check@(?<currentValue>[0-9.]+)"],
+      datasourceTemplate: "npm",
+      depNameTemplate: "markdown-link-check",
+    },
   ],
 }

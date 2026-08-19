@@ -15,6 +15,8 @@
     hooks:      per-checklist fixture tests (should-pass/should-fail)
                 plus the dogfood-wiring selection guard for defects 2/3
     shell:      shellcheck plus behavioral tests of scripts/*.sh
+    links:      how checklist-markdown handles a .markdown-link-check.json
+                (absent / matching / non-matching), in a scratch repo
     consumer:   offline repo:+rev: consumer-path test via a tagged
                 local clone under /tmp
     commit:     a real `git commit` through installed hooks, covering
@@ -36,7 +38,7 @@ set -o nounset
 HERE=$(dirname "$(realpath "${0}")")
 cd "${HERE}/.."
 
-ALL_PHASES="selectors hooks shell consumer commit"
+ALL_PHASES="selectors hooks shell links consumer commit"
 PHASES="${*:-${ALL_PHASES}}"
 
 OVERALL_EXIT=0
@@ -67,6 +69,9 @@ for phase in ${PHASES}; do
     ;;
   shell)
     run_phase shell "Phase: shellcheck + scripts/*.sh behavior" "tests/scripts/lint_shell.sh"
+    ;;
+  links)
+    run_phase links "Phase: markdown-link-check config handling" "tests/scripts/markdown_link_config.sh"
     ;;
   consumer)
     run_phase consumer "Phase: consumer path (repo: + rev:, offline)" "tests/scripts/consumer_path.sh"

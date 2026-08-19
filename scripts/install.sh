@@ -214,24 +214,57 @@ else
   # reported the resource does not exist (HTTP 404, the shape of a bad
   # --template or --ref), 1 for any other fetch failure (DNS,
   # connection, timeout, ...).
+  # Returns 0 on success, 2 only when the server answered 404 for this very
+  # transfer, and 1 for everything else: a network failure, or any other HTTP
+  # status.
+  #
+  # The 404 has to be identified precisely, because fetch_optional treats a 2
+  # as "this ref does not carry that file, skip it" while everything else stays
+  # fatal. Neither curl's exit 22 nor wget's exit 8 is specific enough on its
+  # own: both mean "some HTTP status at or above 400", so a 403, a 429 from
+  # rate limiting, or a 500 would all have been read as a missing file and
+  # silently skipped, turning a transient failure into a quietly incomplete
+  # install.
+  #
+  # The status is read from the transfer itself rather than from a second
+  # probe request. An earlier version of this called a separate http_status()
+  # helper after a failure, which meant the skip-or-fail decision was taken on
+  # evidence from a different request than the one that actually failed: a
+  # flaky or rate limited endpoint can answer 404 once and 429 the next time,
+  # and either answer would have decided the outcome depending on which
+  # request happened to see it.
+  #
+  # curl runs without -f so that %{http_code} is still reported on an HTTP
+  # error; the body it writes on failure is discarded with the destination
+  # file. wget has no equivalent of -w, so its status is parsed from the
+  # --server-response header dump, which needs -nv rather than -q because -q
+  # suppresses that output too.
   fetch_url() {
     __url="${1}"
     __dest="${2}"
     __status=0
+    __code=""
     if [ "${FETCHER}" = "curl" ]; then
-      # An `if cmd; then ...; fi` with no `else` returns exit status 0
-      # when cmd fails, not cmd's own status, so the real status is
-      # captured via `||` before that ever runs.
-      curl -fsSL "${__url}" -o "${__dest}" || __status=$?
-      [ "${__status}" -eq 0 ] && return 0
+      # An `if cmd; then ...; fi` with no `else` returns exit status 0 when cmd
+      # fails, not cmd's own status, so the real status is captured via `||`
+      # before that ever runs.
+      __code=$(curl -sSL -o "${__dest}" -w '%{http_code}' "${__url}" 2>/dev/null) || __status=$?
+      if [ "${__status}" -eq 0 ]; then
+        case "${__code}" in
+        2??) return 0 ;;
+        esac
+      fi
       rm -f "${__dest}"
-      [ "${__status}" -eq 22 ] && return 2
+      [ "${__code}" = "404" ] && return 2
       return 1
     fi
-    wget -q "${__url}" -O "${__dest}" || __status=$?
-    [ "${__status}" -eq 0 ] && return 0
+    __code=$(wget -nv --server-response -O "${__dest}" "${__url}" 2>&1 |
+      awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}') || __status=$?
+    if [ -z "${__code}" ] || [ "${__code}" = "200" ]; then
+      [ -s "${__dest}" ] && return 0
+    fi
     rm -f "${__dest}"
-    [ "${__status}" -eq 8 ] && return 2
+    [ "${__code}" = "404" ] && return 2
     return 1
   }
 
@@ -285,12 +318,33 @@ else
     fi
   }
 
+  # Same as fetch_required, but a 404 is not fatal: the file is simply not
+  # present at this ref. Used for templates added after some published
+  # release, so that `--ref <older tag>` still installs everything that ref
+  # does have instead of aborting on the one file it predates. A network
+  # failure is still fatal, because that is not the same thing as absence.
+  fetch_optional() {
+    __rel="${1}"
+    __dest="${TEMPLATES_DIR}/${__rel}"
+    __rc=0
+    fetch_url "${REMOTE_BASE_URL}/${__rel}" "${__dest}" || __rc=$?
+    if [ "${__rc}" -eq 2 ]; then
+      echo "Note: templates/${__rel} does not exist at ref '${__ref}'; skipping it." >&2
+      rm -f "${__dest}"
+      return 0
+    elif [ "${__rc}" -ne 0 ]; then
+      echo "Error: failed to fetch ${REMOTE_BASE_URL}/${__rel} (ref '${__ref}'). Check your network connection." >&2
+      exit 7
+    fi
+  }
+
   fetch_required "pre-commit-config/${__template}.yaml" \
     "no template named '${__template}' at ref '${__ref}' (checked ${REMOTE_BASE_URL}/pre-commit-config/${__template}.yaml). Pass --ref <tag|branch> to fetch a different revision."
   fetch_required ".editorconfig" "could not find templates/.editorconfig at ref '${__ref}'."
   fetch_required ".cspell.json" "could not find templates/.cspell.json at ref '${__ref}'."
   fetch_required ".yamllint.yml" "could not find templates/.yamllint.yml at ref '${__ref}'."
   fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
+  fetch_optional ".markdown-link-check.json"
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
@@ -315,6 +369,14 @@ copy_file() {
   __src="${1}"
   __dest="${2}"
 
+  # A source that is not here at all comes from fetch_optional declining to
+  # fetch a template this ref predates. Report it and move on; letting cp
+  # fail into the caller's `|| true` would hide it behind a bare cp error.
+  if [ ! -e "${__src}" ]; then
+    echo "Skipping ${__dest}: $(basename "${__src}") is not part of this ref." >&2
+    return 5
+  fi
+
   if [ -e "${__dest}" ] && [ "${__force}" != true ]; then
     echo "Skipping ${__dest}: already exists (pass --force to overwrite)." >&2
     return 4
@@ -334,6 +396,7 @@ copy_file "${TEMPLATES_DIR}/.editorconfig" "${__target}/.editorconfig" || true
 copy_file "${TEMPLATES_DIR}/.cspell.json" "${__target}/.cspell.json" || true
 copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
 copy_file "${TEMPLATES_DIR}/.markdownlint.yaml" "${__target}/.markdownlint.yaml" || true
+copy_file "${TEMPLATES_DIR}/.markdown-link-check.json" "${__target}/.markdown-link-check.json" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
 
 if [ "${__community_files}" = true ]; then

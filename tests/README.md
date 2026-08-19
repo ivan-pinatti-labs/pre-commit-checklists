@@ -217,6 +217,10 @@ hook fires because local work happens on `main`.
   floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
   definition does not pin `language_version` to enforce it), and a
   Terraform + `tflint` toolchain (for `checklist-dev-terraform`).
+- `links`: `pre-commit`, Node/npm (markdownlint-cli2 and
+  markdown-link-check), and Python 3 for the throwaway local HTTP server
+  that serves the phase's 404 fixture. No outbound network access: the
+  dead link it checks is served from 127.0.0.1 on an ephemeral port.
 - `shell`: `shellcheck`, `git`, `pre-commit`, `detect-secrets`.
 - `consumer` / `commit`: `git`, `pre-commit`, and everything `hooks` needs
   (the throwaway consumer repos exercise the same checklists).
