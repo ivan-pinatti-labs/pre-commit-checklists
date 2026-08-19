@@ -36,7 +36,8 @@
   against a repository with thousands. A local server removes the
   guesswork and the network dependency in one go.
 
-  Needs Node, same as the hooks phase. No outbound network access.
+  Needs Node, same as the hooks phase, and Python 3 for the local 404
+  server below. Needs no outbound network access at all.
 
   Exit status: 0 if every assertion passed, 1 otherwise.
 '
