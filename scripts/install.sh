@@ -214,6 +214,37 @@ else
   # reported the resource does not exist (HTTP 404, the shape of a bad
   # --template or --ref), 1 for any other fetch failure (DNS,
   # connection, timeout, ...).
+  # Reports the HTTP status for a URL, or 000 if the request never got
+  # one. Only consulted on the failure path, so the happy path still costs
+  # a single request.
+  http_status() {
+    __code=""
+    if [ "${FETCHER}" = "curl" ]; then
+      __code=$(curl -sSL -o /dev/null -w '%{http_code}' "${1}" 2>/dev/null) || __code=""
+    else
+      __code=$(wget --spider -S "${1}" 2>&1 |
+        awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}')
+    fi
+    # Normalize to exactly three digits. curl's %{http_code} already prints
+    # 000 when it never got a response, but it prints nothing at all if it
+    # fails before writing, and a doubled fallback would emit "000000".
+    case "${__code}" in
+    [0-9][0-9][0-9]) printf '%s' "${__code}" ;;
+    *) printf '000' ;;
+    esac
+  }
+
+  # Returns 0 on success, 2 only when the server specifically answered 404,
+  # and 1 for everything else: a network failure, or any other HTTP error.
+  #
+  # The 404 has to be identified precisely, because fetch_optional treats a
+  # 2 as "this ref does not carry that file, skip it" while everything else
+  # stays fatal. Neither curl's exit 22 nor wget's exit 8 is specific enough
+  # on its own: both mean "some HTTP status at or above 400", so a 403, a
+  # 429 from rate limiting, or a 500 would all have been read as a missing
+  # file and silently skipped, producing a quietly incomplete install out of
+  # a transient failure. Hence the extra status probe, on the failure path
+  # only.
   fetch_url() {
     __url="${1}"
     __dest="${2}"
@@ -225,13 +256,17 @@ else
       curl -fsSL "${__url}" -o "${__dest}" || __status=$?
       [ "${__status}" -eq 0 ] && return 0
       rm -f "${__dest}"
-      [ "${__status}" -eq 22 ] && return 2
+      if [ "${__status}" -eq 22 ] && [ "$(http_status "${__url}")" = "404" ]; then
+        return 2
+      fi
       return 1
     fi
     wget -q "${__url}" -O "${__dest}" || __status=$?
     [ "${__status}" -eq 0 ] && return 0
     rm -f "${__dest}"
-    [ "${__status}" -eq 8 ] && return 2
+    if [ "${__status}" -eq 8 ] && [ "$(http_status "${__url}")" = "404" ]; then
+      return 2
+    fi
     return 1
   }
 
