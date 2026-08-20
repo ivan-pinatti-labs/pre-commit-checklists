@@ -32,8 +32,15 @@ trim_trailing_whitespace = false
 tab_width = 2
 indent_style = tab
 
+# `unset`, not 0. max_line_length is not in the EditorConfig specification,
+# so 0 means whatever each tool decides, and editorconfig-checker 3.11.1
+# decides it is a limit of zero: every line then fails with "Line too long
+# (N instead of 0)". `unset` is the specification's own value for "no value
+# here", works in any implementation, and is what the checker accepts. `off`
+# also passes this checker, but only because it discards values it cannot
+# parse as a number, which is not a guarantee worth depending on.
 [COMMIT_EDITMSG]
-max_line_length = 0
+max_line_length = unset
 
 [*.py]
 max_line_length = 88
