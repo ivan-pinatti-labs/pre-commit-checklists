@@ -181,9 +181,23 @@ Under `[COMMIT_EDITMSG]`. `max_line_length` is not in the EditorConfig
 specification at all: the spec lists `indent_style`, `indent_size`,
 `tab_width`, `end_of_line`, `charset`, `trim_trailing_whitespace`,
 `insert_final_newline`, `root`, and the universal value `unset`.
-`max_line_length` is a widely implemented extension, and `off` is the spelling
-those implementations document for "no limit". `0` is not documented anywhere,
-so each tool was free to read it as a limit of zero. Now `off`.
+`max_line_length` is a widely implemented extension whose values are only
+documented per implementation. `0` is not documented anywhere, and
+editorconfig-checker 3.11.1 reads it as a literal limit of zero, so it failed
+every line of the file it was meant to exempt. Confirmed 2026-08-20 by running
+the hook's own `ec` binary against a 300-character `COMMIT_EDITMSG`:
+
+```text
+max_line_length = 0        exit=1   Line too long (300 instead of 0)
+max_line_length = off      exit=0
+max_line_length = unset    exit=0
+max_line_length = 50       exit=1   Line too long (300 instead of 50)
+```
+
+Now `unset`, which is the specification's universal "no value here" and so
+holds in any implementation. `off` also passes, but only because this checker
+discards values it cannot parse as a number, which is a tool behaviour rather
+than a guarantee. Same spelling as item 11 recommends for `*.md`.
 
 ## 9. `--ticket-prefixes` has the separator gap the default path just lost
 
