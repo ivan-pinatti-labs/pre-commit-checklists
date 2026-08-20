@@ -114,9 +114,9 @@ fi
 
 # No ticket prefixes configured: accept ordinary lowercase slug names.
 #
-# The separator class includes / - _ . so that dependency-bot branches
-# validate cleanly, not just hand-written ones: Dependabot's branch names
-# embed the package-ecosystem id verbatim (e.g.
+# The separator class includes /, hyphen, _ and . so that dependency-bot
+# branches validate cleanly, not just hand-written ones: Dependabot's
+# branch names embed the package-ecosystem id verbatim (e.g.
 # "dependabot/github_actions/github-actions-151ba0d261",
 # "dependabot/pre_commit/pre-commit-hooks-941c2d6198") and that segment
 # always has an underscore, with no config option to change it. Renovate
