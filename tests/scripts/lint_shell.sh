@@ -104,6 +104,79 @@ check_branch_with_head_ref "main" "BadBranchName"
 check_branch_with_head_ref "BadBranchName" "feature/add-thing"
 [ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides an invalid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred even when the checked out branch is invalid" "exit=${EXIT} ${OUT}"
 
+# Dependabot and Renovate default branch names, taken verbatim from a real
+# consumer repo. Both bots embed a separator character the old
+# [a-z0-9]+([/-][a-z0-9]+)* pattern did not allow (an underscore in
+# Dependabot's ecosystem segment, a dot in Renovate's version-range
+# segment), and neither bot offers a config knob to change that segment,
+# so this must pass or every bot-authored PR on a consumer repo is
+# permanently red. Passed via GITHUB_HEAD_REF, not checked out, since these
+# are exactly the strings GitHub Actions hands the script on a pull_request
+# event.
+check_branch_with_head_ref "main" "dependabot/github_actions/github-actions-151ba0d261"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot github_actions branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot github_actions branch should be accepted" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "dependabot/pre_commit/pre-commit-hooks-941c2d6198"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot pre_commit branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot pre_commit branch should be accepted" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "renovate/alpine-3.x"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch with a dot (renovate/alpine-3.x) accepted" || fail "check-branch-name.sh: Renovate branch with a dot should be accepted" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "renovate/asdf-tools"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch (renovate/asdf-tools) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
+
+# The separator class widened for the bots above (Fix 1) must still reject
+# everything it rejected before: mixed case, spaces, leading/trailing
+# separators, doubled separators, and a lone hyphen/slash. GITHUB_HEAD_REF
+# is used throughout, including for shapes (embedded spaces, a leading
+# slash, "..") that are not even legal git ref names, since the script
+# validates the string itself rather than re-deriving it from git once
+# GITHUB_HEAD_REF is set.
+check_branch_with_head_ref "main" "Fix/MyThing"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'Fix/MyThing' (mixed case) rejected" || fail "check-branch-name.sh: 'Fix/MyThing' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "name with spaces"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'name with spaces' rejected" || fail "check-branch-name.sh: 'name with spaces' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "UPPERCASE"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'UPPERCASE' rejected" || fail "check-branch-name.sh: 'UPPERCASE' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "/leading-slash"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: '/leading-slash' rejected" || fail "check-branch-name.sh: '/leading-slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "trailing-slash/"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'trailing-slash/' rejected" || fail "check-branch-name.sh: 'trailing-slash/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "double//slash"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'double//slash' rejected" || fail "check-branch-name.sh: 'double//slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "under__score"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'under__score' (doubled separator) rejected" || fail "check-branch-name.sh: 'under__score' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "dot..dot"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'dot..dot' (doubled separator) rejected" || fail "check-branch-name.sh: 'dot..dot' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "-leading-hyphen"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: '-leading-hyphen' rejected" || fail "check-branch-name.sh: '-leading-hyphen' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "fix/"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'fix/' (trailing separator) rejected" || fail "check-branch-name.sh: 'fix/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+# Locale independence (Fix 2). [a-z0-9] is a collation-order range, not a
+# fixed ASCII set: under an accented locale such as en_US.UTF-8, bash's
+# regex engine can widen [a-z] to also match letters like the a-with-accent
+# in "cafe", so the exact same branch name would validate differently on a
+# developer's machine than in CI depending on which locale each happens to
+# run under. LC_ALL=en_US.UTF-8 is forced on the *caller* here (not just
+# left ambient) specifically to try to provoke that widening; the script
+# must reject this branch name regardless, because it pins LC_ALL=C
+# internally. This assertion holds even on a runner where en_US.UTF-8 was
+# never generated, since bash's fallback in that case is the C locale
+# already; either way, the point being tested is that the script's own
+# result does not depend on what locale the caller happens to be in.
+run_and_capture env -u GITHUB_HEAD_REF "GITHUB_HEAD_REF=café-accents" "LC_ALL=en_US.UTF-8" "${BRANCH_SCRIPT}"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: accented branch name rejected even under an ambient locale that widens [a-z]" || fail "check-branch-name.sh: accented branch name should be rejected regardless of the caller's ambient LC_ALL (locale independence)" "exit=${EXIT} ${OUT}"
+
 rm -rf "${__scratch}"
 
 section "check-commit-msg.sh"
