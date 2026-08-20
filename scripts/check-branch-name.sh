@@ -4,7 +4,10 @@
   Validates the current branch name.
 
   By default, any ordinary branch name is accepted: lowercase letters,
-  digits, hyphens and slashes (e.g. "add-login-page", "fix/flaky-test").
+  digits, hyphens, underscores, dots and slashes (e.g. "add-login-page",
+  "fix/flaky-test", "dependabot/github_actions/actions-abc123"). The
+  underscore and dot are accepted because Dependabot and Renovate default
+  branch names use them and neither bot lets that be reconfigured away.
   Protected branch names (main, master, develop by default) are always
   accepted too.
 
@@ -27,6 +30,15 @@ fi
 set -o errexit
 set -o pipefail
 set -o nounset
+
+# Force the C locale for the whole script. [a-z0-9] and friends are
+# collation-order ranges, not fixed ASCII sets: under an accented locale
+# such as en_CA.UTF-8, bash's regex engine widens [a-z] to accept letters
+# like the a-with-accent in "cafe" too, so the exact same branch name is
+# accepted on one developer's machine and rejected in CI (which typically
+# runs under C/POSIX). Pinning LC_ALL=C here makes every [[ =~ ]] match
+# below behave the same regardless of the caller's ambient locale.
+export LC_ALL=C
 
 __ticket_prefixes=""
 __protected_branches="main master develop"
@@ -101,15 +113,27 @@ EOF
 fi
 
 # No ticket prefixes configured: accept ordinary lowercase slug names.
-if [[ ${__branch_name} =~ ^[a-z0-9]+([/-][a-z0-9]+)*$ ]]; then
+#
+# The separator class includes /, hyphen, _ and . so that dependency-bot
+# branches validate cleanly, not just hand-written ones: Dependabot's
+# branch names embed the package-ecosystem id verbatim (e.g.
+# "dependabot/github_actions/github-actions-151ba0d261",
+# "dependabot/pre_commit/pre-commit-hooks-941c2d6198") and that segment
+# always has an underscore, with no config option to change it. Renovate
+# branches can carry a dot too (e.g. "renovate/alpine-3.x"). Consecutive
+# separators, and a leading or trailing separator, are still rejected
+# because each separator in the pattern must be followed by at least one
+# [a-z0-9] character.
+if [[ ${__branch_name} =~ ^[a-z0-9]+([/_.-][a-z0-9]+)*$ ]]; then
   echo "Branch name '${__branch_name}' is valid."
   exit 0
 fi
 
 cat <<EOF
 Error: branch name '${__branch_name}' does not follow the required naming convention.
-Branch names must be lowercase, using only letters, digits, hyphens and
-slashes (e.g. 'add-login-page', 'fix/flaky-test'), or match one of the
+Branch names must be lowercase, using only letters, digits, hyphens,
+underscores, dots and slashes (e.g. 'add-login-page', 'fix/flaky-test',
+'dependabot/github_actions/github-actions-abc123'), or match one of the
 protected branch names: ${__protected_branches}
 EOF
 exit 1
