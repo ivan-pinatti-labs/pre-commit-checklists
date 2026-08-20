@@ -1,6 +1,6 @@
 # TODO
 
-<!-- cspell:words coderabbitai hostnames repoint repoints unsets -->
+<!-- cspell:words hostnames repoint repoints unsets -->
 
 Known defects and follow-ups in this library, with the evidence for each.
 Nothing here is urgent enough to block a release; all of it is worth fixing.
@@ -159,28 +159,31 @@ at least one consumer.
 Found by CodeRabbit on `rsync-crypt#12`, which had copied the template
 verbatim.
 
-## 7. `templates/.markdownlint.yaml`'s MD013 comment names the wrong source
+## 7. `templates/.markdownlint.yaml`'s MD013 comment named the wrong source
 
-**Status:** open, trivial, same file as item 6.
+**Status:** fixed in this pull request.
 
-The comment says MD013's 100-character limit is set "to match
-`.editorconfig`". That is misleading in the template and outright wrong for
-any consumer that follows the reasoning in item 2 of this file and sets
-`max_line_length = off` for `*.md`, which is the correct setting because
-editorconfig-checker cannot tell that a wrapped pipe table or fenced code
-block is not a violation.
+The comment said MD013's 100-character limit was set "to match
+`.editorconfig`". Nothing should match `.editorconfig` here: MD013 is the
+only thing that can enforce Markdown line length correctly, because
+editorconfig-checker cannot tell that a wrapped pipe table or a fenced code
+block is not a violation. A consumer that reads the old comment and then sets
+`max_line_length` for `*.md` to agree with it gets unfixable findings, which
+is what rsync-crypt hit and worked around with `unset` (see item 11).
 
-MD013 is the only thing enforcing Markdown line length. The comment should say
-so.
+The comment now says MD013 is the sole enforcement, and why.
 
-## 8. `templates/.editorconfig` uses `max_line_length = 0`
+## 8. `templates/.editorconfig` used `max_line_length = 0`
 
-**Status:** open, trivial.
+**Status:** fixed in this pull request.
 
-Under `[COMMIT_EDITMSG]`. The EditorConfig specification defines
-`max_line_length` as a positive integer or the literal `off`, so `0` is
-outside the spec and each tool is free to interpret it however it likes. It
-should be `off`.
+Under `[COMMIT_EDITMSG]`. `max_line_length` is not in the EditorConfig
+specification at all: the spec lists `indent_style`, `indent_size`,
+`tab_width`, `end_of_line`, `charset`, `trim_trailing_whitespace`,
+`insert_final_newline`, `root`, and the universal value `unset`.
+`max_line_length` is a widely implemented extension, and `off` is the spelling
+those implementations document for "no limit". `0` is not documented anywhere,
+so each tool was free to read it as a limit of zero. Now `off`.
 
 ## 9. `--ticket-prefixes` has the separator gap the default path just lost
 
@@ -221,6 +224,25 @@ anything. It was recoverable only because a copy happened to exist elsewhere.
 The lesson is the boring one. A note worth writing down is worth committing,
 because the whole point of it is to outlive the session that produced it.
 
+## 11. `templates/.editorconfig` fights markdownlint over `*.md`
+
+**Status:** open. Not fixed here because it changes the template for every
+consumer, which deserves its own pull request.
+
+The `[*.md]` block sets `indent_size = 2` and `max_line_length = 100`. Both
+produce findings that cannot be fixed while markdownlint is also enforcing
+Markdown: editorconfig-checker reads a wrapped pipe table, a fenced code
+block, and a nested list's continuation lines as violations, and there is no
+way to tell it otherwise. rsync-crypt set both to `unset` for exactly this
+reason and recorded why in its own `.editorconfig`.
+
+`unset` rather than `off` is the right spelling: `unset` is in the
+specification and applies to any property, and it is what removes the
+property rather than giving it a sentinel value (see item 8).
+
+The template should either `unset` both for `*.md`, or drop the `[*.md]`
+block entirely and let markdownlint own the file type.
+
 ## CodeRabbit: automatic reviews stop silently on a busy branch
 
 `.coderabbit.yaml` now sets `reviews.auto_review.auto_pause_after_reviewed_commits: 0`.
@@ -235,12 +257,16 @@ a branch with seven commits: reviews stopped after the fifth, and twelve
 hours passed with no review of the head and no indication anything was
 waiting. Recovery needs a manual `@coderabbitai review`.
 
-**Still open, and not fixable by config:** CodeRabbit's included-review quota
-(3 per hour on the current plan) **drops** a review rather than queueing it. A
-push that arrives while the quota is exhausted is declined and never retried.
-The published schema (`schema.v2.json`) has no retry, backoff, queue or poll
-setting anywhere in it, so there is nothing to configure. The only recovery is
-a manual `@coderabbitai review` once the quota frees.
+**Still open, and not fixable by config:** CodeRabbit declines a review when
+its usage limit is reached rather than queueing it, and never retries that
+push. What is documented, rather than inferred: CodeRabbit's Fair Usage
+Limits Policy applies per developer identity, across every repository that
+identity touches, over a rolling seven-day window. The policy page does not
+publish the numeric limit, and no numeric limit was observed directly, so no
+rate is claimed here. The published configuration schema (`schema.v2.json`,
+read 2026-08-20) has no retry, backoff, queue or poll setting anywhere in it,
+so there is nothing to configure. Recovery is a manual `@coderabbitai
+review`.
 
 Worth knowing when judging whether a pull request is really reviewed:
 
@@ -256,4 +282,4 @@ Worth knowing when judging whether a pull request is really reviewed:
 check, not a workflow job, so it cannot be ordered after the pre-commit job
 with a `needs:` dependency. Skipping drafts is the lever instead: open as a
 draft, let pre-commit and the tests find the mechanical defects, then mark it
-ready so a review slot is spent on a diff those have already cleaned.
+ready so a review slot is spent on a diff they have already cleaned.

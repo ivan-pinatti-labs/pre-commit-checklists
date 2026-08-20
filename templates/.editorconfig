@@ -32,8 +32,11 @@ trim_trailing_whitespace = false
 tab_width = 2
 indent_style = tab
 
+# `off`, not 0. max_line_length is not an EditorConfig specification
+# property at all, so 0 means whatever each tool decides it means. `off` is
+# the documented spelling for the tools that implement the extension.
 [COMMIT_EDITMSG]
-max_line_length = 0
+max_line_length = off
 
 [*.py]
 max_line_length = 88
