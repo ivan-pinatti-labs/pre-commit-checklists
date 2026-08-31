@@ -120,11 +120,29 @@ fi
 # "dependabot/github_actions/github-actions-151ba0d261",
 # "dependabot/pre_commit/pre-commit-hooks-941c2d6198") and that segment
 # always has an underscore, with no config option to change it. Renovate
-# branches can carry a dot too (e.g. "renovate/alpine-3.x"). Consecutive
-# separators, and a leading or trailing separator, are still rejected
-# because each separator in the pattern must be followed by at least one
-# [a-z0-9] character.
-if [[ ${__branch_name} =~ ^[a-z0-9]+([/_.-][a-z0-9]+)*$ ]]; then
+# branches can carry a dot too (e.g. "renovate/alpine-3.x"). A leading or
+# trailing separator is still rejected because every separator in the
+# pattern must be followed by at least one [a-z0-9] character.
+#
+# `-?/` is the one place a doubled separator is tolerated, and it exists for
+# a shape no consumer can avoid. When a pre-commit hook repository is named
+# by URL rather than by short name, Dependabot encodes the "https://" into
+# the branch, replacing the colon and one slash with a single hyphen:
+#
+#   dependabot/pre_commit/https-/github.com/<owner>/<repo>-<version>
+#
+# That "https-/" is a hyphen immediately followed by a slash, which the
+# original pattern rejected, so `Pre-commit` failed on every such pull
+# request and the bump could never merge. Observed on
+# ivan-pinatti-labs/github-template#11. Repositories that group their
+# pre-commit updates never see it, because the group name replaces the URL,
+# which is why this went unnoticed for so long.
+#
+# Deliberately narrow: only a single optional hyphen, and only directly
+# before a slash. "foo--/bar", "foo-/-bar", "double//slash", "under__score"
+# and "dot..dot" are all still rejected, and each is asserted in
+# tests/scripts/lint_shell.sh so this stays true.
+if [[ ${__branch_name} =~ ^[a-z0-9]+((-?/|[_.-])[a-z0-9]+)*$ ]]; then
   echo "Branch name '${__branch_name}' is valid."
   exit 0
 fi

@@ -92,20 +92,27 @@ that quota) open pull requests unattended. For the ones that are pin only:
    `Review Verified`, is green and the approval is in place, the same as any
    other pull request.
 
-**Known gap, unverified as of this writing.** Renovate arms its own
-automerge through `platformAutomerge`, using Renovate's own GitHub App
-installation token, which is unaffected by this. Dependabot cannot arm
-auto-merge itself, so `bot-auto-merge.yml`'s own last step does it with
-`gh pr merge --auto`, authenticated as `secrets.GITHUB_TOKEN`. GitHub's own
-documentation states that token cannot be used to add a pull request to a
-merge queue, and names that exact command as an affected one. CodeRabbit
-identified this during its review of the pull request that added this
-pipeline, not by a failed pull request, since the merge queue ruleset does
-not exist until after that pull request merges; treat a Dependabot patch or
-minor pull request that gets approved here but never enters the queue as
-this gap manifesting, not as a new bug, until it is fixed with a
-merge-capable credential (a fine-grained PAT or a GitHub App installation
-token) in place of `GITHUB_TOKEN` for that one step.
+**A gap that was raised in review and then disproved.** Renovate arms its
+own automerge through `platformAutomerge`, using Renovate's own GitHub App
+installation token. Dependabot cannot arm auto-merge itself, so
+`bot-auto-merge.yml`'s last step does it with `gh pr merge --auto`,
+authenticated as `secrets.GITHUB_TOKEN`. CodeRabbit's review of the pull
+request that added this pipeline reported that GitHub's documentation says
+this token cannot add a pull request to a merge queue, naming that exact
+command, and proposed provisioning a separate merge-capable credential.
+
+It was tested instead of accepted, and it does not hold.
+`ivan-pinatti-labs/github-template` runs the same workflow with an active
+merge queue ruleset, and its Dependabot pull request #11 exercised this
+step: `bot-auto-merge.yml` run `33433281810` reported `Enable auto-merge`
+as `success`, and the pull request then reported `enabledBy:
+app/github-actions` with `mergeMethod: SQUASH`. Auto-merge was armed by
+`GITHUB_TOKEN` against a repository with a merge queue, and the pull
+request was queue eligible afterwards.
+
+Recorded here rather than deleted, because the claim is plausible, cites
+real documentation, and will be raised again by the next reviewer. No extra
+credential is needed for this path.
 
 ## What actually gets reviewed, and what does not
 
