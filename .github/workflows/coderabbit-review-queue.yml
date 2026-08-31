@@ -89,7 +89,18 @@ jobs:
           # them is what gets the mechanical linters to clean a diff before a
           # review slot is spent on it, which is why .coderabbit.yaml sets
           # drafts: false.
-          prs=$(gh pr list --repo "$REPO" --state open --limit 50 \
+          #
+          # --limit has to sit at or above whatever this repository could
+          # realistically have open, not just comfortably above today's
+          # count: `gh pr list` applies it before the sort_by below runs, so
+          # a limit that truncated the page would silently drop whichever
+          # pull requests did not make the cut, and they would never reach
+          # the oldest-first ordering the sort exists to provide. 200 is
+          # `coderabbit-gate.yml`'s own MATRIX_CAP, chosen there for the
+          # same reason (room under GitHub's 256 jobs per run ceiling); reused
+          # here as a number already sized well past what a repository this
+          # small should ever have open at once.
+          prs=$(gh pr list --repo "$REPO" --state open --limit 200 \
             --json number,headRefOid,isDraft,isCrossRepository \
             --jq 'sort_by(.number) | .[] | select(.isDraft == false)
                   | "\(.number) \(.headRefOid) \(.isCrossRepository)"')

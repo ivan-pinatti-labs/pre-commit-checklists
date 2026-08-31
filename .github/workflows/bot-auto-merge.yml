@@ -299,6 +299,23 @@ jobs:
         # does not merge anything itself. GitHub adds the pull request to the
         # queue on its own once every required check, this one included, is
         # green, the same as it does for Renovate's own platformAutomerge.
+        #
+        # Known gap, surfaced by review rather than by an incident: GitHub's
+        # own documentation states that the built in GITHUB_TOKEN cannot be
+        # used to add a pull request to a merge queue, and names
+        # `gh pr merge --auto` specifically as an affected command. Renovate's
+        # side of this is unaffected, since platformAutomerge is armed
+        # through Renovate's own GitHub App installation token, not this
+        # one. This step has not yet been proven against a live Dependabot
+        # pull request with the merge queue ruleset active (branch
+        # protection and the ruleset are only applied after this pull
+        # request merges), so treat it as unverified rather than working:
+        # if a Dependabot patch or minor pull request gets approved here but
+        # never enters the queue, this is why. The fix needs a
+        # merge-capable credential this workflow does not have today, a
+        # fine grained PAT or a GitHub App installation token with merge
+        # queue permission, provisioned the same way CODERABBIT_NUDGE_TOKEN
+        # was, and substituted for GITHUB_TOKEN in this one step.
         if: steps.decide.outputs.arm == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

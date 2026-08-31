@@ -300,7 +300,22 @@ jobs:
               # the only part trusted from the ref; the head SHA it is graded
               # against is asked of the API fresh, in case the pull request
               # moved between being enqueued and this run starting.
-              number=$(printf '%s' "$MERGE_GROUP_REF" | grep -oE 'pr-[0-9]+-' | grep -oE '[0-9]+')
+              #
+              # `| head -1 || true` on both ends, not the bare pipeline a
+              # first draft of this had: under `set -euo pipefail`, a ref
+              # this pattern does not match makes the first grep exit 1 with
+              # no output, which fails the whole pipeline and aborts the
+              # step right here, on this line, before the friendly
+              # `::error::` below ever runs, and `head -1` guards the
+              # opposite edge, a ref that somehow matches the pattern twice,
+              # which would otherwise hand jq's `tonumber` two lines instead
+              # of one. `|| true` swallows the pipeline's own exit status so
+              # the empty-string check below is what actually reports the
+              # failure, with the message this step exists to give.
+              number=$(printf '%s' "$MERGE_GROUP_REF" \
+                | grep -oE 'pr-[0-9]+-' \
+                | grep -oE '[0-9]+' \
+                | head -1 || true)
               if [ -z "$number" ]; then
                 echo "::error::Could not read a pull request number out of '$MERGE_GROUP_REF'."
                 exit 1

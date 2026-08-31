@@ -35,13 +35,18 @@
   // 06:00/06:30 one: CodeRabbit's review quota is shared across the whole
   // GitHub App installation, not per repository, so two repositories'
   // dependency bots opening pull requests the same hour would queue behind
-  // each other for review. "before 8am on Wednesday" rather than a bare day
-  // name because Renovate's schedule syntax accepts a time-of-day clause
-  // alongside a day one; sitting after both dependabot.yml slots (06:00,
-  // 06:30 the same day) rather than before them, the same relationship
-  // rsync-crypt's own "before 07:00" Renovate window has to its two
-  // dependabot.yml slots.
-  schedule: ["before 8am on Wednesday"],
+  // each other for review.
+  //
+  // Cron, not "before 8am on Wednesday": Renovate's schedule has no
+  // minute-level granularity, only a wildcard minute field, so a "before"
+  // human-readable window is eligible to run at any minute across its whole
+  // span, midnight through 7:59, not merely sometime near the end of it.
+  // That would put it inside dependabot.yml's own 06:00 and 06:30 slots the
+  // same day, exactly the collision this schedule exists to avoid, not just
+  // between repositories. `"* 7 * * 3"` restricts the window to the 07:00
+  // hour on Wednesday only (cron day-of-week 3), after both dependabot.yml
+  // slots.
+  schedule: ["* 7 * * 3"],
 
   labels: ["dependencies", "pre-commit"],
   commitMessagePrefix: "chore:",
@@ -125,8 +130,19 @@
     // pin can all offer one, and a checklist's own upstream hook can rename
     // or remove a hook id across a major release the same way this
     // library's own versioning contract does (see docs/versioning.md).
+    //
+    // matchCurrentVersion excludes 0.x packages from that grant, since
+    // semver makes no breaking-change promise below 1.0 and a "minor" bump
+    // there is exactly as likely to break something as a major bump
+    // elsewhere. This repository actually carries 0.x pins today
+    // (checklists/checklist-dev-terraform.yaml's gruntwork-io/pre-commit at
+    // v0.1.30, among others), so this is not a defensive rule against a
+    // hypothetical: without it, a 0.x package's next "minor" release would
+    // merge unattended on the strength of a version scheme that package has
+    // not opted into providing any stability guarantee under.
     {
       matchUpdateTypes: ["patch", "minor"],
+      matchCurrentVersion: "!/^0\\./",
       automerge: true,
       addLabels: ["automerge"],
     },
@@ -138,16 +154,22 @@
     },
   ],
 
-  // Narrow the built-in pre-commit manager to checklists/ only. Setting
-  // managerFilePatterns replaces the manager's default match entirely,
-  // rather than adding to it, and that default is
-  // /(^|/)\.pre-commit-config\.ya?ml$/, which would also match the root
-  // .pre-commit-config.yaml. The root file is deliberately left off this
-  // list: Dependabot already owns it (see dependabot.yml), and matching it
-  // here too would leave both bots able to open a pull request for the
-  // same rev: pin, exactly the fight this split is meant to avoid.
+  // Narrow the built-in pre-commit manager to checklists/ only, and away
+  // from the root .pre-commit-config.yaml that Dependabot already owns (see
+  // dependabot.yml), so the two bots cannot both open a pull request for
+  // the same rev: pin.
+  //
+  // managerFilePatterns is additive, not a replacement for the manager's
+  // own default match (confirmed against Renovate's own documentation and,
+  // live, with a dry-run=extract against this repository): the default
+  // pattern /(^|/)\.pre-commit-config\.ya?ml$/ still applies alongside the
+  // pattern below, so it alone cannot exclude the root file the way an
+  // earlier version of this comment claimed. ignorePaths is the actual
+  // mechanism Renovate documents for excluding a path a manager would
+  // otherwise match by default, so it does the exclusion here instead.
   "pre-commit": {
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
+    ignorePaths: ["/^\\.pre-commit-config\\.yaml$/"],
   },
 
   // checklist-dev-dotenv.yaml is a `repo: local` hook (see

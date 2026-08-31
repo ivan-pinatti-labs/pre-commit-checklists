@@ -15,7 +15,7 @@ project as easy and transparent as possible, whether it's:
 | --- | --- | --- |
 | Open as a **draft** | `Pre-commit` and `Tests` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever `Pre-commit` or `Tests` report |
 | **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
-| Merge | `Pin Only` and `Review Verified` also have to be green (see [`docs/MERGE_PIPELINE.md`](MERGE_PIPELINE.md)) | Wait for a maintainer to merge, once every check is green and the pull request is approved |
+| Merge | `Pin Only` and `Review Verified` also have to be green (see [`docs/MERGE_PIPELINE.md`](MERGE_PIPELINE.md)) | Human pull requests wait for a maintainer; eligible bot and owner pull requests may merge automatically once every check is green and approval is present |
 
 Opening as a draft first means the cheap, mechanical checks run before
 CodeRabbit spends a review on a diff that pre-commit might still flag.
