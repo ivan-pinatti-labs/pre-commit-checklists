@@ -69,10 +69,10 @@ and still needs a genuine human review, same as always.
 Dependabot (`.github/dependabot.yml`: github-actions, Wednesday 06:30
 America/Toronto; pre-commit, Wednesday 06:00) and Renovate
 (`.github/renovate.json5`: the asdf `.tool-versions` surface and the
-checklist-scoped upstream hook pins, daily before 7am, unscoped to a single
-day since a pin-only bump spends no CodeRabbit review quota for
-BOT_SCHEDULE.md's day-spreading to protect) open pull
-requests unattended. For the ones that are pin only:
+checklist-scoped upstream hook pins, daily before 7am, not scoped to a
+single day the way Dependabot is: a pin-only bump spends no CodeRabbit
+review quota, and BOT_SCHEDULE.md's day-spreading exists only to protect
+that quota) open pull requests unattended. For the ones that are pin only:
 
 1. **`Pin Only` is graded.** `scripts/assert-pin-only-diff.py` checks that
    every changed line differs from its counterpart in nothing but a version,
