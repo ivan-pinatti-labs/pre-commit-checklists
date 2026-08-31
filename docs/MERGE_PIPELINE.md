@@ -96,14 +96,14 @@ installation token, which is unaffected by this. Dependabot cannot arm
 auto-merge itself, so `bot-auto-merge.yml`'s own last step does it with
 `gh pr merge --auto`, authenticated as `secrets.GITHUB_TOKEN`. GitHub's own
 documentation states that token cannot be used to add a pull request to a
-merge queue, and names that exact command as an affected one. This was
-found by CodeRabbit's review of the pull request that added this pipeline,
-not by a failed pull request, since the merge queue ruleset does not exist
-until after that pull request merges; treat a Dependabot patch or minor
-pull request that gets approved here but never enters the queue as this gap
-manifesting, not as a new bug, until it is fixed with a merge-capable
-credential (a fine grained PAT or a GitHub App installation token) in place
-of `GITHUB_TOKEN` for that one step.
+merge queue, and names that exact command as an affected one. CodeRabbit
+identified this during its review of the pull request that added this
+pipeline, not by a failed pull request, since the merge queue ruleset does
+not exist until after that pull request merges; treat a Dependabot patch or
+minor pull request that gets approved here but never enters the queue as
+this gap manifesting, not as a new bug, until it is fixed with a
+merge-capable credential (a fine-grained PAT or a GitHub App installation
+token) in place of `GITHUB_TOKEN` for that one step.
 
 ## What actually gets reviewed, and what does not
 

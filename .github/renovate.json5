@@ -167,9 +167,17 @@
   // earlier version of this comment claimed. ignorePaths is the actual
   // mechanism Renovate documents for excluding a path a manager would
   // otherwise match by default, so it does the exclusion here instead.
+  //
+  // A glob, not the slash-delimited regex managerFilePatterns above uses:
+  // ignorePaths only accepts an exact string or a glob pattern (confirmed
+  // against Renovate's own configuration-options documentation), and a
+  // regex string there is not parsed as one, so it would silently fail to
+  // exclude anything rather than error. "**/" makes the match depth
+  // independent, which costs nothing today (this file exists only at the
+  // root) and does not need revisiting if that ever changes.
   "pre-commit": {
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
-    ignorePaths: ["/^\\.pre-commit-config\\.yaml$/"],
+    ignorePaths: ["**/.pre-commit-config.y*ml"],
   },
 
   // checklist-dev-dotenv.yaml is a `repo: local` hook (see

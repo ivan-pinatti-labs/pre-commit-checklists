@@ -313,7 +313,7 @@ jobs:
         # if a Dependabot patch or minor pull request gets approved here but
         # never enters the queue, this is why. The fix needs a
         # merge-capable credential this workflow does not have today, a
-        # fine grained PAT or a GitHub App installation token with merge
+        # fine-grained PAT or a GitHub App installation token with merge
         # queue permission, provisioned the same way CODERABBIT_NUDGE_TOKEN
         # was, and substituted for GITHUB_TOKEN in this one step.
         if: steps.decide.outputs.arm == 'true'
