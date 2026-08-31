@@ -29,24 +29,25 @@
 
   timezone: "America/Toronto",
 
-  // Wednesday, this repository's slot out of the org's BOT_SCHEDULE.md (see
-  // .github/docs/BOT_SCHEDULE.md), chosen so this bot's runs do not land in
-  // rsync-crypt's Monday 06:00-07:00 window or .github's Tuesday
-  // 06:00/06:30 one: CodeRabbit's review quota is shared across the whole
-  // GitHub App installation, not per repository, so two repositories'
-  // dependency bots opening pull requests the same hour would queue behind
-  // each other for review.
+  // Daily, not scoped to this repository's Wednesday slot in the org's
+  // BOT_SCHEDULE.md (see .github/docs/BOT_SCHEDULE.md), and deliberately
+  // so: that document exists to stop repositories competing for
+  // CodeRabbit's shared review quota, and a Renovate pin-only bump spends
+  // none of it. `Pin Only` passing resolves `Review Verified` straight to
+  // `success` through scripts/coderabbit-review-verdict.py's bot lane, with
+  // CodeRabbit never asked for an opinion, so there is no review quota for
+  // a daily schedule to collide over. Day-spreading is a concern for
+  // Dependabot instead, which is why dependabot.yml still keeps this
+  // repository's Wednesday 06:00/06:30 assignment.
   //
-  // Cron, not "before 8am on Wednesday": Renovate's schedule has no
-  // minute-level granularity, only a wildcard minute field, so a "before"
-  // human-readable window is eligible to run at any minute across its whole
-  // span, midnight through 7:59, not merely sometime near the end of it.
-  // That would put it inside dependabot.yml's own 06:00 and 06:30 slots the
-  // same day, exactly the collision this schedule exists to avoid, not just
-  // between repositories. `"* 7 * * 3"` restricts the window to the 07:00
-  // hour on Wednesday only (cron day-of-week 3), after both dependabot.yml
-  // slots.
-  schedule: ["* 7 * * 3"],
+  // Weekly, stacked against minimumReleaseAge's 7 day window below, means a
+  // release that misses one week's slot by a day waits a full extra week
+  // for the next one, so the oldest a package could sit before merging was
+  // up to 14 days even though 7 was the intended floor: the same reasoning
+  // rsync-crypt's own renovate.json5 documents for the same move from
+  // weekly to daily. Checking daily keeps the schedule's own period short
+  // enough that it can no longer add more than a day on top of that floor.
+  schedule: ["before 7am"],
 
   labels: ["dependencies", "pre-commit"],
   commitMessagePrefix: "chore:",

@@ -12,7 +12,7 @@ Pick exactly one, based on whether the repo exists yet. Doing both leaves
 you undoing one or the other.
 
 - **Starting a repo that does not exist yet**: use the
-  [`ivan-pinatti/github-template`](https://github.com/ivan-pinatti/github-template)
+  [`ivan-pinatti-labs/github-template`](https://github.com/ivan-pinatti-labs/github-template)
   GitHub template repository instead of anything on this page. Click
   **Use this template** and you get a repo with the pinned
   `.pre-commit-config.yaml`, workflows, bot configs, and community files
@@ -46,7 +46,7 @@ them apart:
   while this repository has no release yet).
 
   ```shell
-  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh \
+  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti-labs/pre-commit-checklists/main/scripts/install.sh \
     | bash -s -- --template recommended
   ```
 
@@ -54,7 +54,7 @@ them apart:
   first if you would rather not do that blind:
 
   ```shell
-  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh -o install.sh
+  curl -fsSL https://raw.githubusercontent.com/ivan-pinatti-labs/pre-commit-checklists/main/scripts/install.sh -o install.sh
   less install.sh
   bash install.sh --template recommended
   ```
@@ -62,7 +62,7 @@ them apart:
 - **Local**, from a clone of this repo, against any target:
 
   ```shell
-  git clone https://github.com/ivan-pinatti/pre-commit-checklists
+  git clone https://github.com/ivan-pinatti-labs/pre-commit-checklists
   ./pre-commit-checklists/scripts/install.sh --target /path/to/your-repo --template recommended
   ```
 
@@ -125,7 +125,7 @@ This is also where the standalone `ivan-pinatti/github-templates` repo
 that repo is retired, and `--community-files` is its replacement.
 
 **`templates/` in this repository is the canonical source for these
-files.** `ivan-pinatti/github-template` (the "Use this template" repo
+files.** `ivan-pinatti-labs/github-template` (the "Use this template" repo
 from the section above) holds a materialized snapshot of the same
 files, committed directly rather than fetched at use-time. When a
 template changes here, `github-template` needs a manual refresh to
@@ -141,7 +141,7 @@ human re-syncing them keeps that from happening.
    [`templates/pre-commit-config/`](../templates/pre-commit-config/) to
    `.pre-commit-config.yaml` at the root of your repo.
 2. Update the `rev:` pin to the
-   [latest release tag](https://github.com/ivan-pinatti/pre-commit-checklists/releases),
+   [latest release tag](https://github.com/ivan-pinatti-labs/pre-commit-checklists/releases),
    see [`docs/versioning.md`](versioning.md) for what that pin means.
 3. Copy the supporting tool configs you need from
    [`templates/`](../templates/) into your repo root.

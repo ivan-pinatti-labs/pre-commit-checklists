@@ -16,7 +16,7 @@
 # first time pre-commit builds the hook's environment. See
 # docs/getting-started.md and docs/hook-catalogue.md.
 repos:
-  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+  - repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists
     rev: v1.0.0 # replace with the latest release tag
     hooks:
       - id: checklist-basic

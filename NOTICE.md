@@ -2,7 +2,7 @@
 
 pre-commit-checklists
 Copyright 2026 Ivan Pinatti
-<https://github.com/ivan-pinatti/pre-commit-checklists>
+<https://github.com/ivan-pinatti-labs/pre-commit-checklists>
 
 This product is licensed under the Apache License, Version 2.0. See
 [LICENSE.md](LICENSE.md) for the full terms.

@@ -3,7 +3,7 @@
 # scripts this repo ships to consumers, via `repo: local` rather than a
 # self-referencing `repo: ./`, since a self-reference needs a tagged rev
 # and this repo has not cut a release yet. Once tagged, consumers use
-# `repo: https://github.com/ivan-pinatti/pre-commit-checklists` with a
+# `repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists` with a
 # `rev:` pin instead of this file.
 default_install_hook_types: [pre-commit, pre-push, commit-msg]
 minimum_pre_commit_version: 4.0.1

@@ -61,7 +61,7 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the maintainer, Ivan Pinatti, by opening a private security
 advisory at
-<https://github.com/ivan-pinatti/pre-commit-checklists/security/advisories/new>,
+<https://github.com/ivan-pinatti-labs/pre-commit-checklists/security/advisories/new>,
 which only the maintainer can see.
 All complaints will be reviewed and investigated promptly and fairly.
 

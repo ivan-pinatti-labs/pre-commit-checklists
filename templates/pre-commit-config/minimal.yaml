@@ -10,7 +10,7 @@
 # See docs/getting-started.md for the full walkthrough, and
 # docs/versioning.md for how the `rev:` pin works and how to bump it.
 repos:
-  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+  - repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists
     rev: v1.0.0 # replace with the latest release tag
     hooks:
       # Large-file/merge-conflict/line-ending hygiene, safe on any repo.
