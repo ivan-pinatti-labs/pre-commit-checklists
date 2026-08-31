@@ -8,7 +8,7 @@ tags look like `v1.2.3`. Consumers pin to one of those tags in their own
 
 ```yaml
 repos:
-  - repo: https://github.com/ivan-pinatti/pre-commit-checklists
+  - repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists
     rev: v1.2.3
     hooks:
       - id: checklist-basic
@@ -26,7 +26,7 @@ different times, by different commands, in different repos:
    `pre-commit/pre-commit-hooks`, `astral-sh/ruff-pre-commit`, and so on.
 
 Running `pre-commit autoupdate` in your repo only ever touches (1). It
-rewrites the `rev:` next to `repo: https://github.com/ivan-pinatti/pre-commit-checklists`
+rewrites the `rev:` next to `repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists`
 to the latest tag of this library. It has no way to see inside a hook
 that shells out to a nested `pre-commit run --config <checklist>.yaml`
 (which is how every checklist hook id works, see
@@ -83,9 +83,9 @@ pin picks up the next time you run `pre-commit autoupdate` yourself.
 ## Checking what you're pinned to
 
 ```shell
-grep -A1 'ivan-pinatti/pre-commit-checklists' .pre-commit-config.yaml
+grep -A1 'ivan-pinatti-labs/pre-commit-checklists' .pre-commit-config.yaml
 ```
 
 Compare that `rev:` against the
-[releases page](https://github.com/ivan-pinatti/pre-commit-checklists/releases)
+[releases page](https://github.com/ivan-pinatti-labs/pre-commit-checklists/releases)
 to see how far behind you are and what changed since.

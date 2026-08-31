@@ -11,6 +11,23 @@ name: PR Validation
 # finds a problem fails the job, and nothing in this workflow commits or
 # pushes to the PR branch on its own.
 #
+# The `pre-commit` and `self-test` jobs below publish the check contexts
+# `Pre-commit` and `Tests`, exact strings, because
+# .github/workflows/bot-auto-merge.yml and coderabbit-review-queue.yml
+# hardcode those names. See docs/MERGE_PIPELINE.md for the full required
+# check table.
+#
+# `merge_group:` sits alongside `pull_request:` below because required
+# checks are evaluated against the merge queue's own temporary commit, not
+# a pull request's head, once the queue is enabled. Every workflow that
+# supplies a required check needs this trigger or the queue stalls forever
+# waiting for a context that never gets republished on its commit; ported
+# from rsync-crypt ahead of need, alongside coderabbit-gate.yml, so that
+# gap cannot reopen later. Under `merge_group` there is no
+# `github.event.pull_request`, so the fork guard below evaluates false and
+# the labeler and log-posting jobs are correctly skipped for a queue run;
+# nothing about the merge queue needs either of them.
+#
 # A pull request opened from a fork gets a read only GITHUB_TOKEN, so
 # labeler and the "Post Pre-Commit Log" job below, the only two things
 # here that need pull-requests: write, are guarded at the job level with
@@ -45,12 +62,19 @@ name: PR Validation
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+  merge_group:
 
 # A new push supersedes whatever this workflow is still doing for the same
 # PR, so a rapid series of pushes doesn't leave several stale runs racing
-# each other.
+# each other. `github.event.pull_request.number` is empty under
+# `merge_group`, so the fallback keys the group on the queue entry's own ref
+# instead; without it every merge_group run across every pull request would
+# share one empty-suffixed group and cancel each other, which the queue's
+# own `max_entries_to_build: 1` mostly hides but should not be relied on to.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number ||
+    github.event.merge_group.head_ref }}
   cancel-in-progress: true
 
 permissions: {}
@@ -83,7 +107,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   pre-commit:
-    name: Pre-Commit Checks
+    name: Pre-commit
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -254,7 +278,7 @@ jobs:
             });
 
   self-test:
-    name: Self-Test Suite
+    name: Tests
     runs-on: ubuntu-24.04
     # A cold cache building every checklist's hook environment from scratch
     # (Python, Node, and a pre-commit-managed Go toolchain download for
@@ -269,7 +293,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
-          ref: ${{ github.head_ref }}
+          # github.head_ref is only set for a pull_request event, and is
+          # empty under merge_group; the fallback checks out github.sha
+          # instead there, which under merge_group is the queue's own
+          # temporary commit. Required checks are evaluated against that
+          # commit, not a pull request's head, once the queue is enabled, so
+          # this job has to actually build and test it rather than falling
+          # back to actions/checkout's own default (which would resolve the
+          # same way here, but implicitly).
+          ref: ${{ github.head_ref || github.sha }}
           # This job only runs the test suite; it never pushes, so the
           # checkout has no use for a persisted credential.
           persist-credentials: false

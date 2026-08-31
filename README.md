@@ -2,10 +2,10 @@
 
 <!-- cspell:words zizmor -->
 
-![GitHub issues](https://img.shields.io/github/issues-raw/ivan-pinatti/pre-commit-checklists?logo=Github&style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues-raw/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/ivan-pinatti?logo=Github&style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti/pre-commit-checklists?logo=Github&style=for-the-badge)
-![GitHub forks](https://img.shields.io/github/forks/ivan-pinatti/pre-commit-checklists?logo=Github&style=for-the-badge)
+![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
 
 `pre-commit-checklists` packages curated selections of public
 [pre-commit](https://pre-commit.com/) hooks into checklists, then exposes
@@ -49,79 +49,79 @@ and donations help keep the project maintained.
   <tr>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/btc.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/btc.png"
         alt="BTC donation QR code" width="85">
       <br><code>&nbsp;BTC&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/eth.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/eth.png"
         alt="ETH donation QR code" width="85">
       <br><code>ERC&#8209;20</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/xmr.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/xmr.png"
         alt="XMR donation QR code" width="85">
       <br><code>&nbsp;XMR&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/xrp.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/xrp.png"
         alt="XRP donation QR code" width="85">
       <br><code>&nbsp;XRP&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/ada.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/ada.png"
         alt="ADA donation QR code" width="85">
       <br><code>&nbsp;ADA&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/atom.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/atom.png"
         alt="ATOM donation QR code" width="85">
       <br><code>&nbsp;ATOM&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/bch.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/bch.png"
         alt="BCH donation QR code" width="85">
       <br><code>&nbsp;BCH&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/bnb.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/bnb.png"
         alt="BNB donation QR code" width="85">
       <br><code>BEP&#8209;20</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/doge.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/doge.png"
         alt="DOGE donation QR code" width="85">
       <br><code>&nbsp;DOGE&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/kava.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/kava.png"
         alt="KAVA donation QR code" width="85">
       <br><code>&nbsp;KAVA&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/ltc.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/ltc.png"
         alt="LTC donation QR code" width="85">
       <br><code>&nbsp;LTC&nbsp;&nbsp;</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/trx.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/trx.png"
         alt="TRX donation QR code" width="85">
       <br><code>TRC&#8209;20</code>
     </td>
     <td align="center">
       <img
-src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypto/qr-codes/zec.png"
+src="https://raw.githubusercontent.com/ivan-pinatti-labs/.github/main/docs/crypto/qr-codes/zec.png"
         alt="ZEC donation QR code" width="85">
       <br><code>&nbsp;ZEC&nbsp;&nbsp;</code>
     </td>
@@ -130,7 +130,7 @@ src="https://raw.githubusercontent.com/ivan-pinatti/ivan-pinatti/main/docs/crypt
 
 _\* ERC-20 accepts ETH, USDT, and USDC · BEP-20 accepts BNB, USDT, and USDC ·
 TRC-20 accepts TRX, USDT, and USDC. See the
-[full list](https://github.com/ivan-pinatti/ivan-pinatti/blob/main/docs/crypto/addresses.md)_
+[full list](https://github.com/ivan-pinatti-labs/.github/blob/main/docs/crypto/addresses.md)_
 
 <!-- markdownlint-enable MD013 -->
 
@@ -142,7 +142,7 @@ Pick exactly one, based on whether the repo exists yet. Doing both leaves
 you undoing one or the other.
 
 - **Starting a repo that does not exist yet**: use the
-  [`ivan-pinatti/github-template`](https://github.com/ivan-pinatti/github-template)
+  [`ivan-pinatti-labs/github-template`](https://github.com/ivan-pinatti-labs/github-template)
   GitHub template repository instead of the Quickstart below. Click **Use
   this template** and you get a repo with the pinned
   `.pre-commit-config.yaml`, workflows, bot configs, and community files
@@ -160,7 +160,7 @@ inside the repo you want to set up; it defaults `--target` to the current
 directory.
 
 ```shell
-curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh \
+curl -fsSL https://raw.githubusercontent.com/ivan-pinatti-labs/pre-commit-checklists/main/scripts/install.sh \
   | bash -s -- --template recommended
 pre-commit run --all-files
 ```
@@ -171,12 +171,12 @@ it first, or skip the script and clone the repo instead:
 
 ```shell
 # Audit first, then run it
-curl -fsSL https://raw.githubusercontent.com/ivan-pinatti/pre-commit-checklists/main/scripts/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/ivan-pinatti-labs/pre-commit-checklists/main/scripts/install.sh -o install.sh
 less install.sh
 bash install.sh --template recommended
 
 # Or clone and run it locally, no piping at all
-git clone https://github.com/ivan-pinatti/pre-commit-checklists
+git clone https://github.com/ivan-pinatti-labs/pre-commit-checklists
 ./pre-commit-checklists/scripts/install.sh --target /path/to/your-repo --template recommended
 ```
 
@@ -263,7 +263,7 @@ following requests:
 1. **Attribute** the original author: Ivan Pinatti,
    [github.com/ivan-pinatti](https://github.com/ivan-pinatti)
 2. **Link** to the canonical repository:
-   [this repository](https://github.com/ivan-pinatti/pre-commit-checklists)
+   [this repository](https://github.com/ivan-pinatti-labs/pre-commit-checklists)
 3. **Inform** your users that this project exists and that the author
    welcomes contributions and support
 
@@ -276,7 +276,7 @@ donation of a coffee as a token of appreciation is very welcome.
 
 ## License
 
-[![license](https://img.shields.io/github/license/ivan-pinatti/pre-commit-checklists?style=plastic)](https://github.com/ivan-pinatti/pre-commit-checklists/blob/main/LICENSE.md)
+[![license](https://img.shields.io/github/license/ivan-pinatti-labs/pre-commit-checklists?style=plastic)](https://github.com/ivan-pinatti-labs/pre-commit-checklists/blob/main/LICENSE.md)
 
 See [LICENSE](LICENSE.md) for full details, and [NOTICE](NOTICE.md) for what
 the license does and doesn't cover.

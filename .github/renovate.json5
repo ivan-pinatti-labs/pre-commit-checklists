@@ -28,7 +28,26 @@
   dependencyDashboard: true,
 
   timezone: "America/Toronto",
-  schedule: ["before 7am on Monday"],
+
+  // Daily, not scoped to this repository's Wednesday slot in the org's
+  // BOT_SCHEDULE.md (see .github/docs/BOT_SCHEDULE.md), and deliberately
+  // so: that document exists to stop repositories competing for
+  // CodeRabbit's shared review quota, and a Renovate pin-only bump spends
+  // none of it. `Pin Only` passing resolves `Review Verified` straight to
+  // `success` through scripts/coderabbit-review-verdict.py's bot lane, with
+  // CodeRabbit never asked for an opinion, so there is no review quota for
+  // a daily schedule to collide over. Day-spreading is a concern for
+  // Dependabot instead, which is why dependabot.yml still keeps this
+  // repository's Wednesday 06:00/06:30 assignment.
+  //
+  // Weekly, stacked against minimumReleaseAge's 7 day window below, means a
+  // release that misses one week's slot by a day waits a full extra week
+  // for the next one, so the oldest a package could sit before merging was
+  // up to 14 days even though 7 was the intended floor: the same reasoning
+  // rsync-crypt's own renovate.json5 documents for the same move from
+  // weekly to daily. Checking daily keeps the schedule's own period short
+  // enough that it can no longer add more than a day on top of that floor.
+  schedule: ["before 7am"],
 
   labels: ["dependencies", "pre-commit"],
   commitMessagePrefix: "chore:",
@@ -36,18 +55,130 @@
   // Keep PR volume manageable.
   prConcurrentLimit: 5,
   prHourlyLimit: 2,
+
+  // The default deny. Overridden per update type by the first packageRules
+  // entry below, which is the only place that grants it: an update type this
+  // config has not thought about arrives unlabelled and waits for a person
+  // rather than merging on the strength of a default nobody chose.
   automerge: false,
 
-  // Narrow the built-in pre-commit manager to checklists/ only. Setting
-  // managerFilePatterns replaces the manager's default match entirely,
-  // rather than adding to it, and that default is
-  // /(^|/)\.pre-commit-config\.ya?ml$/, which would also match the root
-  // .pre-commit-config.yaml. The root file is deliberately left off this
-  // list: Dependabot already owns it (see dependabot.yml), and matching it
-  // here too would leave both bots able to open a pull request for the
-  // same rev: pin, exactly the fight this split is meant to avoid.
+  // Dependabot owns the github-actions ecosystem (.github/dependabot.yml)
+  // and the root .pre-commit-config.yaml's own pre-commit ecosystem;
+  // disabling every manager but these three avoids Renovate silently
+  // detecting and opening a competing pull request for either surface, the
+  // same division of labor rsync-crypt's renovate.json5 documents. "asdf" is
+  // new here: it is what lets Renovate watch this repository's own
+  // .tool-versions (currently just `pre-commit 4.5.1`), the asdf-managed
+  // tool version surface Dependabot has no ecosystem for at all. "pre-commit"
+  // stays enabled, but narrowed below to checklists/ only, and
+  // "custom.regex" stays enabled for the three checklist-embedded version
+  // strings the built-in pre-commit manager cannot see (see customManagers
+  // below).
+  enabledManagers: ["asdf", "pre-commit", "custom.regex"],
+
+  // A cooling window before an update is offered at all, mirroring
+  // rsync-crypt's own reasoning (itself mirroring docker-torrent-box-with-vpn's,
+  // chosen for a much larger fleet of container images): `Pin Only` proves a
+  // diff changed nothing but a version token, and says so in its own
+  // docstring, but it cannot tell a good release from a backdoored one,
+  // because a fresh supply chain attack has no advisory yet for any scanner
+  // to match. Age is the only defence against that, and granting automerge
+  // below without it would mean merging a release published minutes
+  // earlier, unattended, with no person ever looking.
+  //
+  // Seven days, the same as rsync-crypt, not because the number was copied
+  // but because the reasoning is not about fleet size: most compromised
+  // releases are spotted and pulled within hours to days regardless of how
+  // many tools or hooks a repository tracks, so the window that makes "we
+  // merged it first" into "it was already yanked" is the same window here
+  // as there.
+  minimumReleaseAge: "7 days",
+
+  // Hold the pull request until the window is satisfied rather than opening
+  // one that is not allowed to merge yet. Without this, minimumReleaseAge
+  // still gates the merge, but Renovate opens the pull request immediately
+  // regardless, so it would sit for up to seven days looking blocked for no
+  // visible reason instead of not existing yet.
+  internalChecksFilter: "strict",
+
+  // The exception: a fix for a known vulnerability is not made safer by
+  // aging, and null clears the inherited window for these updates only.
+  vulnerabilityAlerts: {
+    minimumReleaseAge: null,
+  },
+
+  packageRules: [
+    // What may merge without anyone looking, and the label that says so.
+    //
+    // First in the list on purpose, the same reason it is first in
+    // rsync-crypt's copy of this file: later rules win on any key they share
+    // with an earlier one, and the group rule below sets a name and labels,
+    // not automerge policy, so it cannot accidentally override this by
+    // coming after it.
+    //
+    // The label is the whole point. bot-auto-merge.yml approves a Renovate
+    // pull request only when it carries `automerge`, reading the label
+    // rather than restating which update types are eligible, so the policy
+    // lives here, once, instead of two copies free to drift apart. `Pin
+    // Only` is the actual security gate behind that trust: every changed
+    // line still has to be nothing but a version in a pin position, checked
+    // line by line by scripts/assert-pin-only-diff.py, before the label
+    // alone can do anything.
+    //
+    // patch and minor only, not this repository's whole update-type
+    // vocabulary. A major bump is exactly the case that needs a person: the
+    // three checklist-embedded custom.regex pins and the asdf `pre-commit`
+    // pin can all offer one, and a checklist's own upstream hook can rename
+    // or remove a hook id across a major release the same way this
+    // library's own versioning contract does (see docs/versioning.md).
+    //
+    // matchCurrentVersion excludes 0.x packages from that grant, since
+    // semver makes no breaking-change promise below 1.0 and a "minor" bump
+    // there is exactly as likely to break something as a major bump
+    // elsewhere. This repository actually carries 0.x pins today
+    // (checklists/checklist-dev-terraform.yaml's gruntwork-io/pre-commit at
+    // v0.1.30, among others), so this is not a defensive rule against a
+    // hypothetical: without it, a 0.x package's next "minor" release would
+    // merge unattended on the strength of a version scheme that package has
+    // not opted into providing any stability guarantee under.
+    {
+      matchUpdateTypes: ["patch", "minor"],
+      matchCurrentVersion: "!/^0\\./",
+      automerge: true,
+      addLabels: ["automerge"],
+    },
+    {
+      matchManagers: ["asdf"],
+      groupName: "asdf tool versions",
+      groupSlug: "asdf-tools",
+      labels: ["dependencies", "tooling"],
+    },
+  ],
+
+  // Narrow the built-in pre-commit manager to checklists/ only, and away
+  // from the root .pre-commit-config.yaml that Dependabot already owns (see
+  // dependabot.yml), so the two bots cannot both open a pull request for
+  // the same rev: pin.
+  //
+  // managerFilePatterns is additive, not a replacement for the manager's
+  // own default match (confirmed against Renovate's own documentation and,
+  // live, with a dry-run=extract against this repository): the default
+  // pattern /(^|/)\.pre-commit-config\.ya?ml$/ still applies alongside the
+  // pattern below, so it alone cannot exclude the root file the way an
+  // earlier version of this comment claimed. ignorePaths is the actual
+  // mechanism Renovate documents for excluding a path a manager would
+  // otherwise match by default, so it does the exclusion here instead.
+  //
+  // A glob, not the slash-delimited regex managerFilePatterns above uses:
+  // ignorePaths only accepts an exact string or a glob pattern (confirmed
+  // against Renovate's own configuration-options documentation), and a
+  // regex string there is not parsed as one, so it would silently fail to
+  // exclude anything rather than error. "**/" makes the match depth
+  // independent, which costs nothing today (this file exists only at the
+  // root) and does not need revisiting if that ever changes.
   "pre-commit": {
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
+    ignorePaths: ["**/.pre-commit-config.y*ml"],
   },
 
   // checklist-dev-dotenv.yaml is a `repo: local` hook (see

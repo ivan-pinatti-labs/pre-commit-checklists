@@ -54,7 +54,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-readonly GITHUB_OWNER_REPO="ivan-pinatti/pre-commit-checklists"
+readonly GITHUB_OWNER_REPO="ivan-pinatti-labs/pre-commit-checklists"
 
 __template="recommended"
 __target=""

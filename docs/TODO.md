@@ -8,7 +8,7 @@ Nothing here is urgent enough to block a release; all of it is worth fixing.
 ## 1. `templates/.markdown-link-check.json` teaches the wrong default
 
 **Status:** DONE in v2.2.1. The stargazers entry was removed before
-[#12](https://github.com/ivan-pinatti/pre-commit-checklists/pull/12) merged,
+[#12](https://github.com/ivan-pinatti-labs/pre-commit-checklists/pull/12) merged,
 and the file's header now states what the file is for and that a stars badge
 does not qualify. Kept here for the reasoning, which is the rule to apply to
 any future ignore entry.
@@ -40,7 +40,7 @@ It is **not** about star count. That was an early wrong reading: a repository
 with thousands of stars 404s identically, and starring a zero-star repository
 changes nothing.
 
-Worked example of the fix: `ivan-pinatti/rsync-crypt` repoints its stars
+Worked example of the fix: `ivan-pinatti-labs/rsync-crypt` repoints its stars
 badge at the repository root. The count is unaffected, because it comes from
 the `img.shields.io` image URL, not the link target.
 
@@ -75,12 +75,12 @@ It is only a warning today, because the upstream yamllint hook does not pass
 unfixable noise in every consumer's hook output, which trains people to
 ignore yamllint findings.
 
-**Where the fix already exists:** `ivan-pinatti/github-template` hit this and
+**Where the fix already exists:** `ivan-pinatti-labs/github-template` hit this and
 relaxed the `comments` rule in its own copy, with a comment explaining
 exactly this interaction. That fix should come back into
 `templates/.yamllint.yml` rather than living only downstream.
 
-Confirmed live in `ivan-pinatti/rsync-crypt` too: several of the 14 yamllint
+Confirmed live in `ivan-pinatti-labs/rsync-crypt` too: several of the 14 yamllint
 warnings on its first adopted run were this rule.
 
 ## 3. `templates/.cspell.json` still ignores a MegaLinter directory
@@ -112,7 +112,7 @@ lychee.
 
 **Status:** open, tracked in both repositories.
 
-`docs/getting-started.md` already records that `ivan-pinatti/github-template`
+`docs/getting-started.md` already records that `ivan-pinatti-labs/github-template`
 holds a materialized snapshot of `templates/` which needs a manual refresh
 when a template changes. It has drifted, and the drift runs in both
 directions:
@@ -202,7 +202,7 @@ than a guarantee. Same spelling as item 11 recommends for `*.md`.
 ## 9. `--ticket-prefixes` has the separator gap the default path just lost
 
 **Status:** open. Deliberately scoped out of
-[#13](https://github.com/ivan-pinatti/pre-commit-checklists/pull/13), which
+[#13](https://github.com/ivan-pinatti-labs/pre-commit-checklists/pull/13), which
 shipped as v2.2.2.
 
 `check-branch-name.sh` now accepts `_` and `.` as separators on its default
@@ -266,7 +266,7 @@ five commits on a branch have been reviewed.
 **Why it matters:** the pause is silent. The CodeRabbit check still reports
 green, so a pull request looks reviewed when nothing has read its current
 head. Observed directly on
-[pre-commit-checklists#12](https://github.com/ivan-pinatti/pre-commit-checklists/pull/12),
+[pre-commit-checklists#12](https://github.com/ivan-pinatti-labs/pre-commit-checklists/pull/12),
 a branch with seven commits: reviews stopped after the fifth, and twelve
 hours passed with no review of the head and no indication anything was
 waiting. Recovery needs a manual `@coderabbitai review`.

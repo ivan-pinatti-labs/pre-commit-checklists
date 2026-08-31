@@ -25,7 +25,7 @@
       nor mis-selected.
 
   What this does NOT prove:
-    - that the real https://github.com/ivan-pinatti/pre-commit-checklists
+    - that the real https://github.com/ivan-pinatti-labs/pre-commit-checklists
       URL is reachable, authenticates correctly, or serves the same
       content pre-commit would clone (this repo is not published yet).
     - anything about GitHub release mechanics, tag signing, or the

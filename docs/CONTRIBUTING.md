@@ -13,9 +13,9 @@ project as easy and transparent as possible, whether it's:
 
 | Stage | What runs | What you do |
 | --- | --- | --- |
-| Open as a **draft** | `Pre-Commit Checks` and `Self-Test Suite` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever `Pre-Commit Checks` or `Self-Test Suite` report |
+| Open as a **draft** | `Pre-commit` and `Tests` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever `Pre-commit` or `Tests` report |
 | **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
-| Merge | | |
+| Merge | `Pin Only` and `Review Verified` also have to be green (see [`docs/MERGE_PIPELINE.md`](MERGE_PIPELINE.md)) | Human pull requests wait for a maintainer; eligible bot and owner pull requests may merge automatically once every check is green and approval is present |
 
 Opening as a draft first means the cheap, mechanical checks run before
 CodeRabbit spends a review on a diff that pre-commit might still flag.
@@ -68,9 +68,9 @@ concern.
 ## Report bugs using GitHub's issues
 
 Bugs are tracked as
-[GitHub issues](https://github.com/ivan-pinatti/pre-commit-checklists/issues);
+[GitHub issues](https://github.com/ivan-pinatti-labs/pre-commit-checklists/issues);
 report one by
-[opening a new issue](https://github.com/ivan-pinatti/pre-commit-checklists/issues/new).
+[opening a new issue](https://github.com/ivan-pinatti-labs/pre-commit-checklists/issues/new).
 
 ## Write bug reports with detail and background
 

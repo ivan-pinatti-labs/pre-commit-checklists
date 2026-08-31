@@ -67,7 +67,7 @@ original) into a throwaway directory under `/tmp`, tag *that clone* with a
 throwaway tag, and point a second throwaway consumer repo own
 `.pre-commit-config.yaml` at it with `repo: <clone path>` and
 `rev: <that tag>`, the same shape `templates/pre-commit-config/*.yaml`
-teach (`repo: https://github.com/ivan-pinatti/pre-commit-checklists`,
+teach (`repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists`,
 `rev: vX.Y.Z`), except the URL is a local path instead of GitHub. Neither
 script writes a tag into this repo itself; tags do not travel backwards
 through a clone.
@@ -89,7 +89,7 @@ through a clone.
 
 **What this does NOT prove:**
 
-- That `https://github.com/ivan-pinatti/pre-commit-checklists` is
+- That `https://github.com/ivan-pinatti-labs/pre-commit-checklists` is
   reachable, authenticates correctly, or serves the same content pre-commit
   would clone. The repository is not published yet (see the plan, Sprint
   6); nothing here touches the network for this repo specifically.
