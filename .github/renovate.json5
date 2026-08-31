@@ -28,7 +28,20 @@
   dependencyDashboard: true,
 
   timezone: "America/Toronto",
-  schedule: ["before 7am on Monday"],
+
+  // Wednesday, this repository's slot out of the org's BOT_SCHEDULE.md (see
+  // .github/docs/BOT_SCHEDULE.md), chosen so this bot's runs do not land in
+  // rsync-crypt's Monday 06:00-07:00 window or .github's Tuesday
+  // 06:00/06:30 one: CodeRabbit's review quota is shared across the whole
+  // GitHub App installation, not per repository, so two repositories'
+  // dependency bots opening pull requests the same hour would queue behind
+  // each other for review. "before 8am on Wednesday" rather than a bare day
+  // name because Renovate's schedule syntax accepts a time-of-day clause
+  // alongside a day one; sitting after both dependabot.yml slots (06:00,
+  // 06:30 the same day) rather than before them, the same relationship
+  // rsync-crypt's own "before 07:00" Renovate window has to its two
+  // dependabot.yml slots.
+  schedule: ["before 8am on Wednesday"],
 
   labels: ["dependencies", "pre-commit"],
   commitMessagePrefix: "chore:",
@@ -36,7 +49,94 @@
   // Keep PR volume manageable.
   prConcurrentLimit: 5,
   prHourlyLimit: 2,
+
+  // The default deny. Overridden per update type by the first packageRules
+  // entry below, which is the only place that grants it: an update type this
+  // config has not thought about arrives unlabelled and waits for a person
+  // rather than merging on the strength of a default nobody chose.
   automerge: false,
+
+  // Dependabot owns the github-actions ecosystem (.github/dependabot.yml)
+  // and the root .pre-commit-config.yaml's own pre-commit ecosystem;
+  // disabling every manager but these three avoids Renovate silently
+  // detecting and opening a competing pull request for either surface, the
+  // same division of labor rsync-crypt's renovate.json5 documents. "asdf" is
+  // new here: it is what lets Renovate watch this repository's own
+  // .tool-versions (currently just `pre-commit 4.5.1`), the asdf-managed
+  // tool version surface Dependabot has no ecosystem for at all. "pre-commit"
+  // stays enabled, but narrowed below to checklists/ only, and
+  // "custom.regex" stays enabled for the three checklist-embedded version
+  // strings the built-in pre-commit manager cannot see (see customManagers
+  // below).
+  enabledManagers: ["asdf", "pre-commit", "custom.regex"],
+
+  // A cooling window before an update is offered at all, mirroring
+  // rsync-crypt's own reasoning (itself mirroring docker-torrent-box-with-vpn's,
+  // chosen for a much larger fleet of container images): `Pin Only` proves a
+  // diff changed nothing but a version token, and says so in its own
+  // docstring, but it cannot tell a good release from a backdoored one,
+  // because a fresh supply chain attack has no advisory yet for any scanner
+  // to match. Age is the only defence against that, and granting automerge
+  // below without it would mean merging a release published minutes
+  // earlier, unattended, with no person ever looking.
+  //
+  // Seven days, the same as rsync-crypt, not because the number was copied
+  // but because the reasoning is not about fleet size: most compromised
+  // releases are spotted and pulled within hours to days regardless of how
+  // many tools or hooks a repository tracks, so the window that makes "we
+  // merged it first" into "it was already yanked" is the same window here
+  // as there.
+  minimumReleaseAge: "7 days",
+
+  // Hold the pull request until the window is satisfied rather than opening
+  // one that is not allowed to merge yet. Without this, minimumReleaseAge
+  // still gates the merge, but Renovate opens the pull request immediately
+  // regardless, so it would sit for up to seven days looking blocked for no
+  // visible reason instead of not existing yet.
+  internalChecksFilter: "strict",
+
+  // The exception: a fix for a known vulnerability is not made safer by
+  // aging, and null clears the inherited window for these updates only.
+  vulnerabilityAlerts: {
+    minimumReleaseAge: null,
+  },
+
+  packageRules: [
+    // What may merge without anyone looking, and the label that says so.
+    //
+    // First in the list on purpose, the same reason it is first in
+    // rsync-crypt's copy of this file: later rules win on any key they share
+    // with an earlier one, and the group rule below sets a name and labels,
+    // not automerge policy, so it cannot accidentally override this by
+    // coming after it.
+    //
+    // The label is the whole point. bot-auto-merge.yml approves a Renovate
+    // pull request only when it carries `automerge`, reading the label
+    // rather than restating which update types are eligible, so the policy
+    // lives here, once, instead of two copies free to drift apart. `Pin
+    // Only` is the actual security gate behind that trust: every changed
+    // line still has to be nothing but a version in a pin position, checked
+    // line by line by scripts/assert-pin-only-diff.py, before the label
+    // alone can do anything.
+    //
+    // patch and minor only, not this repository's whole update-type
+    // vocabulary. A major bump is exactly the case that needs a person: the
+    // three checklist-embedded custom.regex pins and the asdf `pre-commit`
+    // pin can all offer one, and a checklist's own upstream hook can rename
+    // or remove a hook id across a major release the same way this
+    // library's own versioning contract does (see docs/versioning.md).
+    {
+      matchUpdateTypes: ["patch", "minor"],
+      automerge: true,
+      addLabels: ["automerge"],
+    },
+    {
+      matchManagers: ["asdf"],
+      groupName: "asdf tool versions",
+      groupSlug: "asdf-tools",
+      labels: ["dependencies", "tooling"],
+    },
+  ],
 
   // Narrow the built-in pre-commit manager to checklists/ only. Setting
   // managerFilePatterns replaces the manager's default match entirely,

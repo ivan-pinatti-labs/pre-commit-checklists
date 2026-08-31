@@ -9,7 +9,14 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-      day: monday
+      # Wednesday is this repository's slot out of the org's BOT_SCHEDULE.md
+      # (see .github/docs/BOT_SCHEDULE.md), the spare day picked so this
+      # bot's runs do not collide, hour for hour, with rsync-crypt's Monday
+      # 06:00-07:00 window or .github's Tuesday 06:00/06:30. CodeRabbit's
+      # review quota is shared across the whole GitHub App installation, not
+      # per repository, so two repositories' bots opening pull requests in
+      # the same hour would queue behind each other for review.
+      day: wednesday
       time: "06:00"
       timezone: "America/Toronto"
     labels:
@@ -20,9 +27,11 @@ updates:
       include: "scope"
     open-pull-requests-limit: 5
 
-  # Covers every uses: line under .github/workflows/. Both workflows here
-  # pin actions to a full commit SHA with a trailing "# vX.Y.Z" comment
-  # (see new-tag-and-release.yml and pull-request.yml), which is the format
+  # Covers every uses: line under .github/workflows/. Every workflow here
+  # pins actions to a full commit SHA with a trailing "# vX.Y.Z" comment
+  # (see new-tag-and-release.yml and pull-request.yml, and the merge
+  # pipeline workflows ported alongside this file: coderabbit-gate.yml,
+  # coderabbit-review-queue.yml, bot-auto-merge.yml), which is the format
   # Dependabot needs to resolve a bump: it reads the comment to find the
   # current version, then rewrites both the SHA and the comment together.
   # No extra config is needed for that, it is native to this ecosystem.
@@ -30,7 +39,13 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-      day: monday
+      # See the pre-commit ecosystem above for why Wednesday, and 30 minutes
+      # after it for the same reason the two ecosystems are staggered in
+      # rsync-crypt and .github: two bot ecosystems opening pull requests in
+      # the same minute is no likelier to collide with another repository's
+      # slot than staggered ones, and keeping the existing 30 minute offset
+      # matches the pattern this repository already had before the move.
+      day: wednesday
       time: "06:30"
       timezone: "America/Toronto"
     labels:
