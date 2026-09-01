@@ -107,8 +107,15 @@ merge queue ruleset, and its Dependabot pull request #11 exercised this
 step: `bot-auto-merge.yml` run `33433281810` reported `Enable auto-merge`
 as `success`, and the pull request then reported `enabledBy:
 app/github-actions` with `mergeMethod: SQUASH`. Auto-merge was armed by
-`GITHUB_TOKEN` against a repository with a merge queue, and the pull
-request was queue eligible afterwards.
+`GITHUB_TOKEN` against a repository with a merge queue.
+
+Arming is not the same as a queue accepting the entry, which review pointed
+out and which that evidence on its own does not cover. The traversal is
+proven separately, on rsync-crypt: pull request #43 merged through its
+queue, leaving `merge_group` runs `33516020124` and `33516020136` against
+the ref `gh-readonly-queue/main/pr-43-<sha>`, both `success`. That ref
+exists only because the queue built the entry, so the two observations
+together cover arming and entry rather than arming alone.
 
 Recorded here rather than deleted, because the claim is plausible, cites
 real documentation, and will be raised again by the next reviewer. No extra
