@@ -300,22 +300,33 @@ jobs:
         # queue on its own once every required check, this one included, is
         # green, the same as it does for Renovate's own platformAutomerge.
         #
-        # Known gap, surfaced by review rather than by an incident: GitHub's
-        # own documentation states that the built in GITHUB_TOKEN cannot be
-        # used to add a pull request to a merge queue, and names
-        # `gh pr merge --auto` specifically as an affected command. Renovate's
-        # side of this is unaffected, since platformAutomerge is armed
-        # through Renovate's own GitHub App installation token, not this
-        # one. This step has not yet been proven against a live Dependabot
-        # pull request with the merge queue ruleset active (branch
-        # protection and the ruleset are only applied after this pull
-        # request merges), so treat it as unverified rather than working:
-        # if a Dependabot patch or minor pull request gets approved here but
-        # never enters the queue, this is why. The fix needs a
-        # merge-capable credential this workflow does not have today, a
-        # fine-grained PAT or a GitHub App installation token with merge
-        # queue permission, provisioned the same way CODERABBIT_NUDGE_TOKEN
-        # was, and substituted for GITHUB_TOKEN in this one step.
+        # Review of the pull request that added this pipeline raised a
+        # concern that the built in GITHUB_TOKEN cannot add a pull request to
+        # a merge queue, naming `gh pr merge --auto` as an affected command,
+        # and proposed provisioning a separate merge-capable credential.
+        # That concern was tested and does not hold, so no such credential is
+        # needed and this step keeps using GITHUB_TOKEN.
+        #
+        # What was actually observed: ivan-pinatti-labs/github-template runs
+        # this same workflow with an active `main merge queue` ruleset, and
+        # its Dependabot pull request #11 exercised this exact step.
+        # `bot-auto-merge.yml` run 33433281810 reported the `Enable
+        # auto-merge` step as `success`, and `gh pr view 11 --json
+        # autoMergeRequest` then reported `enabledBy: app/github-actions`
+        # with `mergeMethod: SQUASH`. So auto-merge was armed by this token
+        # against a repository with a merge queue.
+        #
+        # That alone only proves arming, not that a queue accepted the pull
+        # request, which review correctly pointed out. The traversal is
+        # proven separately, on rsync-crypt: pull request #43 merged through
+        # its queue, leaving `merge_group` runs 33516020124 and 33516020136
+        # against the ref `gh-readonly-queue/main/pr-43-<sha>`, both
+        # `success`. A `gh-readonly-queue` ref exists only because the queue
+        # built that entry, so together the two observations cover arming and
+        # entry rather than arming alone.
+        #
+        # Renovate's side is unaffected either way: platformAutomerge is
+        # armed through Renovate's own GitHub App installation token.
         if: steps.decide.outputs.arm == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

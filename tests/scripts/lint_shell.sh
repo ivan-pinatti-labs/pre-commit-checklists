@@ -125,6 +125,14 @@ check_branch_with_head_ref "main" "renovate/alpine-3.x"
 check_branch_with_head_ref "main" "renovate/asdf-tools"
 [ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch (renovate/asdf-tools) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
 
+# Dependabot encodes an "https://" hook repository URL into the branch name
+# as "https-/", a hyphen directly followed by a slash. A consumer that names
+# a pre-commit hook repo by URL gets this on every bump and cannot opt out
+# of it, so rejecting it left Pre-commit permanently red on those pull
+# requests. Observed on ivan-pinatti-labs/github-template#11.
+check_branch_with_head_ref "main" "dependabot/pre_commit/https-/github.com/ivan-pinatti-labs/pre-commit-checklists-2.2.3"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot URL-encoded hook repo branch (https-/) accepted" || fail "check-branch-name.sh: Dependabot 'https-/' branch should be accepted" "exit=${EXIT} ${OUT}"
+
 # The separator class widened for the bots above (Fix 1) must still reject
 # everything it rejected before: mixed case, spaces, leading/trailing
 # separators, doubled separators, and a lone hyphen/slash. GITHUB_HEAD_REF
@@ -155,6 +163,16 @@ check_branch_with_head_ref "main" "under__score"
 
 check_branch_with_head_ref "main" "dot..dot"
 [ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'dot..dot' (doubled separator) rejected" || fail "check-branch-name.sh: 'dot..dot' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+# The "https-/" allowance above is a single optional hyphen directly before a
+# slash, and nothing wider. These two pin that down: without them, relaxing
+# the pattern to a general "one or more separators" would still pass every
+# other case in this file, so the narrowness would be free to erode silently.
+check_branch_with_head_ref "main" "foo--/bar"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'foo--/bar' (two hyphens before a slash) rejected" || fail "check-branch-name.sh: 'foo--/bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+
+check_branch_with_head_ref "main" "foo-/-bar"
+[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'foo-/-bar' (hyphen after the slash) rejected" || fail "check-branch-name.sh: 'foo-/-bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "-leading-hyphen"
 [ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: '-leading-hyphen' rejected" || fail "check-branch-name.sh: '-leading-hyphen' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
