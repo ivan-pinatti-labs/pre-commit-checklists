@@ -69,16 +69,18 @@ and still needs a genuine human review, same as always.
 Dependabot (`.github/dependabot.yml`: pre-commit and github-actions, daily
 06:00 America/Toronto) and Renovate (`.github/renovate.json5`: the asdf
 `.tool-versions` surface and the checklist-scoped upstream hook pins, daily
-before 7am) open pull requests unattended. Neither is scoped to a weekday:
-a pin-only bump from either spends no CodeRabbit review quota, which is why
-the org's per-repository day table was dropped.
+before 7am) open pull requests unattended. Neither is assigned a weekday of
+its own any more: a pin-only bump from either spends no CodeRabbit review
+quota, which is why the org's per-repository day table was dropped.
 
-The two are not quite the same cadence, and the difference is Dependabot's,
-not a setting here. Its `interval: daily` means weekdays only, Monday to
-Friday, while Renovate's `before 7am` is permitted every day. So a release
-landing on a Saturday reaches Renovate's surfaces that morning and
-Dependabot's on Monday. Both still sit behind the same seven day cooling
-window, which is far longer than the gap. For the ones that are pin only:
+Which is not the same as running on the same days. Dependabot is weekday only,
+because its `interval: daily` means Monday to Friday, while Renovate's `before
+7am` is permitted every day. The difference is Dependabot's, not anything
+configured here: a release landing on a Saturday reaches Renovate's surfaces
+that morning and Dependabot's on Monday. Both still sit behind the same seven
+day cooling window, which is far longer than that gap.
+
+For the ones that are pin only:
 
 1. **`Pin Only` is graded.** `scripts/assert-pin-only-diff.py` checks that
    every changed line differs from its counterpart in nothing but a version,
