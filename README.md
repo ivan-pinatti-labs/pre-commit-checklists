@@ -2,10 +2,12 @@
 
 <!-- cspell:words zizmor -->
 
-![GitHub issues](https://img.shields.io/github/issues-raw/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
-![GitHub Sponsors](https://img.shields.io/github/sponsors/ivan-pinatti?logo=Github&style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
-![GitHub forks](https://img.shields.io/github/forks/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)
+[![License](https://img.shields.io/github/license/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](LICENSE.md)
+[![GitHub issues](https://img.shields.io/github/issues-raw/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](https://github.com/ivan-pinatti-labs/pre-commit-checklists/issues)
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/ivan-pinatti?logo=Github&style=for-the-badge)](https://github.com/sponsors/ivan-pinatti)
+[![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](https://github.com/ivan-pinatti-labs/pre-commit-checklists)
+[![GitHub forks](https://img.shields.io/github/forks/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](https://github.com/ivan-pinatti-labs/pre-commit-checklists/forks)
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/ivan-pinatti-labs/pre-commit-checklists?utm_source=oss&utm_medium=github&utm_campaign=ivan-pinatti-labs%2Fpre-commit-checklists&labelColor=171717&color=FF570A&label=CodeRabbit+Reviews&style=for-the-badge)](https://coderabbit.ai)
 
 `pre-commit-checklists` packages curated selections of public
 [pre-commit](https://pre-commit.com/) hooks into checklists, then exposes
