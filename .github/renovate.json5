@@ -29,16 +29,15 @@
 
   timezone: "America/Toronto",
 
-  // Daily, not scoped to this repository's Wednesday slot in the org's
-  // BOT_SCHEDULE.md (see .github/docs/BOT_SCHEDULE.md), and deliberately
-  // so: that document exists to stop repositories competing for
-  // CodeRabbit's shared review quota, and a Renovate pin-only bump spends
-  // none of it. `Pin Only` passing resolves `Review Verified` straight to
+  // Daily, and so is Dependabot. A pin-only bump spends no CodeRabbit
+  // review quota: `Pin Only` passing resolves `Review Verified` straight to
   // `success` through scripts/coderabbit-review-verdict.py's bot lane, with
-  // CodeRabbit never asked for an opinion, so there is no review quota for
-  // a daily schedule to collide over. Day-spreading is a concern for
-  // Dependabot instead, which is why dependabot.yml still keeps this
-  // repository's Wednesday 06:00/06:30 assignment.
+  // CodeRabbit never asked for an opinion. That was written here as a
+  // Renovate property, but it is a property of the bot lane and applies to
+  // Dependabot's pin-only bumps identically, which is why the org's
+  // per-repository day table was dropped on 2026-09-02 and dependabot.yml
+  // is now daily too. See ivan-pinatti-labs/.github's README.md,
+  // "Dependency policy".
   //
   // Weekly, stacked against minimumReleaseAge's 7 day window below, means a
   // release that misses one week's slot by a day waits a full extra week
