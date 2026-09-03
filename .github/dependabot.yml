@@ -8,15 +8,20 @@ updates:
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
-      interval: weekly
-      # Wednesday is this repository's slot out of the org's BOT_SCHEDULE.md
-      # (see .github/docs/BOT_SCHEDULE.md), the spare day picked so this
-      # bot's runs do not collide, hour for hour, with rsync-crypt's Monday
-      # 06:00-07:00 window or .github's Tuesday 06:00/06:30. CodeRabbit's
-      # review quota is shared across the whole GitHub App installation, not
-      # per repository, so two repositories' bots opening pull requests in
-      # the same hour would queue behind each other for review.
-      day: wednesday
+      # Daily, matching Renovate below. Note Dependabot's "daily" means
+      # weekdays only, not all seven days.
+      #
+      # This was Wednesday until 2026-09-02, this repository's slot out of a
+      # per-repository table in the org's BOT_SCHEDULE.md, picked so its runs
+      # would not collide hour for hour with another repository's and queue
+      # behind them for CodeRabbit's installation-wide review quota. The
+      # premise was wrong in the same way renovate.json5 below already
+      # explains for Renovate: a pin-only Dependabot bump resolves
+      # `Review Verified` through the bot lane with CodeRabbit never asked,
+      # so it spends no review quota either. That table was rationing
+      # something neither bot consumed, and the weekly slot stacked on the
+      # cooling window below exactly as it would have for Renovate.
+      interval: daily
       time: "06:00"
       timezone: "America/Toronto"
     # A cooling window before a bump is even offered, mirroring the
@@ -57,15 +62,12 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: weekly
-      # See the pre-commit ecosystem above for why Wednesday, and 30 minutes
-      # after it for the same reason the two ecosystems are staggered in
-      # rsync-crypt and .github: two bot ecosystems opening pull requests in
-      # the same minute is no likelier to collide with another repository's
-      # slot than staggered ones, and keeping the existing 30 minute offset
-      # matches the pattern this repository already had before the move.
-      day: wednesday
-      time: "06:30"
+      # See the pre-commit ecosystem above for why daily. The 30 minute
+      # offset it used to carry went with the weekday: it staggered two
+      # ecosystems inside one repository's reserved hour, and there is no
+      # reserved hour any more.
+      interval: daily
+      time: "06:00"
       timezone: "America/Toronto"
     # Same cooling window as the pre-commit ecosystem above, for the same
     # reason: a GitHub Actions bump executes arbitrary code in CI, which is
