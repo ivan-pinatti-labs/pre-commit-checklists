@@ -70,7 +70,7 @@ Dependabot (`.github/dependabot.yml`: pre-commit and github-actions, daily
 06:00 America/Toronto) and Renovate (`.github/renovate.json5`: the asdf
 `.tool-versions` surface and the checklist-scoped upstream hook pins, daily
 before 7am) open pull requests unattended. Neither is assigned a weekday of
-its own any more: a pin-only bump from either spends no CodeRabbit review
+its own anymore: a pin-only bump from either spends no CodeRabbit review
 quota, which is why the org's per-repository day table was dropped.
 
 Which is not the same as running on the same days. Dependabot is weekday only,
