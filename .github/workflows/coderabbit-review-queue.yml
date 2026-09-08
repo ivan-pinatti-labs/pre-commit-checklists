@@ -7,10 +7,13 @@ name: CodeRabbit Review Queue
 #
 # Why this exists. CodeRabbit support confirmed (to docker-torrent-box-with-vpn,
 # where this workflow was first built) that pull requests authored by bots are
-# hardcoded to be ignored on their side, so renovate[bot] and dependabot[bot]
-# pull requests are never auto-reviewed here either. Those are exactly the pull
-# requests that merge unattended, and CodeRabbit is the only thing in this
-# pipeline that reads a bump for intent rather than for shape alone. Asked
+# hardcoded to be ignored on their side, so renovate[bot] pull requests are
+# never auto-reviewed here either (this repository used to also carry
+# dependabot[bot] pull requests, which were ignored for the same reason,
+# until this repository migrated onto Renovate as its sole dependency update
+# bot). Those are exactly the pull requests that merge unattended, and
+# CodeRabbit is the only thing in this pipeline that reads a bump for intent
+# rather than for shape alone. Asked
 # directly it answers in under three minutes, so the capability is there and
 # only the automatic trigger is missing. They are investigating; until that
 # changes, this is the trigger.

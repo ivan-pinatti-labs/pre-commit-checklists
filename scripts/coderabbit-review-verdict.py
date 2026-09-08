@@ -33,8 +33,8 @@ required context that reads red for a pull request's entire draft phase
 teaches nothing. Pending blocks the merge exactly as hard as failure does, so
 nothing merges early either way.
 
-2. A dependency bot pull request (`renovate[bot]` or `dependabot[bot]`, from
-an account with write access, so never a fork) is graded on
+2. A dependency bot pull request (`renovate[bot]`, from an account with
+write access, so never a fork) is graded on
 `scripts/assert-pin-only-diff.py`'s verdict instead of CodeRabbit's, because
 CodeRabbit never reviews a bot's pull request at all (confirmed upstream: bot
 authors are hardcoded to be ignored). Requiring its review there would block
@@ -77,11 +77,16 @@ import sys
 
 # Exact login match only. `renovate[bot]-x` is a login somebody may register,
 # and this script never sees `head.repo.fork` compared for it: the workflow
-# already withholds `is_fork == false` from anything but the two bots, but the
+# already withholds `is_fork == false` from anything but this bot, but the
 # check is repeated here anyway, because trusting an upstream filter to have
 # been applied correctly is how the ambiguity this script fixes went
 # unnoticed for as long as it did.
-BOTS = frozenset({"renovate[bot]", "dependabot[bot]"})
+#
+# Renovate only. Dependabot opened pull requests here once, before this
+# repository migrated onto Renovate as its sole dependency update bot; this
+# frozenset held both logins while that migration was in flight and now
+# holds the one that still applies.
+BOTS = frozenset({"renovate[bot]"})
 
 # CodeRabbit's own in-flight states, observed live on real pull requests.
 # Neither is a decline: a review that is queued or actively running has not
