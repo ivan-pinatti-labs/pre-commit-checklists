@@ -2,16 +2,18 @@
   // cspell:words zizmor pypi
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
-  // Dependabot handles the root .pre-commit-config.yaml and GitHub Actions
-  // versions, see dependabot.yml. Renovate exists for exactly one gap that
-  // leaves: every checklist under checklists/ is its own standalone
-  // pre-commit config (checklist-basic.yaml, checklist-dev-python.yaml, and
-  // so on), consumed indirectly through scripts/run-checklist.sh, and
-  // Dependabot's pre-commit ecosystem only ever reads a file literally
-  // named .pre-commit-config.yaml. Without Renovate watching the
-  // checklists/ directory too, every upstream hook pin inside them would
-  // rot silently, which defeats the point of a library whose whole job is
-  // shipping curated, current hook selections.
+  // Renovate is the sole dependency update bot in this repository.
+  // Dependabot used to own two surfaces, the root .pre-commit-config.yaml's
+  // pre-commit ecosystem and the github-actions ecosystem, and this file
+  // used to exist only to close the one gap that left: every checklist
+  // under checklists/ is its own standalone pre-commit config
+  // (checklist-basic.yaml, checklist-dev-python.yaml, and so on), consumed
+  // indirectly through scripts/run-checklist.sh, and Dependabot's
+  // pre-commit ecosystem only ever reads a file literally named
+  // .pre-commit-config.yaml, never a directory of differently named ones.
+  // .github/dependabot.yml is gone now, and Renovate covers every pin
+  // surface this repository has; see enabledManagers below for the four
+  // that matter.
   extends: ["config:recommended"],
 
   // config:recommended enables a standing "Dependency Dashboard" issue that
@@ -29,15 +31,12 @@
 
   timezone: "America/Toronto",
 
-  // Daily, and so is Dependabot. A pin-only bump spends no CodeRabbit
-  // review quota: `Pin Only` passing resolves `Review Verified` straight to
-  // `success` through scripts/coderabbit-review-verdict.py's bot lane, with
-  // CodeRabbit never asked for an opinion. That was written here as a
-  // Renovate property, but it is a property of the bot lane and applies to
-  // Dependabot's pin-only bumps identically, which is why the org's
-  // per-repository day table was dropped on 2026-09-02 and dependabot.yml
-  // is now daily too. See ivan-pinatti-labs/.github's README.md,
-  // "Dependency policy".
+  // Daily. A pin-only bump spends no CodeRabbit review quota: `Pin Only`
+  // passing resolves `Review Verified` straight to `success` through
+  // scripts/coderabbit-review-verdict.py's bot lane, with CodeRabbit never
+  // asked for an opinion, which is why the org's per-repository day table
+  // was dropped on 2026-09-02 in favour of checking daily everywhere. See
+  // ivan-pinatti-labs/.github's README.md, "Dependency policy".
   //
   // Weekly, stacked against minimumReleaseAge's 7 day window below, means a
   // release that misses one week's slot by a day waits a full extra week
@@ -61,19 +60,20 @@
   // rather than merging on the strength of a default nobody chose.
   automerge: false,
 
-  // Dependabot owns the github-actions ecosystem (.github/dependabot.yml)
-  // and the root .pre-commit-config.yaml's own pre-commit ecosystem;
-  // disabling every manager but these three avoids Renovate silently
-  // detecting and opening a competing pull request for either surface, the
-  // same division of labor rsync-crypt's renovate.json5 documents. "asdf" is
-  // new here: it is what lets Renovate watch this repository's own
-  // .tool-versions (currently just `pre-commit 4.5.1`), the asdf-managed
-  // tool version surface Dependabot has no ecosystem for at all. "pre-commit"
-  // stays enabled, but narrowed below to checklists/ only, and
-  // "custom.regex" stays enabled for the three checklist-embedded version
-  // strings the built-in pre-commit manager cannot see (see customManagers
-  // below).
-  enabledManagers: ["asdf", "pre-commit", "custom.regex"],
+  // Four managers, matching the four pin surfaces real to this repository
+  // (see scripts/assert-pin-only-diff.py's own docstring for the same
+  // list from the grading side). Every other manager config:recommended
+  // would otherwise turn on is disabled, so Renovate never starts watching
+  // a fifth surface nobody has reviewed the implications of. "asdf" watches
+  // this repository's own .tool-versions (currently just
+  // `pre-commit 4.5.1`). "pre-commit" watches every `rev:` pin, both the
+  // root .pre-commit-config.yaml and every checklists/checklist-*.yaml file,
+  // see that manager's own config below for how the two are covered.
+  // "github-actions" watches every `uses: ...@<sha> # vX.Y.Z` pin under
+  // .github/workflows/. "custom.regex" watches the three checklist-embedded
+  // version strings the built-in pre-commit manager cannot see (see
+  // customManagers below).
+  enabledManagers: ["asdf", "pre-commit", "custom.regex", "github-actions"],
 
   // A cooling window before an update is offered at all, mirroring
   // rsync-crypt's own reasoning (itself mirroring docker-torrent-box-with-vpn's,
@@ -152,32 +152,84 @@
       groupSlug: "asdf-tools",
       labels: ["dependencies", "tooling"],
     },
+    // One pull request for every action bump, matching the shape
+    // dependabot.yml used to give this ecosystem
+    // (groups: github-actions: patterns: ["*"]) before it was deleted. The
+    // root .pre-commit-config.yaml's own pin surface stays ungrouped, one
+    // pull request per hook, the same as it was under Dependabot and the
+    // same as checklists/ already is under Renovate's pre-commit manager;
+    // this rule names github-actions specifically so that shape is not
+    // disturbed.
+    //
+    // addLabels, not labels: labels replaces the top level labels array
+    // outright (confirmed against Renovate's own configuration options
+    // documentation), and the point here is to add github-actions on top of
+    // dependencies and pre-commit above, matching what the label set on a
+    // grouped Dependabot github-actions pull request used to be
+    // (dependencies, github-actions), not to drop the labels every other
+    // Renovate pull request in this repository already carries.
+    {
+      matchManagers: ["github-actions"],
+      groupName: "github-actions",
+      groupSlug: "github-actions",
+      addLabels: ["github-actions"],
+    },
+    // The github-actions manager extracts more than `uses: ...@<sha>` action
+    // pins by default: confirmed live, with a dry-run=extract against this
+    // repository, it also proposes updates for every `runs-on: ubuntu-24.04`
+    // (depType github-runner) and every `python-version: "3.12"` passed to
+    // actions/setup-python's `with:` (depType uses-with). Dependabot's
+    // github-actions ecosystem never watched either: it bumps `uses:` pins
+    // only. Disabled here so this migration hands Renovate exactly the scope
+    // Dependabot had, not a wider one nobody has reviewed the implications
+    // of. Nothing downstream would have merged one of these unattended
+    // regardless: scripts/assert-pin-only-diff.py's REV_PIN and ACTION_SHA
+    // patterns do not match a runner OS or a with: input, so `Pin Only`
+    // would have refused any such diff and sent it to a person, same as a
+    // major bump. This rule stops the pull request from being opened at
+    // all, rather than relying on that fallback for something that was
+    // never in scope.
+    {
+      matchManagers: ["github-actions"],
+      matchDepTypes: ["github-runner", "uses-with"],
+      enabled: false,
+    },
   ],
 
-  // Narrow the built-in pre-commit manager to checklists/ only, and away
-  // from the root .pre-commit-config.yaml that Dependabot already owns (see
-  // dependabot.yml), so the two bots cannot both open a pull request for
-  // the same rev: pin.
+  // The built-in pre-commit manager now covers both of this repository's
+  // pre-commit surfaces: the root .pre-commit-config.yaml (this repo's own
+  // dogfood config, formerly Dependabot's) and every
+  // checklists/checklist-*.yaml file (this library's actual product).
   //
   // managerFilePatterns is additive, not a replacement for the manager's
   // own default match (confirmed against Renovate's own documentation and,
   // live, with a dry-run=extract against this repository): the default
   // pattern /(^|/)\.pre-commit-config\.ya?ml$/ still applies alongside the
-  // pattern below, so it alone cannot exclude the root file the way an
-  // earlier version of this comment claimed. ignorePaths is the actual
-  // mechanism Renovate documents for excluding a path a manager would
-  // otherwise match by default, so it does the exclusion here instead.
+  // pattern below, so the root file is covered without needing to be named
+  // here at all. The explicit pattern below exists only to reach
+  // checklists/checklist-*.yaml, which does not match the default (those
+  // files are not literally named .pre-commit-config.yaml) and would
+  // otherwise go unwatched.
   //
-  // A glob, not the slash-delimited regex managerFilePatterns above uses:
-  // ignorePaths only accepts an exact string or a glob pattern (confirmed
-  // against Renovate's own configuration-options documentation), and a
-  // regex string there is not parsed as one, so it would silently fail to
-  // exclude anything rather than error. "**/" makes the match depth
-  // independent, which costs nothing today (this file exists only at the
-  // root) and does not need revisiting if that ever changes.
+  // No ignorePaths any more. It used to exclude the root file specifically
+  // so Dependabot's pre-commit ecosystem could own it without this manager
+  // opening a competing pull request for the same rev: pin; now that
+  // Renovate is the only bot watching either surface, there is nothing left
+  // to exclude it from.
+  //
+  // enabled: true is required and easy to miss: unlike most Renovate
+  // managers, the pre-commit manager's own defaultConfig ships
+  // `enabled: false` (confirmed by reading
+  // node_modules/renovate/dist/modules/manager/pre-commit/index.js after a
+  // live dry-run=extract against this repository showed zero pre-commit
+  // matches despite "pre-commit" already being listed in enabledManagers
+  // above). enabledManagers only controls which managers are allowed to run
+  // at all; it does not flip an individually-disabled manager back on. The
+  // three customManagers below need no such key: customType: "regex"
+  // managers have no per-manager enabled default to override.
   "pre-commit": {
+    enabled: true,
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
-    ignorePaths: ["**/.pre-commit-config.y*ml"],
   },
 
   // checklist-dev-dotenv.yaml is a `repo: local` hook (see
