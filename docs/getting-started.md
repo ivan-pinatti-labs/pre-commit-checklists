@@ -131,9 +131,10 @@ files, committed directly rather than fetched at use-time. When a
 template changes here, `github-template` needs a manual refresh to
 match; it is not automatic. This does not apply to the `.pre-commit-config.yaml`
 that `github-template` ships: that file pins `rev:` to a release of
-this library, so Dependabot keeps it current on its own. It is only the
-copied community/community-adjacent files that can drift, and only a
-human re-syncing them keeps that from happening.
+this library, so a dependency bot keeps it current on its own, Renovate in
+that repository's own setup. It is only the copied community/
+community-adjacent files that can drift, and only a human re-syncing them
+keeps that from happening.
 
 ## Option B: by hand
 
