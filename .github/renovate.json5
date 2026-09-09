@@ -180,18 +180,31 @@
     // (depType github-runner) and every `python-version: "3.12"` passed to
     // actions/setup-python's `with:` (depType uses-with). Dependabot's
     // github-actions ecosystem never watched either: it bumps `uses:` pins
-    // only. Disabled here so this migration hands Renovate exactly the scope
-    // Dependabot had, not a wider one nobody has reviewed the implications
-    // of. Nothing downstream would have merged one of these unattended
-    // regardless: scripts/assert-pin-only-diff.py's REV_PIN and ACTION_SHA
-    // patterns do not match a runner OS or a with: input, so `Pin Only`
-    // would have refused any such diff and sent it to a person, same as a
-    // major bump. This rule stops the pull request from being opened at
-    // all, rather than relying on that fallback for something that was
-    // never in scope.
+    // only. docker, container and service are the manager's three other
+    // known depTypes (a `uses: docker://...` line, a job's `services:`
+    // block, and a job's `container:` block, respectively; see Renovate's
+    // own github-actions manager documentation), none of which this
+    // repository's workflows use today, confirmed with a repository wide
+    // search, but Dependabot never watched any of those either, so they are
+    // disabled alongside the two found live, not left to start being
+    // proposed silently the day a workflow first adds one. Disabled here so
+    // this migration hands Renovate exactly the scope Dependabot had, not a
+    // wider one nobody has reviewed the implications of. Nothing downstream
+    // would have merged one of these unattended regardless:
+    // scripts/assert-pin-only-diff.py's REV_PIN and ACTION_SHA patterns do
+    // not match any of the five, so `Pin Only` would have refused any such
+    // diff and sent it to a person, same as a major bump. This rule stops
+    // the pull request from being opened at all, rather than relying on
+    // that fallback for something that was never in scope.
     {
       matchManagers: ["github-actions"],
-      matchDepTypes: ["github-runner", "uses-with"],
+      matchDepTypes: [
+        "github-runner",
+        "uses-with",
+        "docker",
+        "container",
+        "service",
+      ],
       enabled: false,
     },
   ],
