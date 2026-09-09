@@ -1,21 +1,23 @@
 ---
-# cspell:words zizmor
+# cspell:words zizmor dorny
 name: PR Validation
 
 # Two gates on every pull request against main: pre-commit (this repo's
-# own dogfood config) and the tests/ self-test suite, plus a labeler pass.
-# Nothing here needs a personal access token; a public repo cloning
-# itself, applying labels, and commenting on the PR is everything the
-# default GITHUB_TOKEN is scoped for. No other services are wired into
-# this pipeline. Pre-commit here is a gate, not a fixer: a hook that
-# finds a problem fails the job, and nothing in this workflow commits or
-# pushes to the PR branch on its own.
+# own dogfood config) and the tests/ self-test suite, plus a labeler pass
+# and a Renovate config validation pass, neither of which is a required
+# check. Nothing here needs a personal access token; a public repo cloning
+# itself, applying labels, running Renovate's own validator, and commenting
+# on the PR is everything the default GITHUB_TOKEN is scoped for. No other
+# services are wired into this pipeline. Pre-commit here is a gate, not a
+# fixer: a hook that finds a problem fails the job, and nothing in this
+# workflow commits or pushes to the PR branch on its own.
 #
 # The `pre-commit` and `self-test` jobs below publish the check contexts
 # `Pre-commit` and `Tests`, exact strings, because
 # .github/workflows/bot-auto-merge.yml and coderabbit-review-queue.yml
 # hardcode those names. See docs/MERGE_PIPELINE.md for the full required
-# check table.
+# check table; `renovate-config` and `labeler` are both deliberately absent
+# from it.
 #
 # `merge_group:` sits alongside `pull_request:` below because required
 # checks are evaluated against the merge queue's own temporary commit, not
@@ -105,6 +107,56 @@ jobs:
         uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  renovate-config:
+    name: Renovate Config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # pull_request only, not merge_group: this job is not a required check
+    # (see docs/MERGE_PIPELINE.md's required check table), so there is
+    # nothing gained by paying for it again against the queue's temporary
+    # commit once a pull request already passed it once.
+    #
+    # No path filter, unlike ivan-pinatti-labs/docker-torrent-box-with-vpn's
+    # own copy of this job, which only runs when .github/renovate.json5
+    # itself changed. That repository already carries dorny/paths-filter for
+    # a separate, larger filter (code vs. docs only); this repository carries
+    # no path filtering infrastructure anywhere else, and adding one just for
+    # this single, cheap, non-required job is not worth the extra dependency.
+    # Running it on every pull request costs a few seconds of npx download
+    # and nothing else changes in behaviour: a pull request that did not
+    # touch renovate.json5 still validates the unchanged file and passes.
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          # This job downloads and runs Renovate through npx and never talks
+          # to git itself, so the checkout has no use for a persisted
+          # credential.
+          persist-credentials: false
+
+      - name: Validate renovate.json5
+        shell: bash
+        # No file argument on purpose: passing the path explicitly validates
+        # it as *global* config, a weaker check that misses repo-only
+        # problems. Run bare, the validator finds .github/renovate.json5
+        # itself.
+        #
+        # --strict is what gives this teeth. A config needing migration is
+        # only a WARN by default and the command still exits 0, so without it
+        # this job would pass on exactly the drift it exists to catch.
+        #
+        # Pinned to a specific Renovate release, the same reasoning as every
+        # other tool version pin in this repository: a floating tag can start
+        # failing, or stop catching something it used to, with no change on
+        # this repository's own side at all. Bump this pin by hand; Renovate
+        # has no ecosystem of its own that watches this string, and adding
+        # one is not worth it for a version this job only reads once.
+        run: npx --yes --package renovate@44.69.12 renovate-config-validator --strict
 
   pre-commit:
     name: Pre-commit

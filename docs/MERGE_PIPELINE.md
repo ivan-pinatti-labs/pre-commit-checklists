@@ -66,19 +66,17 @@ and still needs a genuine human review, same as always.
 
 ## A dependency bot pull request
 
-Dependabot (`.github/dependabot.yml`: pre-commit and github-actions, daily
-06:00 America/Toronto) and Renovate (`.github/renovate.json5`: the asdf
-`.tool-versions` surface and the checklist-scoped upstream hook pins, daily
-before 7am) open pull requests unattended. Neither is assigned a weekday of
-its own anymore: a pin-only bump from either spends no CodeRabbit review
-quota, which is why the org's per-repository day table was dropped.
-
-Which is not the same as running on the same days. Dependabot is weekday only,
-because its `interval: daily` means Monday to Friday, while Renovate's `before
-7am` is permitted every day. The difference is Dependabot's, not anything
-configured here: a release landing on a Saturday reaches Renovate's surfaces
-that morning and Dependabot's on Monday. Both still sit behind the same seven
-day cooling window, which is far longer than that gap.
+Renovate (`.github/renovate.json5`: the asdf `.tool-versions` surface, both
+pre-commit surfaces, root `.pre-commit-config.yaml` and every
+`checklists/checklist-*.yaml`, and the github-actions surface, daily before
+7am) is the only dependency bot that opens pull requests here. Dependabot
+used to cover the root pre-commit surface and github-actions on its own
+weekday schedule, until this repository migrated onto Renovate as its sole
+dependency update bot and `.github/dependabot.yml` was deleted. A pin-only
+bump spends no CodeRabbit review quota, which is why the org's
+per-repository day table was dropped in favour of checking daily
+everywhere; see `.github/renovate.json5`'s own comments for the full
+reasoning behind the schedule and the seven day cooling window.
 
 For the ones that are pin only:
 
@@ -102,15 +100,16 @@ For the ones that are pin only:
 
 **A gap that was raised in review and then disproved.** Renovate arms its
 own automerge through `platformAutomerge`, using Renovate's own GitHub App
-installation token. Dependabot cannot arm auto-merge itself, so
-`bot-auto-merge.yml`'s last step does it with `gh pr merge --auto`,
+installation token. Dependabot could not arm auto-merge itself, so, while
+this repository still carried Dependabot pull requests,
+`bot-auto-merge.yml`'s last step did it with `gh pr merge --auto`,
 authenticated as `secrets.GITHUB_TOKEN`. CodeRabbit's review of the pull
 request that added this pipeline reported that GitHub's documentation says
 this token cannot add a pull request to a merge queue, naming that exact
 command, and proposed provisioning a separate merge-capable credential.
 
 It was tested instead of accepted, and it does not hold.
-`ivan-pinatti-labs/github-template` runs the same workflow with an active
+`ivan-pinatti-labs/github-template` ran the same workflow with an active
 merge queue ruleset, and its Dependabot pull request #11 exercised this
 step: `bot-auto-merge.yml` run `33433281810` reported `Enable auto-merge`
 as `success`, and the pull request then reported `enabledBy:
@@ -126,8 +125,31 @@ exists only because the queue built the entry, so the two observations
 together cover arming and entry rather than arming alone.
 
 Recorded here rather than deleted, because the claim is plausible, cites
-real documentation, and will be raised again by the next reviewer. No extra
-credential is needed for this path.
+real documentation, and will be raised again by the next reviewer, on this
+repository or another one carrying the same `bot-auto-merge.yml` shape.
+**Current relevance to this repository specifically:** the step this
+evidence was gathered about is gone from `bot-auto-merge.yml` now that
+Dependabot no longer opens pull requests here, since Renovate needs no help
+arming its own auto-merge. This repository's own pipeline therefore no
+longer exercises the `GITHUB_TOKEN` merge queue arming path day to day. The
+underlying capability is still real GitHub behaviour, not specific to
+Dependabot or to this repository, so the evidence stays here rather than
+being deleted: a repository that reintroduces a bot unable to arm its own
+auto-merge, or any workflow anywhere that arms auto-merge with
+`GITHUB_TOKEN` against a merge queue, is covered by exactly this
+investigation, and no extra credential is needed for that path either.
+
+## Validating `renovate.json5` itself
+
+`renovate-config`, a job in `pull-request.yml`, runs Renovate's own
+`renovate-config-validator --strict` against `.github/renovate.json5` on
+every pull request. It is not a required check: unlike `Pre-commit` and
+`Tests`, it publishes an ordinary GitHub Check with no branch protection
+rule reading it, the same way `labeler` is not required either. A
+malformed `renovate.json5` fails open rather than closed, silently
+stopping Renovate from opening pull requests at all, with nothing else in
+this pipeline positioned to notice; this job exists to catch that before
+it merges, not to gate a merge on it.
 
 ## What actually gets reviewed, and what does not
 

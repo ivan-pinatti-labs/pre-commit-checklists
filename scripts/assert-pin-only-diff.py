@@ -9,14 +9,14 @@ every changed line differs from its counterpart in nothing but a version.
 
 Ported from rsync-crypt's script of the same name (which itself carried the
 reasoning forward from docker-torrent-box-with-vpn), the check that stands
-between "renovate[bot] or dependabot[bot] opened a pull request" and an
-unattended merge here. It exists for the same reason: approving a bot's pull
-request on the strength of its author means the bot identity holds write
-access to main, and a diff that is not actually pin-only is exactly the shape
-a compromised or misconfigured bot would take. A path allowlist alone would
-not be much of a fence, since `.github/workflows/` and the checklist files
-under `checklists/` are executable and behavioral surfaces on their own; the
-line comparison below is what makes it one.
+between "renovate[bot] opened a pull request" and an unattended merge here. It
+exists for the same reason: approving a bot's pull request on the strength of
+its author means the bot identity holds write access to main, and a diff that
+is not actually pin-only is exactly the shape a compromised or misconfigured
+bot would take. A path allowlist alone would not be much of a fence, since
+`.github/workflows/` and the checklist files under `checklists/` are
+executable and behavioral surfaces on their own; the line comparison below is
+what makes it one.
 
 The comparison normalizes both sides and requires them to match line for line
 per file, duplicates counted. A line whose structure changed has no
@@ -38,17 +38,18 @@ actually lives in this repository:
   Renovate's asdf manager.
 - `.pre-commit-config.yaml`: this repo's own dogfood config, at the root.
   Every hook here is `repo: local` today (see that file's own header
-  comment for why), so it has no `rev:` pins yet, but Dependabot's
-  pre-commit ecosystem is already pointed at it and this surface is ready
-  the day that changes.
+  comment for why), so it has no `rev:` pins yet, but Renovate's
+  pre-commit manager already watches it and this surface is ready the day
+  that changes.
 - `checklists/`: every `checklists/checklist-*.yaml` file's own `rev:`
   pins on the upstream hooks it wraps (`actionlint`, `pre-commit-hooks`,
-  and so on). These are watched by Renovate's own `pre-commit` manager,
-  scoped to this directory in .github/renovate.json5, precisely because
-  Dependabot's pre-commit ecosystem only ever reads a file literally named
-  .pre-commit-config.yaml and never looks inside checklists/.
+  and so on), watched by the same Renovate `pre-commit` manager, an
+  explicit `managerFilePatterns` entry in .github/renovate.json5 reaching
+  this directory since none of these files are literally named
+  .pre-commit-config.yaml, the one name the manager's own default pattern
+  matches.
 - `.github/workflows/`: `uses: ...@<sha> # vX` action pins, owned by
-  Dependabot's github-actions ecosystem.
+  Renovate's github-actions manager.
 
 Deliberately not a pin surface here: the three version strings inside
 checklists/*.yaml that a Renovate *custom.regex* manager watches instead of
@@ -112,15 +113,15 @@ TOOL_VERSION_LINE = re.compile(
 REV_PIN = re.compile(r"(?P<prefix>\brev:[ \t]+)" + RELEASE)
 
 # A GitHub Actions pin, always a full 40 character commit SHA in this
-# repository (Dependabot updates it that way), optionally followed by the
-# trailing `# vX.Y.Z` comment Dependabot writes and rewrites alongside it.
-# The negative lookahead stops a 40 character prefix of a longer hex run from
-# matching and silently swallowing the character that would have made the
-# shapes differ.
+# repository (Renovate's github-actions manager updates it that way),
+# optionally followed by the trailing `# vX.Y.Z` comment Renovate writes and
+# rewrites alongside it. The negative lookahead stops a 40 character prefix
+# of a longer hex run from matching and silently swallowing the character
+# that would have made the shapes differ.
 #
 # The trailing comment has to be normalized too, not left as ordinary text:
 # this repository pins with a full semver comment (`# v7.0.1`), not a
-# major-version-only one (`# v7`), so Dependabot rewrites that comment on
+# major-version-only one (`# v7`), so Renovate rewrites that comment on
 # every bump, patch releases included. Leaving it untouched would refuse
 # every ordinary action bump as "not pin-only", which defeats the entire
 # point of this script. The comment is optional in the regex so a `uses:`
