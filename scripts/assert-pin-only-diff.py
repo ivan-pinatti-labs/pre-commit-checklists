@@ -143,11 +143,42 @@ def _normalize_action_sha(match: re.Match[str]) -> str:
     return f"{match.group('prefix')}<version>"
 
 
+# A first-time pinDigests bump changes `uses: actions/checkout@v7` to
+# `uses: actions/checkout@<sha> # v7` in one step, with no prior SHA to
+# compare against, and the trailing release comment appearing for the
+# first time alongside it. ACTION_SHA above normalizes the pinned side to
+# `@<version> # <version>` whenever a comment trails the SHA, which every
+# first-time pin carries in practice (proven on docker-torrent-box-with-vpn's
+# own PR #178, where Renovate never added a bare SHA with no comment on
+# this update type). This pattern gives the unpinned side the identical
+# placeholder, so the two sides of a first-time pin compare equal the same
+# way an ordinary SHA-to-SHA bump does. A first-time pin whose comment is
+# missing still reads as structural and gets refused, the correct,
+# fail-closed outcome for a shape that never happens on a clean bump.
+#
+# Scoped to a `uses:` field and an owner/repo coordinate immediately before
+# the `@`, not bare `@RELEASE` anywhere on the line, per a CodeRabbit
+# finding on docker-torrent-box-with-vpn's own version of this pattern:
+# an unscoped version would let a `run:` step's own `tool@v7` normalize
+# the same way, so that line could grow an unrelated-looking SHA and
+# comment and still read as pin-only.
+#
+# Applying ACTION_SHA first, ahead of this one, is what keeps the two from
+# double matching an already-pinned line with no comment. RELEASE's
+# character class is wide enough to also accept a 40 character hex run, but
+# ACTION_SHA has already replaced that run with `<version>` by the time this
+# pattern runs, and `<version>` does not start with a digit or a bare `v`.
+BARE_ACTION_VERSION = re.compile(
+    r"(?P<action_prefix>\buses:[ \t]+[\w.-]+/[\w./-]+)@" + RELEASE + r"$"
+)
+
+
 def normalize(line: str, path: str = "") -> str:
     """Reduce a line to everything about it that a version bump may not change."""
     if path.endswith(".tool-versions"):
         return TOOL_VERSION_LINE.sub(r"\g<prefix><version>", line)
     line = ACTION_SHA.sub(_normalize_action_sha, line)
+    line = BARE_ACTION_VERSION.sub(r"\g<action_prefix>@<version> # <version>", line)
     line = REV_PIN.sub(r"\g<prefix><version>", line)
     return line
 
