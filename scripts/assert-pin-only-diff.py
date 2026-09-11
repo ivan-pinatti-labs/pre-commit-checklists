@@ -163,13 +163,24 @@ def _normalize_action_sha(match: re.Match[str]) -> str:
 # the same way, so that line could grow an unrelated-looking SHA and
 # comment and still read as pin-only.
 #
+# `uses:` alone is not narrow enough, as a second CodeRabbit finding on
+# this exact pattern went on to show: `\buses:` is a word-boundary check,
+# not a position check, so it matches the substring "uses:" anywhere a
+# line contains it, including inside a `run:` step's own text
+# (`run: uses: actions/checkout@v7` normalized the same way a real `uses:`
+# line did). Anchored to the start of the line instead, with only an
+# optional YAML list marker (`- `) and indentation in front of `uses:`,
+# which is the only place a real `uses:` field can sit.
+#
 # Applying ACTION_SHA first, ahead of this one, is what keeps the two from
 # double matching an already-pinned line with no comment. RELEASE's
 # character class is wide enough to also accept a 40 character hex run, but
 # ACTION_SHA has already replaced that run with `<version>` by the time this
 # pattern runs, and `<version>` does not start with a digit or a bare `v`.
 BARE_ACTION_VERSION = re.compile(
-    r"(?P<action_prefix>\buses:[ \t]+[\w.-]+/[\w./-]+)@" + RELEASE + r"$"
+    r"(?P<action_prefix>^(?:[ \t]*-[ \t]+)?[ \t]*uses:[ \t]+[\w.-]+/[\w./-]+)@"
+    + RELEASE
+    + r"$"
 )
 
 
