@@ -129,8 +129,17 @@ REV_PIN = re.compile(r"(?P<prefix>\brev:[ \t]+)" + RELEASE)
 # therefore not matched, left as literal text for both sides to compare
 # against), is still handled correctly: only a comment that already looks
 # like a release is treated as part of the pin.
+#
+# Case-insensitive (`[0-9a-fA-F]`, not `[0-9a-f]`): GitHub resolves a
+# `uses:` SHA the same way regardless of case, so an uppercase or
+# mixed-case SHA is just as real a pin as a lowercase one, and matching
+# only lowercase left a gap a CodeRabbit review of BARE_ACTION_VERSION
+# below found: an uppercase SHA on a first-time pin's new side fell
+# through ACTION_SHA entirely and was accepted by BARE_ACTION_VERSION's
+# generic RELEASE grammar instead, which does not check that a
+# first-time pin's target is SHA-shaped at all.
 ACTION_SHA = re.compile(
-    r"(?P<prefix>@)[0-9a-f]{40}(?![0-9a-fA-F])"
+    r"(?P<prefix>@)[0-9a-fA-F]{40}(?![0-9a-fA-F])"
     r"(?P<comment>[ \t]*#[ \t]*" + RELEASE + r")?"
 )
 
