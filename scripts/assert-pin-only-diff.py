@@ -270,6 +270,24 @@ def _in_block_scalar(context: list[str], indent: int) -> bool:
     cannot be told apart from one that was never open, and refusing the
     line as a candidate pin either way is the fail closed direction, the
     same one every other shape in this file takes when it cannot be sure.
+
+    A CodeRabbit review named the residual gap in this precisely: the
+    first shallower line found is trusted as the boundary even when it is
+    itself ordinary scalar content one level further out, rather than the
+    real opener sitting deeper in the scan, so a `uses:` line nested under
+    something like an `if` inside a `run: |` block, both indented past the
+    block's own floor, is not caught. Scanning past a shallower non-opener
+    line to keep looking, rather than trusting it as decisive, would close
+    that gap, but was tried and reverted: it also requires reaching the
+    file's own top level (indentation zero) before a real diff's limited
+    context ever earns a confident "not inside one", and no ordinary `gh
+    pr diff` output carries that much. Verified against
+    docker-torrent-box-with-vpn's own #178, whose real diff never contains
+    the change's enclosing indentation chain down to indentation zero: the
+    deeper version refused it outright, the same result a compromised
+    bot's diff should get, not a clean one. This narrower version is the
+    one actually deployed; the nested case above is an accepted,
+    documented gap rather than a silently unfixed one.
     """
     for seen in reversed(context):
         if not seen.strip():
