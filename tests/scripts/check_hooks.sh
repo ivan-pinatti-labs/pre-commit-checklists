@@ -63,7 +63,7 @@ PC=$(resolve_pre_commit)
 # file-based selector (i.e. not always_run / not commit-msg-stage-only).
 # Kept in sync by hand with .pre-commit-config.yaml; if you add a checklist
 # to that file, add its id here too so Phase 2 covers it.
-DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker"
+DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make"
 
 is_dogfood_wired() {
   case " ${DOGFOOD_WIRED} " in
@@ -193,7 +193,7 @@ test_github_actions_dogfood_wiring() {
   assert_selected "checklist-github-actions/dogfood-wiring"
 }
 
-for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker; do
+for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make; do
   test_checklist "${id}"
 done
 
