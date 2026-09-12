@@ -224,3 +224,57 @@ repos:
         types: [dockerfile]
         require_serial: true
         verbose: true
+
+  # CITATION.cff is the one file here that `checklist-yaml` above cannot
+  # reach. It is YAML, but `identify` tags it only `text`, since the tag comes
+  # from the extension and `.cff` is not one it knows. Widening that id's
+  # `types:` would not help either: check-yaml and yamllint inside
+  # checklists/checklist-yaml.yaml both carry `types: [file, yaml]` of their
+  # own, which pre-commit ANDs with whatever the consumer asks for, so the
+  # file is dropped by the hook rather than by the id's selector. This is the
+  # "Why the selector matters" case from docs/hook-catalogue.md, seen from the
+  # inside.
+  #
+  # Overriding `types:` has to happen where the hook is declared, which is why
+  # this is its own repo entry rather than a change to the id above. Whether
+  # `checklist-yaml` should grow `.cff` coverage for every consumer is a
+  # separate question, tracked as an issue rather than decided here.
+  #
+  # Worth covering because GitHub reads the file for the "Cite this
+  # repository" widget, where a file it cannot use produces nothing at all
+  # rather than an error anyone would see.
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        name: yamllint (CITATION.cff)
+        files: ^CITATION\.cff$
+        types: [text]
+        stages: [pre-commit]
+
+  # The other half, because yamllint cannot do it: the Citation File Format
+  # schema. Not a theoretical gap. The author block in this repository's own
+  # CITATION.cff used to read `name:` and `url:`, and `url` is not a key CFF
+  # has at all (the person and entity definitions both spell it `website`), so
+  # the file had never been valid while parsing as YAML perfectly well the
+  # whole time.
+  #
+  # cffconvert is the reference implementation's own validator, run as a
+  # repo: local hook since it ships no `.pre-commit-hooks.yaml`. Its version
+  # is pinned in `additional_dependencies`, which the native pre-commit
+  # manager does not read, so that pin moves by hand.
+  #
+  # pass_filenames is false with the path written out because cffconvert takes
+  # its input through `-i` and rejects a bare positional argument, so an
+  # appended filename would fail the hook on a valid file. `files:` still
+  # scopes it to that one file.
+  - repo: local
+    hooks:
+      - id: cffconvert-validate
+        name: Validate CITATION.cff against the CFF schema
+        language: python
+        additional_dependencies: ["cffconvert==2.0.0"]
+        entry: cffconvert --validate -i CITATION.cff
+        files: ^CITATION\.cff$
+        pass_filenames: false
+        stages: [pre-commit]
