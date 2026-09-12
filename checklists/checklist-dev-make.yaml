@@ -1,0 +1,53 @@
+---
+# Runs checkmake (https://github.com/checkmake/checkmake), the only Makefile
+# linter evaluated here that is a linter rather than a formatter. mbake was
+# rejected because it reformats rather than reports, and collapses deliberate
+# continuation alignment; MegaLinter has no Make descriptor at all.
+#
+# Two things a consumer has to know before adopting this id, both of them
+# checkmake parser defects rather than opinions about your Makefile.
+#
+# 1. Declare .PHONY one line at a time. checkmake reads only the first
+#    physical line of a .PHONY declaration and silently drops every
+#    backslash continuation, so
+#
+#      .PHONY: all build \
+#              test clean
+#
+#    leaves test and clean invisible to it, and both phonydeclared and
+#    minphony then report targets that are declared as undeclared. Writing
+#
+#      .PHONY: all build
+#      .PHONY: test clean
+#
+#    is equivalent to make and parses correctly. Tracked upstream as
+#    checkmake#280 with a fix open in checkmake#281; this constraint goes
+#    away when that merges.
+#
+# 2. Two false positive shapes have no workaround yet. A colon inside a
+#    define/endef block (checkmake#244, fix open in checkmake#254) and a
+#    colon inside a top level $(error), $(info) or $(warning)
+#    (checkmake#284) are both parsed as rule targets. Listing the phantom
+#    target in .PHONY suppresses it only when the text before the colon is
+#    a single word; .PHONY splits on whitespace, so a multi word phantom
+#    cannot be named at all. There is no per rule disable and no line level
+#    ignore (checkmake#31). See docs/hook-catalogue.md.
+#
+# checkmake reads checkmake.ini from the directory it runs in, which under
+# pre-commit is always the repo root. templates/checkmake.ini ships the
+# defaults this library recommends and scripts/install.sh copies it in.
+# Without that file checkmake falls back to its own defaults, which cap
+# target bodies at 5 lines and require all, clean and test to be phony in
+# every Makefile it is handed, including sub-Makefiles. Neither is a
+# reasonable default for a real repo; see docs/hook-catalogue.md for why
+# this library overrides both rather than shipping a config that everyone
+# immediately has to fight.
+#
+# The upstream hook bakes in `types: [makefile]`, which identify tags on
+# Makefile, makefile, GNUmakefile, *.mk and *.make. A consumer needs no
+# selector of their own, unlike most ids in this library.
+repos:
+  - repo: https://github.com/checkmake/checkmake
+    rev: v0.3.2
+    hooks:
+      - id: checkmake

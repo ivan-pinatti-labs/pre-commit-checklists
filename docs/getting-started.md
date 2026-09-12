@@ -79,11 +79,17 @@ The script:
    `.markdownlint.yaml`, `.lycheeignore`) into your repo, without clobbering
    files that already exist (pass `--force` to overwrite).
 
-   `.markdown-link-check.json` is also copied, but only when the ref you
-   install from actually carries it. It was added after several releases, so
-   a `--ref` pointing at an older tag will note that it is absent and skip
-   it rather than failing the whole install. Everything else in that list is
-   required: a missing one is an error.
+   `.markdown-link-check.json` and `checkmake.ini` are also copied, but only
+   when the ref you install from actually carries them. Both were added
+   after several releases, so a `--ref` pointing at an older tag will note
+   that they are absent and skip them rather than failing the whole install.
+   Everything else in that list is required: a missing one is an error.
+
+   `checkmake.ini` matters only if you turn on `checklist-dev-make`, and it
+   matters a lot if you do: without it checkmake caps every target body at
+   5 lines and demands `all`, `clean` and `test` be phony in every Makefile
+   it sees. See
+   [`docs/hook-catalogue.md`](hook-catalogue.md#makefile-linting).
 2. With `--community-files`, also copies the GitHub community health
    files from [`templates/community/`](../templates/community/): issue
    templates, a pull request template, `CODE_OF_CONDUCT.md`,

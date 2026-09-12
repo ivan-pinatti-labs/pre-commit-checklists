@@ -225,6 +225,20 @@ repos:
         require_serial: true
         verbose: true
 
+      # No selector here on purpose. Unlike every other id in this file,
+      # checkmake's own hook manifest already carries `types: [makefile]`,
+      # so run-checklist.sh hands it whatever pre-commit selected and the
+      # pinned hook filters from there. Adding a second selector would
+      # only be a chance to get it wrong.
+      - id: checklist-dev-make
+        name: Development - Makefile Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-make]
+        stages: [pre-commit]
+        require_serial: true
+        verbose: true
+
   # CITATION.cff is the one file here that `checklist-yaml` above cannot
   # reach. It is YAML, but `identify` tags it only `text`, since the tag comes
   # from the extension and `.cff` is not one it knows. Widening that id's

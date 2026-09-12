@@ -1,5 +1,5 @@
 ---
-# Full starter: every hook id this library ships, including all six
+# Full starter: every hook id this library ships, including all seven
 # language checklists. Delete the language sections you don't need, or
 # start from one of the per-language starters in this directory instead.
 #
@@ -94,4 +94,11 @@ repos:
         stages: [pre-commit]
       - id: checklist-dev-docker
         types: [dockerfile]
+        stages: [pre-commit]
+      # No selector needed: checkmake's own hook manifest bakes in
+      # types: [makefile], which matches Makefile, makefile, GNUmakefile,
+      # *.mk and *.make. Needs checkmake.ini at the repo root; install.sh
+      # copies one in. See docs/hook-catalogue.md for the .PHONY
+      # continuation constraint before you turn this on.
+      - id: checklist-dev-make
         stages: [pre-commit]

@@ -175,3 +175,12 @@
     - checklist-dev-docker
   require_serial: true
   verbose: true
+
+- id: checklist-dev-make
+  name: Development - Makefile Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-make
+  require_serial: true
+  verbose: true

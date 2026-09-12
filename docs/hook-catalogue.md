@@ -41,6 +41,7 @@ build your own selection from scratch.
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
+| `checklist-dev-make` | checkmake | `types: [makefile]`, baked into checkmake's own hook manifest: `Makefile`, `makefile`, `GNUmakefile`, `*.mk`, `*.make` | `checkmake.ini` at repo root, `scripts/install.sh` copies one in; see [Makefile linting](#makefile-linting) before adopting |
 
 ## JSON5
 
@@ -195,6 +196,116 @@ findings. Swap in whatever check names, or an `--exclude` pattern, a
 given repository needs; the
 [dotenv-linter README](https://github.com/dotenv-linter/dotenv-linter)'s
 "Available checks" list names every check `--ignore-checks` accepts.
+
+## Makefile linting
+
+`checklist-dev-make` runs [checkmake](https://github.com/checkmake/checkmake).
+It is the only id in this library that arrives with a convention attached, so
+read this before turning it on.
+
+### Why checkmake and not the alternatives
+
+Three tools were evaluated. checkmake is a linter: it reports and does not
+rewrite. [mbake](https://github.com/EbodShojaei/bake) is a formatter, and it
+reformats against deliberate style, collapsing the aligned continuation
+indentation of multi line `docker run` blocks and the aligned columns of
+shorthand alias targets to a single tab. MegaLinter has no Make descriptor at
+all, so matching MegaLinter and linting nothing are the same answer.
+
+### Declare `.PHONY` one line at a time
+
+checkmake reads only the **first physical line** of a `.PHONY` declaration and
+silently drops every backslash continuation. So this
+
+```makefile
+.PHONY: all build \
+        test clean
+```
+
+leaves `test` and `clean` invisible to it. `phonydeclared` then reports any of
+them that has no body as undeclared, and `minphony` reports them as missing.
+Both are false. Writing the same declaration as
+
+```makefile
+.PHONY: all build
+.PHONY: test clean
+```
+
+is exactly equivalent to make and parses correctly. On a 550 line Makefile
+with 25 targets across 5 continuation lines, the rewrite took 7 false findings
+to zero without touching a single target.
+
+This is [checkmake#280](https://github.com/checkmake/checkmake/issues/280),
+with a fix open as
+[checkmake#281](https://github.com/checkmake/checkmake/pull/281). The
+constraint disappears when that merges. It is not specific to space indented
+continuations; tab indented ones fail identically, which is what distinguishes
+it from [checkmake#257](https://github.com/checkmake/checkmake/issues/257).
+
+`tests/fixtures/checklist-dev-make/should-pass/Makefile` guards this: it
+declares a bodyless target on the second `.PHONY` line, so rewriting those two
+lines as a continuation makes the test suite fail.
+
+### `checkmake.ini` is not optional in practice
+
+checkmake reads `checkmake.ini` from the directory it runs in, which under
+pre-commit is always the repo root. `scripts/install.sh` copies
+[`templates/checkmake.ini`](../templates/checkmake.ini) in, and this
+repository dogfoods the same file.
+
+Without it you get checkmake's own defaults, and two of its five rules are
+project conventions rather than correctness checks:
+
+- `maxbodylength` caps target bodies at 5 lines. A single `docker run` with
+  its flags on separate lines already exceeds that, so on a real Makefile this
+  rule fires on nearly every target. It cannot be disabled, only raised; the
+  shipped config raises it to 70.
+- `minphony` requires `all`, `clean` **and** `test` to be declared phony in
+  every Makefile it is handed, sub-Makefiles included. The shipped config
+  reduces that to `all`. Setting `required =` to the empty string disables the
+  rule outright, which checkmake special cases rather than reading as an empty
+  list.
+
+The other three rules are left at full strength on purpose. `phonydeclared`
+catches a bodyless target that a same named file in the working tree would
+make `make` consider up to date and skip. `uniquetargets` catches a target
+defined twice, where one recipe silently overrides the other.
+`timestampexpanded` catches a recursively expanded timestamp that produces a
+different value on every reference.
+
+### Two false positive shapes that have no workaround
+
+A colon inside a `define`/`endef` block, and a colon inside a top level
+`$(error)`, `$(info)` or `$(warning)`, are both parsed as rule targets:
+
+```makefile
+define help_text
+Usage:
+  make all
+endef
+
+$(info Building with: $(CC))
+```
+
+reports `Usage` and `$(info Building with` as targets that should be declared
+PHONY. These are
+[checkmake#244](https://github.com/checkmake/checkmake/issues/244) (fix open
+as [checkmake#254](https://github.com/checkmake/checkmake/pull/254)) and
+[checkmake#284](https://github.com/checkmake/checkmake/issues/284).
+
+There is no clean escape hatch for either. checkmake has no per rule disable
+and no line level ignore
+([checkmake#31](https://github.com/checkmake/checkmake/issues/31)).
+`phonydeclared` does index `.PHONY` dependencies by name, so `.PHONY: Usage`
+suppresses a phantom target whose text before the colon is a single word, but
+`.PHONY` splits on whitespace, so a phantom named `You can also use` cannot be
+written down at all. Half the findings in one `define` block can be silenced
+and half cannot.
+
+If a repository hits either shape, the honest options are to remove the colons
+from the affected text or to leave that repository off this id until the
+upstream fixes land. Do not reach for a repo wide `exclude:` on the Makefile:
+that turns the whole checklist off while looking like it is on.
 
 ## Zizmor: offline by default
 
