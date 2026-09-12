@@ -262,8 +262,9 @@ project conventions rather than correctness checks:
 
 - `maxbodylength` caps target bodies at 5 lines. A single `docker run` with
   its flags on separate lines already exceeds that, so on a real Makefile this
-  rule fires on nearly every target. It cannot be disabled, only raised; the
-  shipped config raises it to 70.
+  rule fires on nearly every target. Its own key only raises the cap; the
+  shipped config raises it to 70 rather than switching the rule off with
+  `disabled` (see below), so a genuinely runaway recipe still gets caught.
 - `minphony` requires `all`, `clean` **and** `test` to be declared phony in
   every Makefile it is handed, sub-Makefiles included. The shipped config
   reduces that to `all`. Setting `required =` to the empty string disables the
@@ -297,19 +298,71 @@ PHONY. These are
 as [checkmake#254](https://github.com/checkmake/checkmake/pull/254)) and
 [checkmake#284](https://github.com/checkmake/checkmake/issues/284).
 
-There is no clean escape hatch for either. checkmake has no per rule disable
-and no line level ignore
-([checkmake#31](https://github.com/checkmake/checkmake/issues/31)).
-`phonydeclared` does index `.PHONY` dependencies by name, so `.PHONY: Usage`
-suppresses a phantom target whose text before the colon is a single word, but
+No targeted escape hatch exists for either. What checkmake does and does not
+let you switch off is worth stating precisely, because an earlier version of
+this page got it wrong.
+
+`phonydeclared` indexes `.PHONY` dependencies by name, so `.PHONY: Usage`
+suppresses a phantom target whose text before the colon is a single word. But
 `.PHONY` splits on whitespace, so a phantom named `You can also use` cannot be
 written down at all. Half the findings in one `define` block can be silenced
-and half cannot.
+and half cannot, which is more confusing than none of them being
+suppressible at all.
 
-If a repository hits either shape, the honest options are to remove the colons
-from the affected text or to leave that repository off this id until the
-upstream fixes land. Do not reach for a repo wide `exclude:` on the Makefile:
-that turns the whole checklist off while looking like it is on.
+There is no line level or block level ignore
+([checkmake#31](https://github.com/checkmake/checkmake/issues/31),
+[checkmake#285](https://github.com/checkmake/checkmake/issues/285)), so a
+single false finding cannot be waived where it sits.
+
+If a repository hits either shape, the options are to remove the colons from
+the affected text, to switch the rule off for that repository with
+`disabled` (below), or to leave the repository off this id until the upstream
+fixes land. Do not reach for a repo wide `exclude:` on the Makefile: that
+turns the whole checklist off while looking like it is on.
+
+### Turning a rule off, and scoping it to some files
+
+A whole rule can be disabled, and this page previously said otherwise. Any
+rule section accepts `disabled`, which `validator.go` checks before running
+the rule:
+
+```ini
+[phonydeclared]
+disabled = true
+```
+
+It works on every rule and is documented nowhere upstream: `checkmake.1`'s
+CONFIGURATION section lists only `default.format`,
+`maxbodylength.maxBodyLength` and `minphony.required`. Three further keys are
+real, `default.output`, `<rule>.disabled` and `uniquetargets.ignore` (a comma
+separated list of target names for that rule to skip). See
+[checkmake#82](https://github.com/checkmake/checkmake/issues/82) for the
+full list.
+
+Treat `disabled` as a last resort rather than a tuning knob. It is all or
+nothing across the run, and the three rules worth keeping are exactly the
+ones you would reach for it on.
+
+checkmake itself cannot scope a rule to a subset of files
+([checkmake#285](https://github.com/checkmake/checkmake/issues/285)), but
+pre-commit can, by running the hook twice against different configs:
+
+```yaml
+- id: checkmake
+  name: checkmake (strict)
+  exclude: ^legacy/
+- id: checkmake
+  alias: checkmake-legacy
+  files: ^legacy/
+  args: ["--config", "checkmake.legacy.ini"]
+```
+
+Confirmed discriminating rather than a false pass: a `legacy/Makefile` with a
+bodyless undeclared target reports one `phonydeclared` violation under the
+strict config and none under the scoped one. This only helps consumers going
+through pre-commit; anyone running `checkmake` from a Makefile target or CI
+step directly gets nothing from it, and one logical configuration now lives
+in two files that have to be kept in step.
 
 ## Zizmor: offline by default
 

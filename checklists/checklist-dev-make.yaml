@@ -32,8 +32,12 @@
 #    (checkmake#284) are both parsed as rule targets. Listing the phantom
 #    target in .PHONY suppresses it only when the text before the colon is
 #    a single word; .PHONY splits on whitespace, so a multi word phantom
-#    cannot be named at all. There is no per rule disable and no line level
-#    ignore (checkmake#31). See docs/hook-catalogue.md.
+#    cannot be named at all. There is no line or block level ignore
+#    (checkmake#31, checkmake#285), so a single false finding cannot be
+#    waived where it sits. A whole rule can be switched off with
+#    `disabled = true` in its checkmake.ini section, which is undocumented
+#    upstream and is all or nothing across the run. See
+#    docs/hook-catalogue.md.
 #
 # checkmake reads checkmake.ini from the directory it runs in, which under
 # pre-commit is always the repo root. templates/checkmake.ini ships the
