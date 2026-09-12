@@ -21,8 +21,10 @@
 #      .PHONY: test clean
 #
 #    is equivalent to make and parses correctly. Tracked upstream as
-#    checkmake#280 with a fix open in checkmake#281; this constraint goes
-#    away when that merges.
+#    checkmake#280 with a fix open in checkmake#281. The constraint lifts
+#    only once that merges, checkmake releases it, and the rev: below moves
+#    to that release. A merged fix alone changes nothing while this pin
+#    stays where it is.
 #
 # 2. Two false positive shapes have no workaround yet. A colon inside a
 #    define/endef block (checkmake#244, fix open in checkmake#254) and a

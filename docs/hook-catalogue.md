@@ -237,8 +237,12 @@ to zero without touching a single target.
 
 This is [checkmake#280](https://github.com/checkmake/checkmake/issues/280),
 with a fix open as
-[checkmake#281](https://github.com/checkmake/checkmake/pull/281). The
-constraint disappears when that merges. It is not specific to space indented
+[checkmake#281](https://github.com/checkmake/checkmake/pull/281). Three things
+have to happen before the constraint lifts, not one: that pull request merges,
+checkmake cuts a release containing it, and
+[`checklists/checklist-dev-make.yaml`](../checklists/checklist-dev-make.yaml)
+moves its `rev:` to that release. Until the pin moves, a merged fix changes
+nothing here. It is not specific to space indented
 continuations; tab indented ones fail identically, which is what distinguishes
 it from [checkmake#257](https://github.com/checkmake/checkmake/issues/257).
 
