@@ -474,8 +474,19 @@ fi
 # where it would have been without this step.
 __pin_note="  1. Update the 'rev:' pin in .pre-commit-config.yaml to a published tag."
 if (cd "${__target}" && pre-commit autoupdate --repo "${LIBRARY_URL}" >/dev/null 2>&1); then
-  __resolved=$(grep -E '^\s+rev:' "${__target}/.pre-commit-config.yaml" | head -1 | awk '{print $2}')
-  echo "Resolved the pre-commit-checklists pin to ${__resolved}."
+  # [[:space:]] rather than \s: the latter is a GNU extension that BSD grep,
+  # which is what macOS ships, does not accept in an ERE. And `|| true`,
+  # because this whole assignment only exists to print a version in a
+  # message. errexit plus pipefail would otherwise let a failed grep abort a
+  # bootstrap that has already succeeded, which is a bad trade for a cosmetic
+  # line.
+  __resolved=$(grep -E '^[[:space:]]+rev:' "${__target}/.pre-commit-config.yaml" |
+    head -1 | awk '{print $2}') || true
+  if [ -n "${__resolved}" ]; then
+    echo "Resolved the pre-commit-checklists pin to ${__resolved}."
+  else
+    echo "Resolved the pre-commit-checklists pin to this library's latest release."
+  fi
   __pin_note="  1. The 'rev:' pin is already at this library's latest release."
 else
   echo "Note: could not reach GitHub to resolve the 'rev:' pin, so it is still the template's example value." >&2

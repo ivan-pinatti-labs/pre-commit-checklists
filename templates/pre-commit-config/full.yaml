@@ -6,18 +6,16 @@
 # Copy this file to .pre-commit-config.yaml at the root of your repo, then
 # run:
 #
+#   pre-commit autoupdate --repo https://github.com/ivan-pinatti-labs/pre-commit-checklists
 #   pre-commit install
 #   pre-commit run --all-files
 #
-# The `rev:` pin below is an example, and it will be out of date. Every merge
-# to this library cuts a release, so any tag written into this file is usually
-# stale within a day. `scripts/install.sh` resolves it at bootstrap, so if you
-# used that, it is already correct.
-#
-# If you copied this file by hand, run this once instead of looking a version
-# up. It touches only this library's entry, never your other hooks:
-#
-#   pre-commit autoupdate --repo https://github.com/ivan-pinatti-labs/pre-commit-checklists
+# The first command resolves the `rev:` pin below, which is an example and
+# will be out of date: every merge to this library cuts a release, so any tag
+# written into this file is usually stale within a day. It is scoped with
+# `--repo`, so it touches only this library's entry and never your other
+# hooks. `scripts/install.sh` runs it for you, so if you bootstrapped with
+# that, the pin is already correct and you can skip it.
 #
 # See docs/getting-started.md for the full walkthrough,
 # docs/hook-catalogue.md for what each hook id checks and matches, and
