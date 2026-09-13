@@ -5,11 +5,21 @@
 # formatted the same way (that one still runs Prettier; only the
 # JavaScript and TypeScript checklists moved to Biome).
 #
-# Copy this file to .pre-commit-config.yaml at the root of your repo, update
-# the `rev:` pin below to the latest release tag, then run:
+# Copy this file to .pre-commit-config.yaml at the root of your repo, then
+# run:
 #
 #   pre-commit install
 #   pre-commit run --all-files
+#
+# The `rev:` pin below is an example, and it will be out of date. Every merge
+# to this library cuts a release, so any tag written into this file is usually
+# stale within a day. `scripts/install.sh` resolves it at bootstrap, so if you
+# used that, it is already correct.
+#
+# If you copied this file by hand, run this once instead of looking a version
+# up. It touches only this library's entry, never your other hooks:
+#
+#   pre-commit autoupdate --repo https://github.com/ivan-pinatti-labs/pre-commit-checklists
 #
 # checklist-dev-javascript runs Biome's biome-check through a Node
 # `additional_dependencies` pin, so a working `node`/`npm` is needed the
@@ -17,7 +27,7 @@
 # docs/getting-started.md and docs/hook-catalogue.md.
 repos:
   - repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists
-    rev: v2.4.0 # replace with the latest release tag
+    rev: v2.4.0 # an example, see the note above
     hooks:
       - id: checklist-basic
 

@@ -73,7 +73,22 @@ name, without the `.yaml` extension: `minimal`, `recommended`, `full`,
 
 The script:
 
-1. Copies (local mode) or fetches (piped mode) the chosen
+1. Resolves the template's `rev:` pin to this library's latest release, with
+   `pre-commit autoupdate --repo <this library>`, scoped so your other hooks
+   are untouched.
+
+   The pin inside `templates/pre-commit-config/*.yaml` is an example rather
+   than a dependency, and it goes stale fast: every merge here cuts a
+   release. That was harmless while the pinned release defined every hook id
+   a template lists, and stopped being harmless in v2.4.0, which added the
+   flake8-bandit security floor to `checklist-dev-python`. A repository
+   bootstrapped from an older pin resolved fine, ran fine, and quietly had no
+   Python security analysis.
+
+   Best effort: if GitHub is unreachable the bootstrap still completes and
+   tells you the one command to run later. Nothing else about the install
+   depends on it.
+2. Copies (local mode) or fetches (piped mode) the chosen
    `.pre-commit-config.yaml` and the supporting tool configs
    (`.editorconfig`, `.cspell.json`, `.yamllint.yml`,
    `.markdownlint.yaml`, `.lycheeignore`) into your repo, without clobbering
@@ -90,18 +105,18 @@ The script:
    5 lines and demands `all`, `clean` and `test` be phony in every Makefile
    it sees. See
    [`docs/hook-catalogue.md`](hook-catalogue.md#makefile-linting).
-2. With `--community-files`, also copies the GitHub community health
+3. With `--community-files`, also copies the GitHub community health
    files from [`templates/community/`](../templates/community/): issue
    templates, a pull request template, `CODE_OF_CONDUCT.md`,
    `CONTRIBUTING.md`, `SECURITY.md`, and a commented-out `FUNDING.yml`.
    Off by default: plenty of consumers already have their own, and
    silently replacing one would be a bad surprise. Same no-clobber rule
    as everything else the script writes.
-3. Appends the pre-commit log entries from
+4. Appends the pre-commit log entries from
    [`templates/gitignore.fragment`](../templates/gitignore.fragment) to
    your `.gitignore`.
-4. Generates `.secrets.baseline` with `detect-secrets scan`.
-5. Runs `pre-commit install` in your repo, which also wires up the
+5. Generates `.secrets.baseline` with `detect-secrets scan`.
+6. Runs `pre-commit install` in your repo, which also wires up the
    `commit-msg` git hook stage if the template you chose uses it.
 
 Piped mode needs `curl` or `wget`; without either, or if a fetch fails,
