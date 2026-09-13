@@ -17,6 +17,34 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.6
     hooks:
+      # --extend-select S turns on flake8-bandit, the security rules. It is a
+      # floor rather than a preference: ruff with no configuration selects
+      # E4, E7, E9 and F, which is style and undefined names and nothing else,
+      # so a consumer who never wrote a ruff.toml was getting no security
+      # analysis of their own Python at all. Four repositories in this
+      # organization were in exactly that state before this was added, and the
+      # one that was not had discovered the gap by hand and fixed it locally.
+      #
+      # "extend", not "select", on both flags: a consumer's own ruleset and
+      # their own per-file ignores both survive. This adds to their
+      # configuration, it never replaces it. Confirmed against ruff v0.16.6:
+      # with a consumer ruff.toml ignoring F401 in one file, that ignore still
+      # applies while S602 is still reported elsewhere.
+      #
+      # The per-file ignore is S101, "use of assert detected", which fires on
+      # every line of every pytest file. Without it this rule floods any
+      # repository with tests and gets switched off within the day, which is
+      # the failure mode worth designing against. Paths cover the three
+      # conventions pytest itself recognises.
+      #
+      # This is the floor only. templates/ruff.toml carries the fuller ruleset
+      # (bugbear, comprehensions, pyupgrade, isort) for consumers who want it;
+      # scripts/install.sh copies it in.
       - id: ruff-check
-        args: ["--fix"]
+        args:
+          - "--fix"
+          - "--extend-select"
+          - "S"
+          - "--extend-per-file-ignores"
+          - "**/test_*.py:S101,**/tests/**:S101,**/conftest.py:S101"
       - id: ruff-format

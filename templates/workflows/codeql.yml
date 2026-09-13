@@ -1,0 +1,79 @@
+---
+name: CodeQL
+
+# CodeQL security analysis for a consumer of pre-commit-checklists. Copy this
+# into your own .github/workflows/ and set `languages:` below to what your
+# repository actually contains.
+#
+# This is the slow half of the security gate. The fast half runs on every
+# commit through checklist-dev-python (ruff with flake8-bandit) and
+# checklist-dev-shell (shellcheck), and those are the ones that block a pull
+# request. The two are complementary rather than redundant: ruff reads one
+# file at a time and catches the patterns that are wrong on sight, while
+# CodeQL follows data across files and catches the ones that are only wrong
+# in context.
+#
+# Note the triggers: push to the default branch, a weekly schedule, and
+# manual. Deliberately not `pull_request`. Code scanning's alert lineage is
+# built from default-branch analyses, a full CodeQL run adds minutes to every
+# pull request, and in practice nobody acts on its findings inside a review.
+# Blocking belongs to the fast half. If you want this as a required check,
+# understand that you are trading review latency for a class of finding that
+# is usually addressed after merge anyway.
+#
+# CodeQL does not support shell. If your repository ships bash, as several in
+# this organization do, shellcheck through checklist-dev-shell is the only
+# analysis that sees the code that matters most, and this workflow covers
+# whatever tooling sits beside it.
+
+"on":
+  push:
+    branches: [main]
+  schedule:
+    # Pick an off-peak hour. Offset it from any other scheduled security job
+    # in the same repository so the two do not contend for a runner.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # The SARIF upload attaches to this repository's code scanning tab.
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Set this to the languages you actually have. CodeQL supports
+        # python, javascript-typescript, ruby, go, java-kotlin, csharp,
+        # c-cpp, swift, rust and actions. Listing one you do not ship makes
+        # the job fail rather than skip.
+        language: [python]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended rather than the default suite: it keeps the
+          # lower-severity and higher-false-positive security queries the
+          # default omits, which is worth it over a small tooling directory.
+          # Use security-and-quality instead only if nothing else in the
+          # repository covers code quality.
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          # A distinct category per analysis keeps its alert lineage separate
+          # from any container or dependency scan uploading to the same tab.
+          category: codeql-${{ matrix.language }}

@@ -36,7 +36,7 @@ build your own selection from scratch.
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, which covers extensionless files such as `.bashrc` and `.zshrc`; see [Why `checklist-dev-shell` has no baked selector](#why-checklist-dev-shell-has-no-baked-selector) | none |
-| `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |
+| `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`, plus the flake8-bandit security floor, see [Python security rules](#python-security-rules)), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none; `templates/ruff.toml` is optional and `scripts/install.sh` copies it |
 | `checklist-dev-terraform` | terraform-fmt, terraform-validate, tflint | `files: \.tf$` | Terraform CLI |
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
@@ -196,6 +196,100 @@ findings. Swap in whatever check names, or an `--exclude` pattern, a
 given repository needs; the
 [dotenv-linter README](https://github.com/dotenv-linter/dotenv-linter)'s
 "Available checks" list names every check `--ignore-checks` accepts.
+
+## Python security rules
+
+`checklist-dev-python` passes `--extend-select S` to ruff, which turns on
+[flake8-bandit](https://docs.astral.sh/ruff/rules/#flake8-bandit-s). This is a
+floor the checklist enforces, not a default a consumer can drift away from
+without noticing.
+
+### Why it is enforced rather than offered
+
+Ruff with no configuration selects `E4`, `E7`, `E9` and `F`: style, syntax and
+undefined names. No security rules. So a repository that adopts
+`checklist-dev-python` and never writes a `ruff.toml` gets no security analysis
+of its own Python, while appearing to have adopted a Python checklist.
+
+That is not hypothetical. Four repositories in this organization were in
+exactly that state, including this one, whose `scripts/*.py` parse pull request
+diffs and GitHub API responses. A fifth had found the gap by hand months
+earlier and fixed it locally, leaving a comment in its own `ruff.toml` that
+says so:
+
+```toml
+"S",   # flake8-bandit, the security rules this repo was missing
+```
+
+A lesson learned in one repository and not returned to the library is the
+failure this library exists to prevent, so the rule moved here.
+
+### It extends, it never replaces
+
+Both flags are the `extend` form:
+
+```yaml
+args:
+  - "--fix"
+  - "--extend-select"
+  - "S"
+  - "--extend-per-file-ignores"
+  - "**/test_*.py:S101,**/tests/**:S101,**/conftest.py:S101"
+```
+
+`--extend-select` adds to whatever a consumer's own `select` names rather than
+overriding it, and `--extend-per-file-ignores` does the same for their ignores.
+Confirmed against ruff v0.16.6: with a consumer `ruff.toml` ignoring `F401` in
+one file, that ignore still applies while `S602` is still reported elsewhere.
+Nothing a consumer has configured is lost by adopting this id.
+
+### Why S101 is exempted in tests
+
+`S101` is "use of assert detected". In application code an assert used as a
+runtime check is a real finding, because `python -O` removes it. In a pytest
+file it is the entire point, and the rule fires on every assertion in the
+suite.
+
+Shipping the security rules without that exemption would flood any repository
+with tests on the first run, and a check that floods on adoption gets switched
+off the same day. The three path patterns cover the conventions pytest itself
+recognises: `test_*.py` anywhere, anything under a `tests/` directory, and
+`conftest.py`.
+
+If you want `S101` back on for a particular path, add a narrower
+`per-file-ignores` entry in your own config; the checklist's flag extends
+yours rather than fighting it.
+
+### `templates/ruff.toml` is the fuller ruleset, not the floor
+
+The floor travels with the hook id, so it applies whether or not a consumer
+copies anything. [`templates/ruff.toml`](../templates/ruff.toml), which
+`scripts/install.sh` copies in, selects the wider set this library recommends
+(bugbear, comprehensions, pyupgrade, isort, ruff's own rules) and repeats the
+per-file ignores in config form.
+
+Deleting `"S"` from that file does **not** turn the security rules off, because
+the checklist requests them separately. That is deliberate: the fuller ruleset
+is a preference and can be edited freely, while the security floor is not
+meant to be removable by editing a config file the library handed you.
+
+### What this does not cover
+
+Ruff reads one file at a time. It catches what is wrong on sight, such as
+`shell=True` or a hardcoded password, and it runs in under a second on every
+commit. It does not follow data across function or module boundaries, so it
+cannot see a value that arrives untrusted in one file and reaches a dangerous
+call in another.
+
+That is CodeQL's job, and [`templates/workflows/codeql.yml`](../templates/workflows/codeql.yml)
+is a starting point for it. The two are complementary, and the split is
+deliberate: the fast per-file analysis blocks a pull request, while the slow
+cross-file analysis runs on the default branch and reports to the security tab.
+See that template's header for why it carries no `pull_request` trigger.
+
+CodeQL supports no shell at all, so for a repository whose product is bash
+scripts, `checklist-dev-shell`'s shellcheck remains the only analysis that
+sees the code that matters most.
 
 ## Makefile linting
 
