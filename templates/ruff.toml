@@ -1,0 +1,36 @@
+# Ruff configuration for a consumer of pre-commit-checklists.
+#
+# checklist-dev-python already enforces a security floor on its own, by
+# passing --extend-select S to ruff-check, so a repository with no ruff
+# configuration at all still gets flake8-bandit. This file is the fuller
+# ruleset for repositories that want more than the floor, and it is what
+# scripts/install.sh copies in.
+#
+# Nothing here weakens the floor. The checklist's flags extend whatever this
+# file selects rather than replacing it, so removing "S" below does not turn
+# the security rules off; it only stops them being requested twice.
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes, undefined names and unused imports
+    "I",   # isort, import ordering
+    "B",   # flake8-bugbear, likely bugs and design problems
+    "S",   # flake8-bandit, the security rules
+    "UP",  # pyupgrade, drop idioms the target version obsoletes
+    "C4",  # flake8-comprehensions
+    "RUF", # ruff's own rules
+]
+
+[lint.per-file-ignores]
+# S101 is "use of assert detected", which is the entire point of a pytest
+# file. Left on everywhere else, where an assert used as a runtime check
+# disappears under python -O and is a real finding.
+"**/test_*.py" = ["S101"]
+"**/*_test.py" = ["S101"]
+"**/tests/**" = ["S101"]
+"**/conftest.py" = ["S101"]

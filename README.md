@@ -228,7 +228,7 @@ before writing your own.
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust; not the same-named Python project, see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#which-dotenv-linter)) | `files: '(^\|/)\.env(\..+)?$'` | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, extensionless files such as `.bashrc` included | none |
-| `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none |
+| `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`, plus the flake8-bandit security floor, see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#python-security-rules)), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none; `templates/ruff.toml` is optional and `scripts/install.sh` copies it |
 | `checklist-dev-terraform` | terraform-fmt, terraform-validate, tflint | `files: \.tf$` | Terraform CLI |
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
