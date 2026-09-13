@@ -34,8 +34,14 @@ repos:
       # The per-file ignore is S101, "use of assert detected", which fires on
       # every line of every pytest file. Without it this rule floods any
       # repository with tests and gets switched off within the day, which is
-      # the failure mode worth designing against. Paths cover the three
-      # conventions pytest itself recognises.
+      # the failure mode worth designing against. Paths cover the four shapes
+      # pytest itself discovers: test_*.py and *_test.py anywhere, anything
+      # under a tests/ directory, and conftest.py.
+      #
+      # These exemptions are additive and a consumer cannot subtract them: a
+      # narrower per-file-ignores entry of their own adds to the union rather
+      # than carving a hole in it, so S101 cannot be turned back on for a path
+      # named here without dropping this hook id. Measured on ruff v0.16.6.
       #
       # This is the floor only. templates/ruff.toml carries the fuller ruleset
       # (bugbear, comprehensions, pyupgrade, isort) for consumers who want it;
@@ -46,5 +52,5 @@ repos:
           - "--extend-select"
           - "S"
           - "--extend-per-file-ignores"
-          - "**/test_*.py:S101,**/tests/**:S101,**/conftest.py:S101"
+          - "**/test_*.py:S101,**/*_test.py:S101,**/tests/**:S101,**/conftest.py:S101"
       - id: ruff-format

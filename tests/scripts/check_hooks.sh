@@ -208,9 +208,19 @@ test_python_security_floor() {
     return
   fi
 
-  run_hook "${PC}" "checklists/checklist-dev-python.yaml" "" "${__fixture}"
+  __asserting="tests/fixtures/checklist-dev-python/should-pass/test_asserting.py"
+  if [ ! -f "${__asserting}" ]; then
+    fail "python security floor: fixture missing at ${__asserting}"
+    return
+  fi
+
+  # Both fixtures in one invocation. The S101 half needs a file that actually
+  # contains an assert: insecure_sample.py has none, so on its own the "no
+  # S101" assertion passes whether or not the exemption is configured, which
+  # is a test that cannot fail and therefore proves nothing.
+  run_hook "${PC}" "checklists/checklist-dev-python.yaml" "" "${__fixture}" "${__asserting}"
   __out="${HOOK_OUTPUT}"
-  restore_fixtures "${__fixture}"
+  restore_fixtures "${__fixture}" "${__asserting}"
 
   if printf '%s' "${__out}" | grep -q "S602"; then
     pass "python security floor: S602 reported, so --extend-select S is live"
@@ -219,9 +229,9 @@ test_python_security_floor() {
   fi
 
   if printf '%s' "${__out}" | grep -q "S101"; then
-    fail "python security floor: S101 leaked from a test path; the per-file ignore is not applied" "${__out}"
+    fail "python security floor: S101 reported against a test path; the per-file ignore is not applied" "${__out}"
   else
-    pass "python security floor: no S101 noise from test paths"
+    pass "python security floor: assert-bearing test file is exempt from S101"
   fi
 }
 

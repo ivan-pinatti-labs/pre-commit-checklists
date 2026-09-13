@@ -2,8 +2,9 @@
 name: CodeQL
 
 # CodeQL security analysis for a consumer of pre-commit-checklists. Copy this
-# into your own .github/workflows/ and set `languages:` below to what your
-# repository actually contains.
+# into your own .github/workflows/, then edit two things: the `languages:`
+# matrix, to what your repository actually contains, and the push branch
+# filter, to your default branch.
 #
 # This is the slow half of the security gate. The fast half runs on every
 # commit through checklist-dev-python (ruff with flake8-bandit) and
@@ -28,6 +29,13 @@ name: CodeQL
 
 "on":
   push:
+    # Your default branch, which is where code scanning builds alert lineage
+    # from. If yours is not called main, change it here: a filter naming a
+    # branch this repository does not have means CodeQL never runs on a merge
+    # at all, and the weekly schedule below becomes the only thing keeping the
+    # security tab current, delaying a finding by up to seven days. There is no
+    # expression form for the default branch in an `on:` filter, so this is a
+    # literal you have to edit.
     branches: [main]
   schedule:
     # Pick an off-peak hour. Offset it from any other scheduled security job

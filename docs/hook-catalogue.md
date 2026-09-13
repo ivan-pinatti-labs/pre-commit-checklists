@@ -234,14 +234,30 @@ args:
   - "--extend-select"
   - "S"
   - "--extend-per-file-ignores"
-  - "**/test_*.py:S101,**/tests/**:S101,**/conftest.py:S101"
+  - "**/test_*.py:S101,**/*_test.py:S101,**/tests/**:S101,**/conftest.py:S101"
 ```
 
 `--extend-select` adds to whatever a consumer's own `select` names rather than
 overriding it, and `--extend-per-file-ignores` does the same for their ignores.
-Confirmed against ruff v0.16.6: with a consumer `ruff.toml` ignoring `F401` in
-one file, that ignore still applies while `S602` is still reported elsewhere.
 Nothing a consumer has configured is lost by adopting this id.
+
+Measured on ruff v0.16.6, because the precedence is not obvious and guessing it
+wrong in either direction is expensive:
+
+| Consumer `ruff.toml` | `S602` still reported |
+| --- | --- |
+| `ignore = ["S"]` | yes |
+| `extend-ignore = ["S"]` | yes |
+| `ignore = ["S602"]` | yes |
+| `select = ["E", "F"]` | yes |
+| `per-file-ignores = {"app.py" = ["S"]}` | **no** |
+
+So the floor survives a consumer's `select` and `ignore` lists, and their own
+`F401` per-file ignore still applies alongside it. One route does switch it
+off: a `per-file-ignores` entry covering the path. That is a deliberate,
+path-scoped act rather than something anyone does by accident, but it means
+this is a floor by default and not a floor by force. If you need it
+unremovable, that is a branch protection question rather than a ruff one.
 
 ### Why S101 is exempted in tests
 
@@ -252,13 +268,18 @@ suite.
 
 Shipping the security rules without that exemption would flood any repository
 with tests on the first run, and a check that floods on adoption gets switched
-off the same day. The three path patterns cover the conventions pytest itself
-recognises: `test_*.py` anywhere, anything under a `tests/` directory, and
-`conftest.py`.
+off the same day. The four path patterns cover what pytest itself discovers: `test_*.py` and
+`*_test.py` anywhere, anything under a `tests/` directory, and `conftest.py`.
+`*_test.py` matters because a file like `parser_test.py` sitting beside the
+module it tests is outside `tests/` and would otherwise be flooded.
 
-If you want `S101` back on for a particular path, add a narrower
-`per-file-ignores` entry in your own config; the checklist's flag extends
-yours rather than fighting it.
+These exemptions cannot be narrowed back. `--extend-per-file-ignores` unions
+the hook's patterns with the consumer's, and a union has no subtraction, so
+adding your own entry adds suppression rather than removing it. Confirmed on
+ruff v0.16.6: with the flag present, `S101` is silent in `tests/` no matter
+what the consumer's own `per-file-ignores` says, and reappears only when the
+flag is absent. Turning `S101` back on for a path listed here therefore means
+not using this hook id for that path.
 
 ### `templates/ruff.toml` is the fuller ruleset, not the floor
 
@@ -269,9 +290,10 @@ copies anything. [`templates/ruff.toml`](../templates/ruff.toml), which
 per-file ignores in config form.
 
 Deleting `"S"` from that file does **not** turn the security rules off, because
-the checklist requests them separately. That is deliberate: the fuller ruleset
-is a preference and can be edited freely, while the security floor is not
-meant to be removable by editing a config file the library handed you.
+the checklist requests them separately, and neither does adding `S` to
+`ignore`. The fuller ruleset is a preference and can be edited freely. The one
+edit that does switch the floor off for a path is a `per-file-ignores` entry
+naming it, per the table above.
 
 ### What this does not cover
 
