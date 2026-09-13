@@ -262,9 +262,10 @@ project conventions rather than correctness checks:
 
 - `maxbodylength` caps target bodies at 5 lines. A single `docker run` with
   its flags on separate lines already exceeds that, so on a real Makefile this
-  rule fires on nearly every target. Its own key only raises the cap; the
-  shipped config raises it to 70 rather than switching the rule off with
-  `disabled` (see below), so a genuinely runaway recipe still gets caught.
+  rule fires on nearly every target. Two separate knobs: `maxBodyLength` only
+  raises the cap and cannot switch the rule off, while `disabled = true` can
+  (see below). The shipped config raises the cap to 70 and leaves the rule
+  enabled, so a genuinely runaway recipe still gets caught.
 - `minphony` requires `all`, `clean` **and** `test` to be declared phony in
   every Makefile it is handed, sub-Makefiles included. The shipped config
   reduces that to `all`. Setting `required =` to the empty string disables the
