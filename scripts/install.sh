@@ -55,6 +55,7 @@ set -o pipefail
 set -o nounset
 
 readonly GITHUB_OWNER_REPO="ivan-pinatti-labs/pre-commit-checklists"
+readonly LIBRARY_URL="https://github.com/${GITHUB_OWNER_REPO}"
 
 __template="recommended"
 __target=""
@@ -447,12 +448,58 @@ if ! command -v pre-commit >/dev/null 2>&1; then
   exit 5
 fi
 
+# Resolve the template's rev: pin to whatever this library's latest release
+# actually is.
+#
+# The pin inside templates/pre-commit-config/*.yaml is an example, not a
+# dependency: nothing in this repository consumes it, and it names a tag that
+# was current when someone last typed it. It goes stale immediately, because
+# every merge here cuts a release, so any literal written into those files is
+# usually wrong within a day.
+#
+# That was harmless while the pinned release defined every hook id the
+# templates list. It stopped being harmless in v2.4.0, which added the
+# flake8-bandit security floor to checklist-dev-python: a repository
+# bootstrapped from a template pinned before it resolved fine, ran fine, and
+# quietly had no Python security analysis. Nothing failed, so nothing said so.
+#
+# One autoupdate call fixes that at the only moment it matters, and scoping it
+# with --repo means a consumer's other hooks are left exactly where they were;
+# this is not the place to bump somebody else's pins for them.
+#
+# Best effort on purpose. This script's exit codes are a documented contract
+# (see the header), and a network blip is not a reason to fail a bootstrap
+# that has already written every file correctly. On failure it says what to
+# run instead, and the pin stays at the template's value, which is exactly
+# where it would have been without this step.
+__pin_note="  1. Update the 'rev:' pin in .pre-commit-config.yaml to a published tag."
+if (cd "${__target}" && pre-commit autoupdate --repo "${LIBRARY_URL}" >/dev/null 2>&1); then
+  # [[:space:]] rather than \s: the latter is a GNU extension that BSD grep,
+  # which is what macOS ships, does not accept in an ERE. And `|| true`,
+  # because this whole assignment only exists to print a version in a
+  # message. errexit plus pipefail would otherwise let a failed grep abort a
+  # bootstrap that has already succeeded, which is a bad trade for a cosmetic
+  # line.
+  __resolved=$(grep -E '^[[:space:]]+rev:' "${__target}/.pre-commit-config.yaml" |
+    head -1 | awk '{print $2}') || true
+  if [ -n "${__resolved}" ]; then
+    echo "Resolved the pre-commit-checklists pin to ${__resolved}."
+  else
+    echo "Resolved the pre-commit-checklists pin to this library's latest release."
+  fi
+  __pin_note="  1. The 'rev:' pin is already at this library's latest release."
+else
+  echo "Note: could not reach GitHub to resolve the 'rev:' pin, so it is still the template's example value." >&2
+  echo "      Run this in '${__target}' when you have a connection:" >&2
+  echo "        pre-commit autoupdate --repo ${LIBRARY_URL}" >&2
+fi
+
 (cd "${__target}" && pre-commit install)
 
 cat <<EOF
 
 Done. Next steps in '${__target}':
-  1. Update the 'rev:' pin in .pre-commit-config.yaml to a published tag.
+${__pin_note}
   2. Review .secrets.baseline and commit it.
   3. Run: pre-commit run --all-files
 EOF
