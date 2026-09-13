@@ -193,6 +193,48 @@ test_github_actions_dogfood_wiring() {
   assert_selected "checklist-github-actions/dogfood-wiring"
 }
 
+# The flake8-bandit floor in checklist-dev-python is the whole reason that
+# checklist carries args at all, and a should-fail fixture alone cannot prove
+# it: the fixtures directory already fails for an unrelated reason (a leftover
+# pdb call), so the suite would stay green if --extend-select S were deleted
+# tomorrow. This asserts the rule by name against the one fixture that is
+# clean under ruff's own defaults.
+test_python_security_floor() {
+  section "checklist-dev-python: flake8-bandit floor"
+
+  __fixture="tests/fixtures/checklist-dev-python/should-fail/insecure_sample.py"
+  if [ ! -f "${__fixture}" ]; then
+    fail "python security floor: fixture missing at ${__fixture}"
+    return
+  fi
+
+  __asserting="tests/fixtures/checklist-dev-python/should-pass/test_asserting.py"
+  if [ ! -f "${__asserting}" ]; then
+    fail "python security floor: fixture missing at ${__asserting}"
+    return
+  fi
+
+  # Both fixtures in one invocation. The S101 half needs a file that actually
+  # contains an assert: insecure_sample.py has none, so on its own the "no
+  # S101" assertion passes whether or not the exemption is configured, which
+  # is a test that cannot fail and therefore proves nothing.
+  run_hook "${PC}" "checklists/checklist-dev-python.yaml" "" "${__fixture}" "${__asserting}"
+  __out="${HOOK_OUTPUT}"
+  restore_fixtures "${__fixture}" "${__asserting}"
+
+  if printf '%s' "${__out}" | grep -q "S602"; then
+    pass "python security floor: S602 reported, so --extend-select S is live"
+  else
+    fail "python security floor: no S602 in output; the security rules are not running" "${__out}"
+  fi
+
+  if printf '%s' "${__out}" | grep -q "S101"; then
+    fail "python security floor: S101 reported against a test path; the per-file ignore is not applied" "${__out}"
+  else
+    pass "python security floor: assert-bearing test file is exempt from S101"
+  fi
+}
+
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make; do
   test_checklist "${id}"
 done
@@ -200,6 +242,8 @@ done
 test_checklist "checklist-github-actions" "tests/config/checklist-github-actions.override.yaml"
 
 test_github_actions_dogfood_wiring
+
+test_python_security_floor
 
 test_protected_branches
 

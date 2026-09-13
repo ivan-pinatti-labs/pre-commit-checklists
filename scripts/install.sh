@@ -346,6 +346,7 @@ else
   fetch_required ".markdownlint.yaml" "could not find templates/.markdownlint.yaml at ref '${__ref}'."
   fetch_optional ".markdown-link-check.json"
   fetch_optional "checkmake.ini"
+  fetch_optional "ruff.toml"
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
@@ -399,6 +400,7 @@ copy_file "${TEMPLATES_DIR}/.yamllint.yml" "${__target}/.yamllint.yml" || true
 copy_file "${TEMPLATES_DIR}/.markdownlint.yaml" "${__target}/.markdownlint.yaml" || true
 copy_file "${TEMPLATES_DIR}/.markdown-link-check.json" "${__target}/.markdown-link-check.json" || true
 copy_file "${TEMPLATES_DIR}/checkmake.ini" "${__target}/checkmake.ini" || true
+copy_file "${TEMPLATES_DIR}/ruff.toml" "${__target}/ruff.toml" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
 
 if [ "${__community_files}" = true ]; then
