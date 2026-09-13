@@ -21,7 +21,7 @@
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
   - repo: https://github.com/ivan-pinatti-labs/pre-commit-checklists
-    rev: v2.3.0 # replace with the latest release tag
+    rev: v2.4.0 # replace with the latest release tag
     hooks:
       # -- General file hygiene --------------------------------------
       - id: checklist-basic
