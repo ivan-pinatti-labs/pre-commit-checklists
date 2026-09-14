@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.json
 #
-# CodeRabbit picks up CLAUDE.md automatically as review guidelines, so its
+# CodeRabbit picks up AGENTS.md automatically as review guidelines, so its
 # rules (no hyphens/dashes as punctuation, no AI attribution, etc.) don't
 # need restating here.
 
@@ -26,7 +26,7 @@ reviews:
     # CodeRabbit is a GitHub App posting a check, not a workflow job, so it
     # cannot be ordered after the linters with `needs:` the way a workflow
     # job can. Skipping drafts is the lever instead: open a pull request as
-    # a draft (see CLAUDE.md, "Pull requests"), let pre-commit finish, then
+    # a draft (see AGENTS.md, "Pull requests"), let pre-commit finish, then
     # mark it ready. CodeRabbit then reviews once, against a diff the
     # mechanical linters and checklists have already cleaned, instead of
     # re-reviewing after every fixup commit.
@@ -75,6 +75,6 @@ reviews:
 knowledge_base:
   code_guidelines:
     filePatterns:
-      # Not auto-detected the way CLAUDE.md is, so listed explicitly.
+      # Not auto-detected the way AGENTS.md is, so listed explicitly.
       - "docs/hook-catalogue.md"
       - "docs/versioning.md"

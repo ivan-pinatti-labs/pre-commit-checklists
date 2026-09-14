@@ -87,6 +87,8 @@
     "venv",
     "virtualenv",
     "wemake",
+    "worktree",
+    "worktrees",
     "xkcd",
     "yamllint",
     "zizmor"
