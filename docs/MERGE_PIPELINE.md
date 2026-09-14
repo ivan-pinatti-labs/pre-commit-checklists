@@ -9,7 +9,7 @@ actually contains: a hook checklist library with a real self-test suite
 (`tests/run_tests.sh`) but no build, no Docker image, and no app code of its
 own. Where the reasoning is identical to rsync-crypt's it is only
 summarized here, not restated; see that repository's `docs/MERGE_PIPELINE.md`
-for the fuller version this one was trimmed from, and its `CLAUDE.md` for the
+for the fuller version this one was trimmed from, and its `AGENTS.md` for the
 operational gotchas (recognizing a genuine CodeRabbit review, recovering a
 rebased branch, and so on) that apply here unchanged.
 
@@ -181,7 +181,7 @@ that fails it falls through to lane three); everything else is `success`
 only for the literal description `Review completed`, with an in-flight
 review (`Review queued`/`Review in progress`) read as `pending` rather than
 `failure`. See that script's own docstring for the full reasoning, and
-rsync-crypt's `CLAUDE.md`, "Knowing whether CodeRabbit has actually reviewed
+rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
 
@@ -201,7 +201,7 @@ pull request at once.
 
 For a stuck review specifically (not a stuck grading run), the actual fix is
 a genuine human `@coderabbitai review` comment: `coderabbit-review-queue.yml`
-posts that hourly through a bot account, and per rsync-crypt's `CLAUDE.md`,
+posts that hourly through a bot account, and per rsync-crypt's `AGENTS.md`,
 "CodeRabbit silently ignores `@coderabbitai review` from a bot account,"
 that comment does not reliably make CodeRabbit start a review. Check the
 pull request's comments for a `coderabbitai[bot]` reply before assuming the
@@ -271,5 +271,5 @@ Left out, and why:
 
 ---
 
-See also: [README.md](../README.md), [CLAUDE.md](../CLAUDE.md),
+See also: [README.md](../README.md), [AGENTS.md](../AGENTS.md),
 [docs/versioning.md](versioning.md)

@@ -282,7 +282,7 @@ jobs:
             # workflow trigger), but that is not the constraint that matters
             # here. CodeRabbit silently ignores an `@coderabbitai review`
             # command posted by a bot account, the same way it ignores a pull
-            # request authored by one: see rsync-crypt's CLAUDE.md,
+            # request authored by one: see rsync-crypt's AGENTS.md,
             # "CodeRabbit silently ignores `@coderabbitai review` from a bot
             # account", for that repository's own confirmation of the
             # behaviour. GITHUB_TOKEN posts as github-actions[bot], so this
