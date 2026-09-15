@@ -4,7 +4,7 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,Z",
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,relabel=private",
   "workspaceFolder": "${localWorkspaceFolder}",
   "runArgs": [
     "--userns=keep-id",
