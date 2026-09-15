@@ -215,8 +215,11 @@ hook fires because local work happens on `main`.
   checklists), Python 3.10+ and pip (for zizmor, installed into its own
   `language: python` environment via `additional_dependencies`; that
   floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
-  definition does not pin `language_version` to enforce it), a
-  Terraform + `tflint` toolchain (for `checklist-dev-terraform`), and a Go
+  definition does not pin `language_version` to enforce it), `terraform`
+  and `tflint` at the versions pinned in `.tool-versions` (for
+  `checklist-dev-terraform`, which runs them against the fixtures under
+  `tests/fixtures/checklist-dev-terraform/`; `asdf install` provides both
+  alongside `pre-commit`), and a Go
   toolchain (for `checkmake` in `checklist-dev-make`, which pre-commit
   builds from source through `language: golang`; recent pre-commit
   provisions Go itself if one is not already on PATH).
