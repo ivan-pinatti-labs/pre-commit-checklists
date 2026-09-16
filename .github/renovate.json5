@@ -75,8 +75,18 @@
   // plugin commits in .devcontainer/asdf-plugins (see customManagers below).
   // The plugin commits are the one surface scripts/assert-pin-only-diff.py
   // does not grade as a pin, deliberately: a plugin change is code, and
-  // `Pin Only` sending it to a person is the intended outcome.
-  enabledManagers: ["asdf", "pre-commit", "custom.regex", "github-actions"],
+  // `Pin Only` sending it to a person is the intended outcome. "dockerfile"
+  // watches the base image digest .devcontainer/Dockerfile pins, scoped to
+  // that one file by the packageRules entry further down, and is graded the
+  // same way: that path is not a pin surface either, so a digest bump waits
+  // for a person.
+  enabledManagers: [
+    "asdf",
+    "pre-commit",
+    "custom.regex",
+    "github-actions",
+    "dockerfile",
+  ],
 
   // A cooling window before an update is offered at all, mirroring
   // rsync-crypt's own reasoning (itself mirroring docker-torrent-box-with-vpn's,
@@ -154,6 +164,23 @@
       groupName: "asdf tool versions",
       groupSlug: "asdf-tools",
       labels: ["dependencies", "tooling"],
+    },
+    // The development container's base image, pinned by digest in
+    // .devcontainer/Dockerfile. matchFileNames is what keeps the dockerfile
+    // manager to that one file: any other Dockerfile this repository grows
+    // later stays unwatched until someone widens this deliberately.
+    //
+    // Never merged unattended. scripts/assert-pin-only-diff.py does not grade
+    // .devcontainer/Dockerfile as a pin surface, so `Pin Only` routes the
+    // pull request to a person anyway; saying it here means the policy does
+    // not depend on that script's path list staying as it is.
+    {
+      matchManagers: ["dockerfile"],
+      matchFileNames: [".devcontainer/Dockerfile"],
+      groupName: "development container base image",
+      groupSlug: "devcontainer-base",
+      labels: ["dependencies", "tooling"],
+      automerge: false,
     },
     // An asdf plugin is code: `asdf install` runs its scripts to download and
     // install each tool, inside a development container that holds a GitHub
