@@ -1,0 +1,16 @@
+# The asdf plugin behind every tool in .tool-versions, pinned to a reviewed
+# commit. A plugin is a git repository of shell scripts, and `asdf install`
+# runs them to download and install each tool, so an unpinned plugin would
+# run whatever its repository holds on the day the image is built.
+# .devcontainer/Dockerfile adds each plugin from the URL below and checks out
+# that commit before installing anything.
+#
+# One line per plugin: name, repository URL, branch, commit. A tool added to
+# .tool-versions needs its plugin added here too, or the build fails; read the
+# plugin's bin/ scripts at the commit you pin. Renovate proposes new commits
+# for review.
+github-cli https://github.com/bartlomiejdanek/asdf-github-cli.git master e0605b704ef3829e10a9353b91b4c0bafa5e5582
+pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git master 26bfc420d6009f700514d6218cc28947d1c3aad9
+shellcheck https://github.com/luizm/asdf-shellcheck.git master 8b954a95d44b8d8a6c6cd5a5a52ed643b7bb52e3
+terraform https://github.com/asdf-community/asdf-hashicorp.git master d2557f97752761eecb50f63cd31b64c236d23089
+tflint https://github.com/skyzyx/asdf-tflint.git master 37e7eb9b758bbe77319ee312fc3764ef9d0944aa

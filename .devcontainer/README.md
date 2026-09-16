@@ -77,10 +77,16 @@ connection, so the development container verifies the host strictly.
 
 ## Starting it
 
-Open the repository's main clone, not a worktree, and choose **Reopen in
-Container**. Worktrees created inside the container work normally. A worktree
-opened directly does not, because its git metadata lives in the main clone,
-outside the folder that gets mounted.
+Open the repository's main clone as a folder of its own, and choose **Reopen
+in Container**.
+
+- Not a worktree. Worktrees created inside the container work normally, but a
+  worktree opened directly does not, because its git metadata lives in the
+  main clone, outside the folder that gets mounted.
+- Not inside a multi-root workspace (a window titled "Untitled (Workspace)").
+  There the Dev Containers extension does not find this configuration, and
+  offers to add a new one to the workspace or to the user data folder
+  instead. Neither is this one; open the folder by itself.
 
 ## Why each run argument
 
@@ -104,3 +110,10 @@ tests/run_tests.sh
 Tool versions come only from this repository's `.tool-versions`. A tool it
 does not pin is missing in the container rather than borrowed from somewhere
 else, which is how a missing pin shows up.
+
+The asdf plugins that install those tools are pinned too, in
+`.devcontainer/asdf-plugins`: each from its repository URL, at a commit
+someone has read. A plugin is a set of scripts that `asdf install` runs, so a
+new tool needs its plugin added there (the build fails without it), and
+Renovate proposes new plugin commits as pull requests for a person to review,
+never merged automatically.

@@ -71,8 +71,11 @@
   // see that manager's own config below for how the two are covered.
   // "github-actions" watches every `uses: ...@<sha> # vX.Y.Z` pin under
   // .github/workflows/. "custom.regex" watches the three checklist-embedded
-  // version strings the built-in pre-commit manager cannot see (see
-  // customManagers below).
+  // version strings the built-in pre-commit manager cannot see, and the asdf
+  // plugin commits in .devcontainer/asdf-plugins (see customManagers below).
+  // The plugin commits are the one surface scripts/assert-pin-only-diff.py
+  // does not grade as a pin, deliberately: a plugin change is code, and
+  // `Pin Only` sending it to a person is the intended outcome.
   enabledManagers: ["asdf", "pre-commit", "custom.regex", "github-actions"],
 
   // A cooling window before an update is offered at all, mirroring
@@ -151,6 +154,27 @@
       groupName: "asdf tool versions",
       groupSlug: "asdf-tools",
       labels: ["dependencies", "tooling"],
+    },
+    // An asdf plugin is code: `asdf install` runs its scripts to download and
+    // install each tool, inside a development container that holds a GitHub
+    // token. A new plugin commit therefore waits for a person to read what
+    // changed in that plugin, and never merges on its own. It is a digest
+    // update, which the automerge rule above never matches either.
+    //
+    // git-refs publishes no release timestamps, and under Renovate's default
+    // minimumReleaseAgeBehaviour (timestamp-required) the 7 day window above
+    // would then hold every plugin commit back forever, silently.
+    // timestamp-optional lets the update be offered; the review stands in for
+    // the age window here.
+    {
+      matchManagers: ["custom.regex"],
+      matchDatasources: ["git-refs"],
+      matchFileNames: [".devcontainer/asdf-plugins"],
+      groupName: "asdf plugins",
+      groupSlug: "asdf-plugins",
+      labels: ["dependencies", "tooling"],
+      minimumReleaseAgeBehaviour: "timestamp-optional",
+      automerge: false,
     },
     // One pull request for every action bump, matching the shape
     // dependabot.yml used to give this ecosystem
@@ -238,8 +262,8 @@
   // matches despite "pre-commit" already being listed in enabledManagers
   // above). enabledManagers only controls which managers are allowed to run
   // at all; it does not flip an individually-disabled manager back on. The
-  // three customManagers below need no such key: customType: "regex"
-  // managers have no per-manager enabled default to override.
+  // customManagers below need no such key: customType: "regex" managers
+  // have no per-manager enabled default to override.
   "pre-commit": {
     enabled: true,
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
@@ -282,6 +306,20 @@
       matchStrings: ["markdown-link-check@(?<currentValue>[0-9.]+)"],
       datasourceTemplate: "npm",
       depNameTemplate: "markdown-link-check",
+    },
+    {
+      // The asdf plugin commits the development container pins in
+      // .devcontainer/asdf-plugins, one line per plugin: name, repository
+      // URL, branch, commit. git-refs reads the named branch's current
+      // commit, so a new commit there arrives as a digest update to that
+      // line. See the matching packageRules entry for why a person reviews
+      // every one.
+      customType: "regex",
+      managerFilePatterns: ["/^\\.devcontainer/asdf-plugins$/"],
+      matchStrings: [
+        "(?<depName>[a-z0-9-]+) (?<packageName>https://\\S+) (?<currentValue>\\S+) (?<currentDigest>[0-9a-f]{40})",
+      ],
+      datasourceTemplate: "git-refs",
     },
   ],
 }
