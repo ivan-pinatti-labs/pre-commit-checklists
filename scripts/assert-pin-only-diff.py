@@ -31,7 +31,7 @@ malicious. `actionlint`'s `rev: v1.7.12` becoming `rev: v1.7.13` is exactly
 the change this file exists to permit, and no amount of diff reading can tell
 a good release from a backdoored one.
 
-Four pin surfaces, and nothing else, chosen to match where a version pin
+Five pin surfaces, and nothing else, chosen to match where a version pin
 actually lives in this repository:
 
 - `.tool-versions`: asdf tool versions (`pre-commit 4.5.1`), owned by
@@ -50,6 +50,11 @@ actually lives in this repository:
   matches.
 - `.github/workflows/`: `uses: ...@<sha> # vX` action pins, owned by
   Renovate's github-actions manager.
+- `.devcontainer/Dockerfile`: the development container base image, pinned
+  by digest as `ARG BASE_IMAGE=<image>@sha256:<64 hex>` and owned by
+  Renovate's dockerfile manager. IMAGE_DIGEST below grades it, and only the
+  digest is treated as the version; the image reference itself stays
+  literal.
 
 Deliberately not a pin surface here: the three version strings inside
 checklists/*.yaml that a Renovate *custom.regex* manager watches instead of
@@ -71,11 +76,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+# `.devcontainer/Dockerfile` was missing here for as long as Renovate has
+# been watching its base image digest, so every bump was refused as "not a
+# dependency pin file" and had to be merged by hand past a required check.
 ALLOWED_PATHS = (
     ".tool-versions",
     ".pre-commit-config.yaml",
     "checklists/",
     ".github/workflows/",
+    ".devcontainer/Dockerfile",
 )
 
 # A released version, always starting with a digit (an optional single
@@ -153,6 +162,18 @@ ACTION_SHA = re.compile(
     r"(?P<prefix>^(?:[ \t]*-[ \t]+)?[ \t]*uses:[ \t]+[\w.-]+/[\w./-]+@)"
     r"[0-9a-fA-F]{40}(?![0-9a-fA-F])"
     r"(?P<comment>[ \t]*#[ \t]*" + RELEASE + r")?"
+)
+
+# The development container base image, pinned by digest in
+# `.devcontainer/Dockerfile` as `ARG BASE_IMAGE=<image>@sha256:<64 hex>`.
+#
+# Only the digest becomes a placeholder; the image reference to the left of
+# the `@` stays literal. A bump that also pointed the ARG at a different
+# image or registry therefore reads as a structural change and is refused,
+# the same way a swapped owner is for a `uses:` pin. The `$` anchor stops
+# trailing text appended after the digest from normalizing away.
+IMAGE_DIGEST = re.compile(
+    r"(?P<prefix>^ARG [A-Z0-9_]+=[\w./-]+(?::[\w.-]+)?@)sha256:[0-9a-f]{64}$"
 )
 
 FILE_HEADER = re.compile(r"^diff --git a/(?P<old>.+) b/(?P<new>.+)$")
@@ -301,8 +322,16 @@ def normalize(line: str, path: str = "", in_block_scalar: bool = False) -> str:
     """Reduce a line to everything about it that a version bump may not change."""
     if path.endswith(".tool-versions"):
         return TOOL_VERSION_LINE.sub(r"\g<prefix><version>", line)
-    if in_block_scalar:
+    # Scoped to .github/workflows/, because a block scalar (`run: |`) is a
+    # YAML construct and cannot occur in a Dockerfile at all, while
+    # _in_block_scalar answers True whenever the diff shows no line
+    # shallower than the change. Left unscoped, every `ARG` line at
+    # indentation zero came back unnormalized and every base image digest
+    # bump was refused even once the path and the grammar were right.
+    if in_block_scalar and path.startswith(".github/workflows/"):
         return line
+    if path == ".devcontainer/Dockerfile":
+        return IMAGE_DIGEST.sub(r"\g<prefix><digest>", line)
     line = ACTION_SHA.sub(_normalize_action_sha, line)
     line = BARE_ACTION_VERSION.sub(_normalize_bare_action_version, line)
     line = REV_PIN.sub(r"\g<prefix><version>", line)
