@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# The doc block below is a single quoted string, so it can hold no
+# apostrophe at all: a stray one closes the quote and every line after it
+# is parsed as shell, which fails the whole script rather than one phase.
+# That is why the first sentence reads "this library own test suite"
+# instead of the natural phrasing, and why new phase descriptions have to
+# avoid possessives too.
 : '
   Single entry point for this library own test suite. Run from anywhere;
   it cds to the repo root itself.
@@ -12,6 +18,10 @@
     selectors:  static guard, no hook combines types/types_or with files
                 (the defect-2/3 shape), across .pre-commit-hooks.yaml,
                 checklists/*.yaml and templates/pre-commit-config/*.yaml
+    pins:       static guard, the verdict scripts/assert-pin-only-diff.py
+                returns for each diff shape it has to judge, since that
+                verdict is what stands between a dependency bot pull
+                request and an unattended merge
     hooks:      per-checklist fixture tests (should-pass/should-fail)
                 plus the dogfood-wiring selection guard for defects 2/3
     shell:      shellcheck plus behavioral tests of scripts/*.sh
@@ -38,7 +48,7 @@ set -o nounset
 HERE=$(dirname "$(realpath "${0}")")
 cd "${HERE}/.."
 
-ALL_PHASES="selectors hooks shell links consumer commit"
+ALL_PHASES="selectors pins hooks shell links consumer commit"
 PHASES="${*:-${ALL_PHASES}}"
 
 OVERALL_EXIT=0
@@ -63,6 +73,9 @@ for phase in ${PHASES}; do
   case "${phase}" in
   selectors)
     run_phase selectors "Phase: selector lint (static AND-selector guard)" "python3 tests/scripts/test_selector_lint.py"
+    ;;
+  pins)
+    run_phase pins "Phase: Pin Only gate verdicts (static)" "python3 tests/scripts/test_pin_only_diff.py"
     ;;
   hooks)
     run_phase hooks "Phase: checklist fixtures + dogfood-wiring guard" "tests/scripts/check_hooks.sh"

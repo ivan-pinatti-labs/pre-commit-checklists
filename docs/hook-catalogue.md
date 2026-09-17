@@ -32,7 +32,7 @@ build your own selection from scratch.
 | `checklist-git-valid-branches` | `scripts/check-branch-name.sh` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
-| `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned v1.29.0, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
+| `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned to an explicit release, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
 | `checklist-dev-editorconfig` | editorconfig-checker | all files subject to `.editorconfig` (no selector needed) | `.editorconfig` at repo root |
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, which covers extensionless files such as `.bashrc` and `.zshrc`; see [Why `checklist-dev-shell` has no baked selector](#why-checklist-dev-shell-has-no-baked-selector) | none |
@@ -501,11 +501,11 @@ references, none of which actionlint checks at all.
 zizmor has no first party `.pre-commit-hooks.yaml` of its own (a plain
 request for one against its GitHub repository returns 404), so this is a
 `repo: local` hook, `language: python`, pinned via
-`additional_dependencies: ["zizmor==1.29.0"]` rather than a `repo:` +
+`additional_dependencies: ["zizmor==X.Y.Z"]` rather than a `repo:` +
 `rev:` entry. See [`docs/versioning.md`](versioning.md) for what that
 means for how this pin moves.
 
-**zizmor 1.29.0 needs Python 3.10 or newer; neither hook definition sets
+**zizmor needs Python 3.10 or newer; neither hook definition sets
 `language_version`, on purpose.** PyPI reports `requires_python: >=3.10`
 for this pin, but that floor is a fact about zizmor, not something a
 `language: python` hook enforces on its own, so it is documented here,
@@ -532,7 +532,7 @@ cannot express this requirement at all. Leaving `language_version`
 unset is what actually keeps this hook working across 3.10 and up; a
 consumer whose ambient `python3` predates 3.10 gets a clear failure
 straight from pip's own resolver at install time (`Ignored the following
-versions that require a different python version: ... 1.29.0
+versions that require a different python version: ... 1.30.1
 Requires-Python >=3.10`, confirmed directly against PyPI), not a
 mysterious one, which is what documenting the floor here is for.
 
