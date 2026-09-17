@@ -42,6 +42,11 @@ OTHER_SHA = "b" * 40
 WORKFLOW = ".github/workflows/pull-request.yml"
 CHECKLIST = "checklists/checklist-github-actions.yaml"
 DOCS = "docs/hook-catalogue.md"
+DEVCONTAINER = ".devcontainer/Dockerfile"
+
+BASE_IMAGE = "ghcr.io/ivan-pinatti-labs/devcontainer-base"
+DIGEST = "4" * 64
+OTHER_DIGEST = "7" * 64
 
 ACCEPT = 0
 REFUSE = 1
@@ -168,6 +173,37 @@ CASES = [
         diff(
             DOCS,
             " prose\n-pinned v1.29.0\n+pinned v1.30.1\n",
+        ),
+    ),
+    (
+        "the development container base image digest moving",
+        ACCEPT,
+        diff(
+            DEVCONTAINER,
+            " # comment\n"
+            f"-ARG BASE_IMAGE={BASE_IMAGE}@sha256:{DIGEST}\n"
+            f"+ARG BASE_IMAGE={BASE_IMAGE}@sha256:{OTHER_DIGEST}\n",
+        ),
+    ),
+    (
+        "that digest moving while the image itself is swapped",
+        REFUSE,
+        diff(
+            DEVCONTAINER,
+            " # comment\n"
+            f"-ARG BASE_IMAGE={BASE_IMAGE}@sha256:{DIGEST}\n"
+            f"+ARG BASE_IMAGE=ghcr.io/attacker/devcontainer-base"
+            f"@sha256:{OTHER_DIGEST}\n",
+        ),
+    ),
+    (
+        "an unrelated line in the development container Dockerfile",
+        REFUSE,
+        diff(
+            DEVCONTAINER,
+            " # comment\n"
+            "-RUN apt-get install -y curl\n"
+            "+RUN apt-get install -y curl ca-certificates\n",
         ),
     ),
 ]
