@@ -16,6 +16,45 @@
   // that matter.
   extends: ["config:recommended"],
 
+  // Restated because config:recommended extends :ignoreModulesAndTests,
+  // which sets exactly:
+  //   **/node_modules/**, **/bower_components/**, **/vendor/**,
+  //   **/examples/**, **/__tests__/**, **/test/**, **/tests/**,
+  //   **/__fixtures__/**
+  // Read out of node_modules/renovate/dist/config/presets/internal/
+  // default.preset.js at renovate 44.69.12, and confirmed as the effective
+  // value by a dry-run=extract against a scratch repository extending
+  // config:recommended and nothing else.
+  //
+  // **/tests/** is the single glob dropped, because the zizmor custom
+  // manager below watches two files and one of them lives under tests/.
+  // While that glob applied, the manager could never see it: the file
+  // matched managerFilePatterns and ignorePaths discarded it before
+  // extraction, silently. Measured both ways against this repository, with
+  // ignorePaths cleared the override file appears in extract and with the
+  // preset value it is absent while the checklist alone is found.
+  //
+  // tests/fixtures/** is then excluded explicitly, because dropping
+  // **/tests/** exposes the whole tests tree and the github-actions
+  // manager is enabled below. Without this entry that manager would reach
+  // tests/fixtures/checklist-github-actions/should-fail/.github/workflows/
+  // and its should-pass twin, whose workflows are deliberately written to
+  // be flagged (an unpinned action is the point of the fixture), so a pull
+  // request pinning them would be editing a test input rather than a
+  // dependency, and would quietly make the should-fail fixture stop
+  // failing. The same applies to any future fixture: the whole tree stays
+  // out of reach, and only tests/config/ is visible.
+  ignorePaths: [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/__fixtures__/**",
+    "tests/fixtures/**",
+  ],
+
   // config:recommended enables a standing "Dependency Dashboard" issue that
   // never resolves on its own; PRs still open on the normal schedule below
   // without it, this just drops the one consolidated overview issue.
@@ -285,11 +324,13 @@
   // files are not literally named .pre-commit-config.yaml) and would
   // otherwise go unwatched.
   //
-  // No ignorePaths any more. It used to exclude the root file specifically
-  // so Dependabot's pre-commit ecosystem could own it without this manager
+  // This manager no longer excludes the root file. It used to, so
+  // Dependabot's pre-commit ecosystem could own it without this manager
   // opening a competing pull request for the same rev: pin; now that
   // Renovate is the only bot watching either surface, there is nothing left
-  // to exclude it from.
+  // to exclude it from. The top level ignorePaths up near extends is a
+  // different thing entirely: that one restates :ignoreModulesAndTests so
+  // the test override file is visible to any manager at all.
   //
   // enabled: true is required and easy to miss: unlike most Renovate
   // managers, the pre-commit manager's own defaultConfig ships
@@ -328,8 +369,26 @@
       depNameTemplate: "dotenvlinter/dotenv-linter",
     },
     {
+      // Two files carry this pin and both have to move together. The
+      // checklist is what a consumer runs;
+      // tests/config/checklist-github-actions.override.yaml is the
+      // substitute config tests/scripts/check_hooks.sh runs the fixture
+      // test through, because the real checklist anchors both of its hooks
+      // to ^\.github/workflows/ while the fixtures deliberately sit outside
+      // that path.
+      //
+      // Nothing compares the two files, so while this manager watched only
+      // the checklist, the override silently kept the previous version and
+      // the fixture test stopped exercising the version this library
+      // actually ships. It sat one release behind that way. Same dep, same
+      // datasource and same current value in both, so Renovate raises one
+      // pull request that moves them together and the two cannot diverge
+      // again.
       customType: "regex",
-      managerFilePatterns: ["/^checklists/checklist-github-actions\\.ya?ml$/"],
+      managerFilePatterns: [
+        "/^checklists/checklist-github-actions\\.ya?ml$/",
+        "/^tests/config/checklist-github-actions\\.override\\.ya?ml$/",
+      ],
       matchStrings: ["zizmor==(?<currentValue>[0-9.]+)"],
       datasourceTemplate: "pypi",
       depNameTemplate: "zizmor",
