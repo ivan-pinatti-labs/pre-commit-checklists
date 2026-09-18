@@ -239,6 +239,25 @@ NESTED_IN_RUN = (
     "          fi\n"
 )
 
+ANCHORED_RUN = (
+    "jobs:\n"
+    "  build:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Build\n"
+    "        run: {props} |2-\n"
+    "            uses: fake/action@{sha} # v4\n"
+)
+DASH_NAME_SIBLING = (
+    "jobs:\n"
+    "  scan:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: |\n"
+    "          Upload the scan\n"
+    "        uses: github/codeql-action/upload-sarif@{sha} # v4\n"
+)
+
 
 def whole_file_diff(gate, before: str, after: str) -> str:
     """A `git diff` shaped diff of `before` to `after`, index line included."""
@@ -276,7 +295,40 @@ def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
     step = whole_file_diff(gate, before, after)
     nested_before = NESTED_IN_RUN.format(sha=SHA)
     nested = whole_file_diff(gate, nested_before, NESTED_IN_RUN.format(sha=OTHER_SHA))
-    return [
+    sibling_before = DASH_NAME_SIBLING.format(sha=SHA)
+    sibling = whole_file_diff(
+        gate, sibling_before, DASH_NAME_SIBLING.format(sha=OTHER_SHA)
+    )
+    properties = []
+    for props in ("&body", "!!str"):
+        props_before = ANCHORED_RUN.format(props=props, sha=SHA)
+        props_after = ANCHORED_RUN.format(props=props, sha=OTHER_SHA)
+        props_diff = whole_file_diff(gate, props_before, props_after)
+        properties += [
+            (
+                f"a uses: line inside a `run: {props} |2-` block, whole file",
+                REFUSE,
+                props_before,
+                props_diff,
+            ),
+            (
+                f"a uses: line inside a `run: {props} |2-` block, from context",
+                REFUSE,
+                props_before,
+                "".join(
+                    line + "\n"
+                    for line in props_diff.splitlines()
+                    if not line.startswith("index ")
+                ),
+            ),
+        ]
+    return properties + [
+        (
+            "a step's uses: beside a `- name: |` block is its sibling, not content",
+            ACCEPT,
+            sibling_before,
+            sibling,
+        ),
         (
             "a pin whose step name sits above a comment, judged from the whole file",
             ACCEPT,
