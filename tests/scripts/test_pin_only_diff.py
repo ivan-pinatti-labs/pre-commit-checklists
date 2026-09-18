@@ -258,6 +258,16 @@ DASH_NAME_SIBLING = (
     "        uses: github/codeql-action/upload-sarif@{sha} # v4\n"
 )
 
+PROPERTIES_ON_STEP = (
+    "jobs:\n"
+    "  scan:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - {props} name: |\n"
+    "          Upload the scan\n"
+    "        uses: github/codeql-action/upload-sarif@{sha} # v4\n"
+)
+
 
 def whole_file_diff(gate, before: str, after: str) -> str:
     """A `git diff` shaped diff of `before` to `after`, index line included."""
@@ -322,6 +332,20 @@ def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
                 ),
             ),
         ]
+    for props in ("&step", "!!map"):
+        step_before = PROPERTIES_ON_STEP.format(props=props, sha=SHA)
+        properties.append(
+            (
+                f"a step's uses: beside `- {props} name: |` is its sibling",
+                ACCEPT,
+                step_before,
+                whole_file_diff(
+                    gate,
+                    step_before,
+                    PROPERTIES_ON_STEP.format(props=props, sha=OTHER_SHA),
+                ),
+            )
+        )
     return properties + [
         (
             "a step's uses: beside a `- name: |` block is its sibling, not content",
