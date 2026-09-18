@@ -27,9 +27,11 @@ Exit 1: at least one did not; each mismatch is printed with its diff.
 from __future__ import annotations
 
 import contextlib
+import difflib
 import importlib.util
 import io
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -209,12 +211,116 @@ CASES = [
 ]
 
 
+# Whole-file block scalar judgment. The gate reads the workflow's base side
+# from its own checkout, so each case points the gate's REPO_ROOT at a scratch
+# directory holding `base`, and builds a real `index` line from it.
+STEP_WITH_COMMENT = (
+    "jobs:\n"
+    "  scan:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Upload the scan\n"
+    "        # A comment between the step's name and its uses: line, long\n"
+    "        # enough that three lines of diff context above the pin never\n"
+    "        # reach anything shallower than it.\n"
+    "        uses: github/codeql-action/upload-sarif@{sha} # v4\n"
+    "        with:\n"
+    "          sarif_file: scan.sarif\n"
+)
+NESTED_IN_RUN = (
+    "jobs:\n"
+    "  build:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Build\n"
+    "        run: |\n"
+    "          if true; then\n"
+    "            uses: fake/action@{sha} # v4\n"
+    "          fi\n"
+)
+
+
+def whole_file_diff(gate, before: str, after: str) -> str:
+    """A `git diff` shaped diff of `before` to `after`, index line included."""
+    old = gate._git_blob_id(before.encode())[:12]
+    new = gate._git_blob_id(after.encode())[:12]
+    body = "".join(
+        difflib.unified_diff(
+            [line + "\n" for line in before.splitlines()],
+            [line + "\n" for line in after.splitlines()],
+            f"a/{WORKFLOW}",
+            f"b/{WORKFLOW}",
+        )
+    )
+    return f"diff --git a/{WORKFLOW} b/{WORKFLOW}\nindex {old}..{new} 100644\n{body}"
+
+
+def whole_file_verdict(gate, base: str, text: str) -> int:
+    """The gate's exit code for `text` with `base` as the checked out file."""
+    saved = gate.REPO_ROOT
+    with tempfile.TemporaryDirectory() as root:
+        workflow = Path(root) / WORKFLOW
+        workflow.parent.mkdir(parents=True)
+        workflow.write_text(base)
+        gate.REPO_ROOT = Path(root)
+        try:
+            return verdict(gate, text)
+        finally:
+            gate.REPO_ROOT = saved
+
+
+def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
+    """(description, expected exit code, checked out base, diff)."""
+    before = STEP_WITH_COMMENT.format(sha=SHA)
+    after = STEP_WITH_COMMENT.format(sha=OTHER_SHA)
+    step = whole_file_diff(gate, before, after)
+    nested_before = NESTED_IN_RUN.format(sha=SHA)
+    nested = whole_file_diff(gate, nested_before, NESTED_IN_RUN.format(sha=OTHER_SHA))
+    return [
+        (
+            "a pin whose step name sits above a comment, judged from the whole file",
+            ACCEPT,
+            before,
+            step,
+        ),
+        (
+            "a uses: line nested deep inside a run: block, judged from the whole file",
+            REFUSE,
+            nested_before,
+            nested,
+        ),
+        (
+            "the #105 shape when main has moved the file, falling back to context",
+            REFUSE,
+            before + "# moved on main\n",
+            step,
+        ),
+        (
+            "a hunk whose context disagrees with the base, falling back to context",
+            REFUSE,
+            before,
+            step.replace("shallower than it.", "else at all."),
+        ),
+        (
+            "a hunk shorter than its header declares, falling back to context",
+            REFUSE,
+            before,
+            "\n".join(step.splitlines()[:-1]) + "\n",
+        ),
+    ]
+
+
 def main() -> int:
     gate = load_gate()
     failures = []
 
     for description, expected, text in CASES:
         actual = verdict(gate, text)
+        if actual != expected:
+            failures.append((description, expected, actual, text))
+
+    for description, expected, base, text in whole_file_cases(gate):
+        actual = whole_file_verdict(gate, base, text)
         if actual != expected:
             failures.append((description, expected, actual, text))
 
@@ -232,7 +338,10 @@ def main() -> int:
             print()
         return 1
 
-    print(f"pin-only-lint: {len(CASES)} diff shape(s) checked, all as recorded.")
+    print(
+        f"pin-only-lint: {len(CASES) + len(whole_file_cases(gate))} diff shape(s) "
+        "checked, all as recorded."
+    )
     return 0
 
 
