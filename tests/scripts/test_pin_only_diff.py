@@ -268,6 +268,17 @@ PROPERTIES_ON_STEP = (
     "        uses: github/codeql-action/upload-sarif@{sha} # v4\n"
 )
 
+SPLIT_INDICATOR_RUN = (
+    "jobs:\n"
+    "  build:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Build\n"
+    "        run: {props}\n"
+    "          |\n"
+    "          uses: fake/action@{sha} # v4\n"
+)
+
 
 def whole_file_diff(gate, before: str, after: str) -> str:
     """A `git diff` shaped diff of `before` to `after`, index line included."""
@@ -346,6 +357,29 @@ def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
                 ),
             )
         )
+    for props in ("&body", "!!str", ""):
+        split_before = SPLIT_INDICATOR_RUN.format(props=props, sha=SHA)
+        split = whole_file_diff(
+            gate, split_before, SPLIT_INDICATOR_RUN.format(props=props, sha=OTHER_SHA)
+        )
+        properties += [
+            (
+                f"a uses: line under `run: {props}` then a lone `|`, whole file",
+                REFUSE,
+                split_before,
+                split,
+            ),
+            (
+                f"a uses: line under `run: {props}` then a lone `|`, from context",
+                REFUSE,
+                split_before,
+                "".join(
+                    line + "\n"
+                    for line in split.splitlines()
+                    if not line.startswith("index ")
+                ),
+            ),
+        ]
     return properties + [
         (
             "a step's uses: beside a `- name: |` block is its sibling, not content",
