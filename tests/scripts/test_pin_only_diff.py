@@ -279,6 +279,28 @@ SPLIT_INDICATOR_RUN = (
     "          uses: fake/action@{sha} # v4\n"
 )
 
+SEQUENCE_ITEM_SPLIT = (
+    "jobs:\n"
+    "  build:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Build\n"
+    "        run:\n"
+    "          {item}\n"
+    "            |\n"
+    "            uses: fake/action@{sha} # v4\n"
+)
+COMMENT_BEFORE_OPENER = (
+    "jobs:\n"
+    "  build:\n"
+    "    runs-on: ubuntu-latest\n"
+    "    steps:\n"
+    "      - name: Build\n"
+    "        # note: |\n"
+    "        run: &body |-\n"
+    "          uses: fake/action@{sha} # v4\n"
+)
+
 
 def whole_file_diff(gate, before: str, after: str) -> str:
     """A `git diff` shaped diff of `before` to `after`, index line included."""
@@ -380,6 +402,22 @@ def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
                 ),
             ),
         ]
+    shapes = [
+        (f"`{item}` then a lone `|`", SEQUENCE_ITEM_SPLIT, {"item": item})
+        for item in ("- &body", "- !!str", "- run:")
+    ] + [("a comment ending in `: |` above `run: &body |-`", COMMENT_BEFORE_OPENER, {})]
+    for label, shape, fields in shapes:
+        shape_before = shape.format(sha=SHA, **fields)
+        properties.append(
+            (
+                f"a uses: line under {label}, whole file",
+                REFUSE,
+                shape_before,
+                whole_file_diff(
+                    gate, shape_before, shape.format(sha=OTHER_SHA, **fields)
+                ),
+            )
+        )
     return properties + [
         (
             "a step's uses: beside a `- name: |` block is its sibling, not content",
