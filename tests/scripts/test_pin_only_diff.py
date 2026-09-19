@@ -151,7 +151,7 @@ CASES = [
         ),
     ),
     (
-        "a pin the diff shows no shallower line to judge against",
+        "a pin graded from the diff alone, with no base behind it (diff only)",
         REFUSE,
         diff(
             WORKFLOW,
@@ -317,6 +317,24 @@ def whole_file_diff(gate, before: str, after: str) -> str:
     return f"diff --git a/{WORKFLOW} b/{WORKFLOW}\nindex {old}..{new} 100644\n{body}"
 
 
+def as_whole_file(gate, text: str) -> tuple[str, str]:
+    """A hand-written workflow diff, rebuilt against a real base.
+
+    The base is the hunk's context and removed lines, the head its context
+    and added lines, so the gate reads the file whole the way it does for a
+    real pull request; a diff with no base behind it is refused outright.
+    """
+    before = after = ""
+    body = text.split("\n@@", 1)[1].split("\n", 1)[1]
+    for line in body.splitlines():
+        tag, content = line[:1], line[1:]
+        if tag in (" ", "-"):
+            before += content + "\n"
+        if tag in (" ", "+"):
+            after += content + "\n"
+    return before, whole_file_diff(gate, before, after)
+
+
 def whole_file_verdict(gate, base: str, text: str) -> int:
     """The gate's exit code for `text` with `base` as the checked out file."""
     saved = gate.REPO_ROOT
@@ -418,6 +436,23 @@ def whole_file_cases(gate) -> list[tuple[str, int, str, str]]:
                 ),
             )
         )
+    nested_no_base = "".join(
+        line + "\n" for line in nested.splitlines() if not line.startswith("index ")
+    )
+    properties += [
+        (
+            "a uses: line nested inside a run: block, with no base to read",
+            REFUSE,
+            nested_before,
+            nested_no_base,
+        ),
+        (
+            "a uses: line nested inside a run: block, when main has moved the file",
+            REFUSE,
+            nested_before + "# moved on main\n",
+            nested,
+        ),
+    ]
     return properties + [
         (
             "a step's uses: beside a `- name: |` block is its sibling, not content",
@@ -463,7 +498,16 @@ def main() -> int:
     failures = []
 
     for description, expected, text in CASES:
-        actual = verdict(gate, text)
+        # "(diff only)" cases test the refusal a workflow diff gets when its
+        # base cannot be read; every other workflow case is graded whole.
+        if (
+            text.startswith(f"diff --git a/{WORKFLOW} ")
+            and "(diff only)" not in description
+        ):
+            base, text = as_whole_file(gate, text)
+            actual = whole_file_verdict(gate, base, text)
+        else:
+            actual = verdict(gate, text)
         if actual != expected:
             failures.append((description, expected, actual, text))
 
