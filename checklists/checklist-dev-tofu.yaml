@@ -1,0 +1,33 @@
+---
+# Runs OpenTofu's own pre-commit hooks from tofuutils/pre-commit-opentofu,
+# the OpenTofu fork of the terraform hooks checklist-dev-terraform uses.
+#
+# Both checklists ship, deliberately. checklist-dev-terraform runs the
+# `terraform` binary and this one runs `tofu`, and a consumer uses one or the
+# other. This library does not decide which: OpenTofu is a fork of Terraform
+# rather than a successor everyone has moved to, the two are configured the
+# same way, and a repository already on Terraform should not be forced across
+# by a checklist upgrade.
+#
+# Adopt exactly one of the two. Enabling both in the same repository runs
+# `tofu fmt` and `terraform fmt` over the same files, and while they agree
+# today, nothing guarantees they keep agreeing as the two diverge, so one
+# would eventually rewrite what the other just wrote on every run.
+#
+# tofu_tflint rather than a bare tflint hook: it is the same tflint, invoked
+# with OpenTofu's own initialization, so tflint's terraform ruleset sees the
+# modules `tofu init` resolved rather than the ones `terraform init` would
+# have.
+#
+# The development container installs `tofu` from OpenTofu's release archive,
+# verified against the SHA256SUMS file OpenTofu signs with its own key. Its
+# apt repository exists but is signed by its hosting provider rather than by
+# OpenTofu, so the archive is the path where the project vouches for the
+# bytes; see .devcontainer/Dockerfile.
+repos:
+  - repo: https://github.com/tofuutils/pre-commit-opentofu
+    rev: v2.4.2
+    hooks:
+      - id: tofu_fmt
+      - id: tofu_validate
+      - id: tofu_tflint

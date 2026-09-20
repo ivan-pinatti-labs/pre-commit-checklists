@@ -71,7 +71,6 @@ trap cleanup EXIT
 git init -q -b main "${__scratch}"
 git -C "${__scratch}" config user.email "test@example.invalid"
 git -C "${__scratch}" config user.name "test"
-cp "${REPO_ROOT}/.tool-versions" "${__scratch}/.tool-versions"
 cp "${REPO_ROOT}/checklists/checklist-markdown.yaml" "${__scratch}/cfg.yaml"
 cp "${REPO_ROOT}/templates/.markdownlint.yaml" "${__scratch}/.markdownlint.yaml"
 

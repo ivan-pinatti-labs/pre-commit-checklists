@@ -35,3 +35,10 @@ CLAUDE.local.md
 .claude/settings.local.json
 .claude/agents/local/
 .claude/worktrees/
+
+# OpenTofu and Terraform working state, which `tofu init` writes into a
+# fixture directory when checklist-dev-tofu's validate hook runs there. The
+# provider binaries alone are tens of megabytes, and the lock file pins
+# provider hashes that go stale, so neither belongs in the repository.
+.terraform/
+.terraform.lock.hcl

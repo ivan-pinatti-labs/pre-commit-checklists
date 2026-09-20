@@ -103,24 +103,22 @@
   // (see scripts/assert-pin-only-diff.py's own docstring for the same
   // list from the grading side). Every other manager config:recommended
   // would otherwise turn on is disabled, so Renovate never starts watching
-  // a fifth surface nobody has reviewed the implications of. "asdf" watches
-  // this repository's own .tool-versions (currently just
-  // `pre-commit 4.5.1`). "pre-commit" watches every `rev:` pin, both the
+  // a fifth surface nobody has reviewed the implications of.
+  // "pre-commit" watches every `rev:` pin, both the
   // root .pre-commit-config.yaml and every checklists/checklist-*.yaml file,
   // see that manager's own config below for how the two are covered.
   // "github-actions" watches every `uses: ...@<sha> # vX.Y.Z` pin under
   // .github/workflows/. "custom.regex" watches the three checklist-embedded
-  // version strings the built-in pre-commit manager cannot see, and the asdf
-  // plugin commits in .devcontainer/asdf-plugins (see customManagers below).
-  // The plugin commits are the one surface scripts/assert-pin-only-diff.py
-  // does not grade as a pin, deliberately: a plugin change is code, and
-  // `Pin Only` sending it to a person is the intended outcome. "dockerfile"
+  // version strings the built-in pre-commit manager cannot see, plus the
+  // OpenTofu and tflint release versions annotated in
+  // .devcontainer/Dockerfile: those two are release downloads rather than
+  // packages, so unlike every apt package in that file they carry a version
+  // a bot can move. "dockerfile"
   // watches the base image digest .devcontainer/Dockerfile pins, scoped to
   // that one file by the packageRules entry further down, and is graded the
   // same way: that path is not a pin surface either, so a digest bump waits
   // for a person.
   enabledManagers: [
-    "asdf",
     "pre-commit",
     "custom.regex",
     "github-actions",
@@ -178,8 +176,8 @@
     //
     // patch and minor only, not this repository's whole update-type
     // vocabulary. A major bump is exactly the case that needs a person: the
-    // three checklist-embedded custom.regex pins and the asdf `pre-commit`
-    // pin can all offer one, and a checklist's own upstream hook can rename
+    // checklist-embedded custom.regex pins and the two annotated release
+    // ARGs can all offer one, and a checklist's own upstream hook can rename
     // or remove a hook id across a major release the same way this
     // library's own versioning contract does (see docs/versioning.md).
     //
@@ -199,9 +197,10 @@
       addLabels: ["automerge"],
     },
     {
-      matchManagers: ["asdf"],
-      groupName: "asdf tool versions",
-      groupSlug: "asdf-tools",
+      matchManagers: ["custom.regex"],
+      matchDatasources: ["github-releases"],
+      groupName: "development container tools",
+      groupSlug: "devcontainer-tools",
       labels: ["dependencies", "tooling"],
     },
     // The development container's base image, pinned by digest in
@@ -211,12 +210,11 @@
     //
     // Merged unattended. A digest update matches none of the automerge
     // grants above, which cover patch and minor only, so this rule grants
-    // it itself; asdf plugin commits below still wait for a person. This is the
+    // it itself. This is the
     // organization's own image, built by ivan-pinatti-labs/devcontainer-images,
     // and the quality gate lives there rather than in each consumer: that
     // repository ages its own upstream inputs through a seven day
-    // minimumReleaseAge, sends Ubuntu minor and major moves and asdf bumps to a
-    // person, and only publishes from a reviewed merge to main. A digest
+    // minimumReleaseAge, sends Ubuntu minor and major moves to a person, and only publishes from a reviewed merge to main. A digest
     // arriving here has therefore already passed that gate, and `Pin Only`
     // grades the `ARG BASE_IMAGE=<image>@sha256:<digest>` line (IMAGE_DIGEST in
     // scripts/assert-pin-only-diff.py), so the ordinary bot lane approves it.
@@ -238,27 +236,6 @@
       minimumReleaseAgeBehaviour: "timestamp-optional",
       automerge: true,
       addLabels: ["automerge"],
-    },
-    // An asdf plugin is code: `asdf install` runs its scripts to download and
-    // install each tool, inside a development container that holds a GitHub
-    // token. A new plugin commit therefore waits for a person to read what
-    // changed in that plugin, and never merges on its own. It is a digest
-    // update, which the automerge rule above never matches either.
-    //
-    // git-refs publishes no release timestamps, and under Renovate's default
-    // minimumReleaseAgeBehaviour (timestamp-required) the 7 day window above
-    // would then hold every plugin commit back forever, silently.
-    // timestamp-optional lets the update be offered; the review stands in for
-    // the age window here.
-    {
-      matchManagers: ["custom.regex"],
-      matchDatasources: ["git-refs"],
-      matchFileNames: [".devcontainer/asdf-plugins"],
-      groupName: "asdf plugins",
-      groupSlug: "asdf-plugins",
-      labels: ["dependencies", "tooling"],
-      minimumReleaseAgeBehaviour: "timestamp-optional",
-      automerge: false,
     },
     // One pull request for every action bump, matching the shape
     // dependabot.yml used to give this ecosystem
@@ -412,18 +389,18 @@
       depNameTemplate: "markdown-link-check",
     },
     {
-      // The asdf plugin commits the development container pins in
-      // .devcontainer/asdf-plugins, one line per plugin: name, repository
-      // URL, branch, commit. git-refs reads the named branch's current
-      // commit, so a new commit there arrives as a digest update to that
-      // line. See the matching packageRules entry for why a person reviews
-      // every one.
+      // The OpenTofu and tflint release versions in .devcontainer/Dockerfile,
+      // read from the `# renovate:` annotation above each ARG. Neither the
+      // dockerfile manager (which only sees FROM lines) nor any package
+      // manager extracts an annotated ARG, so without this they would sit
+      // unwatched while the config looked like it covered the file. They are
+      // the only version pinned software in that container: everything else
+      // comes from apt and is deliberately unpinned.
       customType: "regex",
-      managerFilePatterns: ["/^\\.devcontainer/asdf-plugins$/"],
+      managerFilePatterns: ["/^\\.devcontainer/Dockerfile$/"],
       matchStrings: [
-        "(?<depName>[a-z0-9-]+) (?<packageName>https://\\S+) (?<currentValue>\\S+) (?<currentDigest>[0-9a-f]{40})",
+        "# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\s+ARG [A-Z0-9_]+=(?<currentValue>[^\\s]+)",
       ],
-      datasourceTemplate: "git-refs",
     },
   ],
 }

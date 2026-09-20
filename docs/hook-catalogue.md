@@ -38,6 +38,7 @@ build your own selection from scratch.
 | `checklist-dev-shell` | check-executables-have-shebangs, check-shebang-scripts-are-executable, shellcheck (`--severity=error`), shfmt (`--indent 2`) | `types: [shell]`, which covers extensionless files such as `.bashrc` and `.zshrc`; see [Why `checklist-dev-shell` has no baked selector](#why-checklist-dev-shell-has-no-baked-selector) | none |
 | `checklist-dev-python` | check-ast, check-builtin-literals, debug-statements, name-tests-test (`--django`), requirements-txt-fixer, ruff-check (`--fix`, plus the flake8-bandit security floor, see [Python security rules](#python-security-rules)), ruff-format | `files: '(\.py$\|(^\|/)requirements\.txt$)'` | none; `templates/ruff.toml` is optional and `scripts/install.sh` copies it |
 | `checklist-dev-terraform` | terraform-fmt, terraform-validate, tflint | `files: \.tf$` | Terraform CLI |
+| `checklist-dev-tofu` | tofu_fmt, tofu_validate, tofu_tflint | `files: \.tf$` | OpenTofu CLI |
 | `checklist-dev-javascript` | biome-check (`--indent-style=space --indent-width=2`) | `types: [javascript]` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |

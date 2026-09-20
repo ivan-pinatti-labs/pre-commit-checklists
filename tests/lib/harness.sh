@@ -5,13 +5,17 @@
   executed directly.
 
   Provides:
-    - resolve_pre_commit(): finds a working `pre-commit` binary even when
-      asdf has not activated one for the current directory (relevant for
-      throwaway repos under /tmp).
-    - export_pinned_tool_versions(): runs when this file is sourced and
-      exports the asdf version override for every tool pinned in
-      .tool-versions, so scratch repos under /tmp resolve the pinned
-      versions too.
+    - resolve_pre_commit(): finds a working `pre-commit` binary.
+      There used to be more to this. asdf resolved tools per directory
+      through .tool-versions, so a scratch repo under /tmp found no version
+      for anything and every hook run inside one failed with "No version is
+      set for command pre-commit". resolve_pre_commit() carried an asdf
+      fallback for that, and export_pinned_tool_versions() exported an
+      ASDF_<TOOL>_VERSION override for every pin so child processes
+      resolved them too. asdf was removed from this organization on
+      2026-09-19: tools come from packages and sit on PATH, a scratch repo
+      finds them like any other directory does, and both workarounds are
+      gone rather than ported.
     - run_hook(): invokes `pre-commit run` for one hook id/config against a
       set of files and captures output + exit code without letting
       `set -e` abort the caller.
@@ -42,46 +46,9 @@ resolve_pre_commit() {
     echo "pre-commit"
     return 0
   fi
-  # asdf shims resolve per-directory via .tool-versions; fall back to the
-  # installed version directly so tests can run from a throwaway /tmp repo
-  # that has no .tool-versions of its own.
-  if command -v asdf >/dev/null 2>&1; then
-    __v=$(asdf list pre-commit 2>/dev/null | tr -d ' *' | tail -n1)
-    if [ -n "${__v}" ]; then
-      __bin="${HOME}/.asdf/installs/pre-commit/${__v}/bin/pre-commit"
-      if [ -x "${__bin}" ]; then
-        echo "${__bin}"
-        return 0
-      fi
-    fi
-  fi
   echo "Error: no working pre-commit binary found." >&2
   return 1
 }
-
-# Scratch repos under /tmp have no .tool-versions of their own, so every
-# pre-commit run, git hook and helper script started inside one finds no
-# version through an asdf shim ("No version is set for command pre-commit").
-# A global asdf pin used to hide that by supplying some other version.
-# Exporting asdf's per tool override for every tool this repository pins makes
-# those child processes resolve exactly the pinned versions instead, with no
-# global pin and no second copy of any version, and a tool this repository
-# does not pin is left alone. The repository root comes from this file's own
-# location, because not every script sets REPO_ROOT before sourcing it.
-export_pinned_tool_versions() {
-  local __root __tool __version __var
-  command -v asdf >/dev/null 2>&1 || return 0
-  __root=$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")
-  [ -f "${__root}/.tool-versions" ] || return 0
-  while read -r __tool __version _; do
-    case "${__tool}" in
-    '' | '#'*) continue ;;
-    esac
-    __var="ASDF_$(printf '%s' "${__tool}" | tr '[:lower:]-' '[:upper:]_')_VERSION"
-    export "${__var}=${__version}"
-  done <"${__root}/.tool-versions"
-}
-export_pinned_tool_versions
 
 section() {
   echo ""

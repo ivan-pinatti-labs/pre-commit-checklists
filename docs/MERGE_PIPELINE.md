@@ -66,10 +66,11 @@ and still needs a genuine human review, same as always.
 
 ## A dependency bot pull request
 
-Renovate (`.github/renovate.json5`: the asdf `.tool-versions` surface, both
-pre-commit surfaces, root `.pre-commit-config.yaml` and every
-`checklists/checklist-*.yaml`, and the github-actions surface, daily before
-7am) is the only dependency bot that opens pull requests here. Dependabot
+Renovate (`.github/renovate.json5`: both pre-commit surfaces, root
+`.pre-commit-config.yaml` and every `checklists/checklist-*.yaml`, the
+github-actions surface, and the two annotated release ARGs in
+`.devcontainer/Dockerfile`; daily before 7am) is the only dependency bot
+that opens pull requests here. Dependabot
 used to cover the root pre-commit surface and github-actions on its own
 weekday schedule, until this repository migrated onto Renovate as its sole
 dependency update bot and `.github/dependabot.yml` was deleted. A pin-only
@@ -82,9 +83,10 @@ For the ones that are pin only:
 
 1. **`Pin Only` is graded.** `scripts/assert-pin-only-diff.py` checks that
    every changed line differs from its counterpart in nothing but a version,
-   across four pin surfaces real to this repository: `.tool-versions`,
-   `.pre-commit-config.yaml`, `checklists/*.yaml` `rev:` pins, and
-   `.github/workflows/*.yml` action SHA pins. See that script's own
+   across four pin surfaces real to this repository:
+   `.pre-commit-config.yaml`, `checklists/*.yaml` `rev:` pins,
+   `.github/workflows/*.yml` action SHA pins, and the annotated release ARGs
+   in `.devcontainer/Dockerfile`. See that script's own
    docstring for exactly what is and is not covered, including the three
    checklist-embedded version strings (dotenv-linter's image tag, zizmor's
    PyPI pin, markdown-link-check's npm pin) that are deliberately **not** a

@@ -107,13 +107,29 @@ pre-commit run --all-files
 tests/run_tests.sh
 ```
 
-Tool versions come only from this repository's `.tool-versions`. A tool it
-does not pin is missing in the container rather than borrowed from somewhere
-else, which is how a missing pin shows up.
+Tools come from signed package repositories: `pre-commit` and `shellcheck`
+from Ubuntu, `gh` from GitHub's own repository, `terraform` from HashiCorp's.
+The base image reviews each of those signing keys against a fingerprint and
+installs them without enabling the repositories, so the source entries in
+`.devcontainer/Dockerfile` are what opt in.
 
-The asdf plugins that install those tools are pinned too, in
-`.devcontainer/asdf-plugins`: each from its repository URL, at a commit
-someone has read. A plugin is a set of scripts that `asdf install` runs, so a
-new tool needs its plugin added there (the build fails without it), and
-Renovate proposes new plugin commits as pull requests for a person to review,
-never merged automatically.
+`tofu` and `tflint` are the two exceptions, because neither is packaged
+anywhere. Both install from a release archive verified against a signature
+the project itself publishes: OpenTofu signs its `SHA256SUMS` with the GPG
+key vendored under `.devcontainer/keyrings/`, and tflint signs its checksums
+with cosign keyless, which binds the signature to the GitHub Actions workflow
+that built it. Both verifications fail the build rather than warning.
+
+There is no version manager and no `.tool-versions`. Package versions are
+deliberately unpinned, because Ubuntu and these vendors ship security fixes
+by moving a version inside a release; the two release downloads are pinned,
+because npm-style publishing has no distribution maintainer in front of it.
+Rebuilding can therefore give you different package versions than last week,
+by design: the base image digest pins what this builds on, not what apt
+resolves on top.
+
+**Run the hooks in here, or in CI.** `terraform`, `tofu` and `tflint` live in
+this container and nowhere else, so `pre-commit run` on the host fails for
+those hooks. On a host that still has asdf the failure reads "No version is
+set for command tflint", because nothing pins it any more. `make shell` opens
+a shell in here from an ordinary terminal.

@@ -220,10 +220,10 @@ hook fires because local work happens on `main`.
   `language: python` environment via `additional_dependencies`; that
   floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
   definition does not pin `language_version` to enforce it), `terraform`
-  and `tflint` at the versions pinned in `.tool-versions` (for
+  and `tflint`, both provided by the development container (for
   `checklist-dev-terraform`, which runs them against the fixtures under
-  `tests/fixtures/checklist-dev-terraform/`; `asdf install` provides both
-  alongside `pre-commit`), and a Go
+  `tests/fixtures/checklist-dev-terraform/`), `tofu` (for
+  `checklist-dev-tofu`, against `tests/fixtures/checklist-dev-tofu/`), and a Go
   toolchain (for `checkmake` in `checklist-dev-make`, which pre-commit
   builds from source through `language: golang`; recent pre-commit
   provisions Go itself if one is not already on PATH).
@@ -250,7 +250,7 @@ tests/run_tests.sh
 ```
 
 Exit 0 means every phase passed; nonzero means at least one did. The
-script needs the tool versions in `.tool-versions` available (or
-`pre-commit` resolvable some other way), Docker for the GitHub Actions
+script needs `pre-commit` and the checklist tools on PATH, which is what the
+development container provides (`make shell`), Docker for the GitHub Actions
 checklist test, and network access for pre-commit to build hook
 environments and for the actionlint Docker image pull.
