@@ -199,9 +199,20 @@ RUN set -eu; \
 # The grep is the last command in its pipeline, so its exit status is the
 # pipeline's with or without pipefail, which Podman's default OCI format
 # ignores anyway because it ignores SHELL. See the base image's Dockerfile.
+#
+# The first version of this ended `&& ... && exit 1 || true`, where the
+# trailing `|| true` swallowed its own `exit 1` along with everything else,
+# so the guard always succeeded and a root owned path would still have
+# shipped. A guard that cannot fail is worse than no guard, because it reads
+# as protection. CodeRabbit caught it on pull request 53.
 # hadolint ignore=DL4006
-RUN find /home/dev ! -user dev -exec chown dev:dev {} + \
-  && find /home/dev ! -user dev | grep . && exit 1 || true
+RUN set -eu; \
+  find /home/dev ! -user dev -exec chown dev:dev {} + ; \
+  if find /home/dev ! -user dev | grep -q .; then \
+    echo "root owned paths survived under /home/dev:" >&2; \
+    find /home/dev ! -user dev -printf '  %u %p\n' >&2; \
+    exit 1; \
+  fi
 
 USER 1000:1000
 

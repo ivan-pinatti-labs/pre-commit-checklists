@@ -217,9 +217,15 @@ jobs:
       # checklist-dev-terraform runs `terraform`. Both checklists ship, so
       # both binaries have to be here; see checklists/checklist-dev-tofu.yaml
       # for why a consumer adopts one and not both.
+      # tofu_version is explicit because the action installs `latest` without
+      # it, so pinning the action SHA would pin the installer and not the CLI
+      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/Dockerfile so
+      # CI and the development container run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
+          # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
       - name: Install pre-commit
@@ -384,9 +390,15 @@ jobs:
       # checklist-dev-terraform runs `terraform`. Both checklists ship, so
       # both binaries have to be here; see checklists/checklist-dev-tofu.yaml
       # for why a consumer adopts one and not both.
+      # tofu_version is explicit because the action installs `latest` without
+      # it, so pinning the action SHA would pin the installer and not the CLI
+      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/Dockerfile so
+      # CI and the development container run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
+          # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
       # Docker, Node/npm and shellcheck ship on the ubuntu-24.04 runner

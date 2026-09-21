@@ -113,9 +113,13 @@ The base image reviews each of those signing keys against a fingerprint and
 installs them without enabling the repositories, so the source entries in
 `.devcontainer/Dockerfile` are what opt in.
 
-`tofu` and `tflint` are the two exceptions, because neither is packaged
-anywhere. Both install from a release archive verified against a signature
-the project itself publishes: OpenTofu signs its `SHA256SUMS` with the GPG
+`tofu` and `tflint` are the two exceptions, for different reasons. tflint is
+packaged nowhere at all. OpenTofu does publish an apt repository, and it is
+rejected on trust rather than availability: its index is signed by
+packagecloud, the hosting provider, and not by OpenTofu, so the release
+archive is the only path where the project itself vouches for the bytes.
+Both install from a release archive verified against a signature the project
+publishes: OpenTofu signs its `SHA256SUMS` with the GPG
 key vendored under `.devcontainer/keyrings/`, and tflint signs its checksums
 with cosign keyless, which binds the signature to the GitHub Actions workflow
 that built it. Both verifications fail the build rather than warning.
