@@ -158,8 +158,9 @@ it merges, not to gate a merge on it.
 Same shape as rsync-crypt, summarized: a dependency bot pull request whose
 diff is pin only merges with no CodeRabbit review at all.
 `scripts/coderabbit-review-verdict.py`'s bot lane resolves `Review Verified`
-straight to `success` the moment `Pin Only` reads `success`, and
-`coderabbit-review-queue.yml`'s hourly nudge skips it for the same reason.
+straight to `success` the moment `Pin Only` reads `success`, with no
+CodeRabbit involvement at all. This is why retiring the hourly nudge cost the
+routine path nothing: there was never anything here for it to unstick.
 CodeRabbit only enters the bot lane when `Pin Only` **fails**, and even then
 gets no automatic approval; a person is already looking. See rsync-crypt's
 `docs/MERGE_PIPELINE.md`, "What actually gets reviewed, and what does not,"
@@ -190,9 +191,8 @@ like one.
 ## Recovering a stuck `Review Verified`
 
 `coderabbit-gate.yml`'s hourly schedule (`41 * * * *`, offset from
-rsync-crypt's `47 * * * *` and this repository's own
-`coderabbit-review-queue.yml` at `17 * * * *`, so this organization's hourly
-CodeRabbit jobs do not pile onto the same Actions minute) is a real
+rsync-crypt's `47 * * * *` so this organization's hourly CodeRabbit jobs do
+not pile onto the same Actions minute) is a real
 mitigation, not a guarantee: GitHub deprioritises scheduled workflows on
 public repositories under load and can skip a slot outright. See
 rsync-crypt's `docs/MERGE_PIPELINE.md`, "Recovering a stuck `Review
@@ -201,14 +201,19 @@ Verified`, honestly," for the specific evidence of that happening there.
 run by anyone with write access, against a single `pr_number` or every open
 pull request at once.
 
-For a stuck review specifically (not a stuck grading run), the actual fix is
-a genuine human `@coderabbitai review` comment: `coderabbit-review-queue.yml`
-posts that hourly through a bot account, and per rsync-crypt's `AGENTS.md`,
-"CodeRabbit silently ignores `@coderabbitai review` from a bot account,"
-that comment does not reliably make CodeRabbit start a review. Check the
-pull request's comments for a `coderabbitai[bot]` reply before assuming the
-request is in flight; if there is none, only a human posting the same
-comment will move it.
+For a stuck review specifically (not a stuck grading run), the fix is a
+genuine human `@coderabbitai review` comment:
+
+```shell
+gh pr comment <n> --body '@coderabbitai review'
+```
+
+An hourly workflow used to post that through a bot account. It was retired on
+2026-09-20, because CodeRabbit ignores the command from a bot commenter: see
+rsync-crypt's `AGENTS.md`, "CodeRabbit silently ignores `@coderabbitai
+review` from a bot account", where it fired five times across most of a day
+and drew no reply at all. Only a human posting it moves a stuck review, which
+was already true while the workflow existed.
 
 ## The merge queue
 
@@ -245,7 +250,6 @@ genuine CodeRabbit review before merging; it just could not be gated on
 ## What was ported, and what was deliberately left out
 
 Ported: `.github/workflows/coderabbit-gate.yml`,
-`.github/workflows/coderabbit-review-queue.yml`,
 `.github/workflows/bot-auto-merge.yml`, `scripts/assert-pin-only-diff.py`,
 `scripts/coderabbit-review-verdict.py`, the `Pin Only`/`Review Verified`
 settings in `.coderabbit.yaml`, and the `merge_group:` trigger plus the
