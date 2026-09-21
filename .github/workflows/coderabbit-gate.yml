@@ -83,7 +83,7 @@ on:
     # organization's hourly CodeRabbit jobs do not land on the same Actions
     # minute for no reason. The offset also cleared
     # coderabbit-review-queue.yml's `17 * * * *`, which was retired on
-    # 2026-09-20.
+    # 2026-09-21.
     # .github's own coderabbit-gate.yml happens to reuse rsync-crypt's `:47`
     # too, so this offset clears that collision as well.
     - cron: "41 * * * *"

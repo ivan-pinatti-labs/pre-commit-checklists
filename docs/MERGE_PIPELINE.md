@@ -208,12 +208,24 @@ genuine human `@coderabbitai review` comment:
 gh pr comment <n> --body '@coderabbitai review'
 ```
 
-An hourly workflow used to post that through a bot account. It was retired on
-2026-09-20, because CodeRabbit ignores the command from a bot commenter: see
+An hourly workflow used to post that comment. It was retired on 2026-09-21,
+on cost rather than on capability.
+
+The mechanism worked. It posted with a personal access token, so the comment
+came from a human account and CodeRabbit answered it within seconds. What it
+cost was an organization secret whose visibility is set per repository and
+which fails silently when it is not: in `ivan-pinatti-labs/.github` that
+secret resolved empty, so eight of its last ten scheduled runs found the
+stuck pull request, tried to comment, and died with gh's "set the GH_TOKEN
+environment variable" error and exit code 4, visible nowhere but the Actions
+tab. The job also could not see the shared review quota it was firing into,
+so a mistimed nudge spent the slot that later frees.
+
+What it saved was one command from a person who was involved anyway: a pull
+request that needs a review is also one that gets no automatic approval. See
 rsync-crypt's `AGENTS.md`, "CodeRabbit silently ignores `@coderabbitai
-review` from a bot account", where it fired five times across most of a day
-and drew no reply at all. Only a human posting it moves a stuck review, which
-was already true while the workflow existed.
+review` from a bot account", for why the comment has to come from a human
+account rather than from `GITHUB_TOKEN`.
 
 ## The merge queue
 
