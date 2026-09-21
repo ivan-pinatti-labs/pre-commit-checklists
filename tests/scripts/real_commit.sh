@@ -59,7 +59,6 @@ git -C "${__clone}" tag "${__test_tag}"
 git init -q -b main "${__consumer}"
 git -C "${__consumer}" config user.email "test@example.invalid"
 git -C "${__consumer}" config user.name "test"
-echo "pre-commit 4.5.1" >"${__consumer}/.tool-versions"
 
 cat >"${__consumer}/.pre-commit-config.yaml" <<EOF
 ---

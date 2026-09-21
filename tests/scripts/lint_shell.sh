@@ -122,8 +122,8 @@ check_branch_with_head_ref "main" "dependabot/pre_commit/pre-commit-hooks-941c2d
 check_branch_with_head_ref "main" "renovate/alpine-3.x"
 [ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch with a dot (renovate/alpine-3.x) accepted" || fail "check-branch-name.sh: Renovate branch with a dot should be accepted" "exit=${EXIT} ${OUT}"
 
-check_branch_with_head_ref "main" "renovate/asdf-tools"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch (renovate/asdf-tools) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
+check_branch_with_head_ref "main" "renovate/github-actions"
+[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch (renovate/github-actions) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
 
 # Dependabot encodes an "https://" hook repository URL into the branch name
 # as "https-/", a hyphen directly followed by a slash. A consumer that names
@@ -283,13 +283,12 @@ run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template does-not-e
 [ "${EXIT}" -eq 3 ] && pass "install.sh: unknown --template exits 3" || fail "install.sh: unknown template should exit 3" "exit=${EXIT} ${OUT}"
 rm -rf "${__target}"
 
-# Happy path: bootstraps a real throwaway git repo end to end. Needs
-# ASDF_PRE_COMMIT_VERSION / a seeded .tool-versions since asdf resolves
-# the pre-commit shim per-directory and this scratch repo has none of
-# its own.
+# Happy path: bootstraps a real throwaway git repo end to end. This used to
+# need a seeded .tool-versions, because asdf resolved the pre-commit shim per
+# directory and a scratch repo had none of its own. Tools come from packages
+# on PATH now, so a scratch repo finds them like any other directory.
 __target=$(mktemp -d /tmp/pcc-install-happy.XXXXXX)
 git init -q "${__target}"
-echo "pre-commit 4.5.1" >"${__target}/.tool-versions"
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal
 if [ "${EXIT}" -eq 0 ] && [ -f "${__target}/.pre-commit-config.yaml" ] && [ -f "${__target}/.secrets.baseline" ] && [ -f "${__target}/.git/hooks/pre-commit" ]; then
   pass "install.sh: happy path bootstraps .pre-commit-config.yaml, .secrets.baseline, and the git hook"
@@ -314,7 +313,6 @@ rm -rf "${__target}"
 section "install.sh --community-files"
 __target=$(mktemp -d /tmp/pcc-install-community.XXXXXX)
 git init -q "${__target}"
-echo "pre-commit 4.5.1" >"${__target}/.tool-versions"
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files
 __community_files_expected="
 .github/ISSUE_TEMPLATE/bug_report.md
@@ -379,7 +377,6 @@ for __f in .editorconfig .cspell.json .yamllint.yml .markdownlint.yaml .lycheeig
 done
 __target=$(mktemp -d /tmp/pcc-install-old-checkout.XXXXXX)
 git init -q "${__target}"
-echo "pre-commit 4.5.1" >"${__target}/.tool-versions"
 run_and_capture "${__old_checkout}/scripts/install.sh" --target "${__target}" --template minimal --community-files
 [ "${EXIT}" -eq 3 ] && pass "install.sh --community-files: a checkout with no templates/community/ exits 3" || fail "install.sh --community-files: a checkout with no templates/community/ should exit 3" "exit=${EXIT} ${OUT}"
 rm -rf "${__old_checkout}" "${__target}"

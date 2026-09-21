@@ -31,11 +31,12 @@ malicious. `actionlint`'s `rev: v1.7.12` becoming `rev: v1.7.13` is exactly
 the change this file exists to permit, and no amount of diff reading can tell
 a good release from a backdoored one.
 
-Five pin surfaces, and nothing else, chosen to match where a version pin
-actually lives in this repository:
+Four pin surfaces, and nothing else, chosen to match where a version pin
+actually lives in this repository. `.tool-versions` used to be a fifth;
+asdf was removed from this organization on 2026-09-19 and the file is gone,
+so the tools it pinned now come from packages that carry no version pin at
+all.
 
-- `.tool-versions`: asdf tool versions (`pre-commit 4.5.1`), owned by
-  Renovate's asdf manager.
 - `.pre-commit-config.yaml`: this repo's own dogfood config, at the root.
   Every hook here is `repo: local` today (see that file's own header
   comment for why), so it has no `rev:` pins yet, but Renovate's
@@ -81,7 +82,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # been watching its base image digest, so every bump was refused as "not a
 # dependency pin file" and had to be merged by hand past a required check.
 ALLOWED_PATHS = (
-    ".tool-versions",
     ".pre-commit-config.yaml",
     "checklists/",
     ".github/workflows/",
@@ -89,26 +89,15 @@ ALLOWED_PATHS = (
 )
 
 # A released version, always starting with a digit (an optional single
-# leading `v` aside): `2.2.2`, `v2.2.2`, `4.5.1`. Anchors both `rev:` in
-# .pre-commit-config.yaml/checklists/*.yaml and every value in
-# .tool-versions, and is deliberately narrower than "any tag-shaped token": a
+# leading `v` aside): `2.2.2`, `v2.2.2`, `4.5.1`. Anchors `rev:` in
+# .pre-commit-config.yaml/checklists/*.yaml and the annotated release ARGs in
+# .devcontainer/Dockerfile, and is deliberately narrower than "any tag-shaped token": a
 # floating ref like `main` or `latest` is made entirely of characters this
 # would otherwise accept, and normalizing it the same as a real release would
 # let a compromised bot trade an immutable pin for something that can move
 # under it after the diff is already merged, with nothing left in the diff to
 # catch it.
 RELEASE = r"v?[0-9][0-9A-Za-z.+_-]*"
-
-# .tool-versions writes `<tool> <version>`, one per line, with nothing to
-# anchor on but the space. That cannot go in the prefix set below, because a
-# lookbehind of variable width is not allowed and "the word after a space"
-# would match most of a workflow file. It is matched whole-line instead, and
-# only for that file, which is why normalize() takes the path. The value
-# after the space has to be a real release, not merely non-blank: `pre-commit
-# main` would otherwise normalize identically to `pre-commit 4.5.1`.
-TOOL_VERSION_LINE = re.compile(
-    r"^(?P<prefix>[A-Za-z0-9_.-]+[ \t]+)" + RELEASE + r"[ \t]*$"
-)
 
 # A pre-commit hook `rev:`, wherever it appears: the root
 # .pre-commit-config.yaml or any checklists/checklist-*.yaml. The prefix is
@@ -519,10 +508,44 @@ def _whole_file_block_scalars(
     return marks
 
 
+# The `# renovate:` annotated ARG lines in .devcontainer/Dockerfile, which
+# the custom.regex manager moves: the OpenTofu and tflint release versions.
+# Both are release downloads rather than packages, so unlike every apt
+# package in that file they carry a version a bot can bump.
+#
+# The eligible names are read from the Dockerfile's own annotations rather
+# than hard coded, so adding an annotated ARG does not also mean editing this
+# script, and an ARG carrying no annotation (and that therefore no bot
+# manages) is graded as an ordinary line instead of being handed a version
+# shaped exemption it never earned.
+ANNOTATED_ARG = re.compile(
+    r"^#[ \t]*renovate:.*\n^ARG[ \t]+(?P<name>[A-Z][A-Z0-9_]*)=", re.MULTILINE
+)
+
+
+def _annotated_arg_names() -> frozenset[str]:
+    dockerfile = REPO_ROOT / ".devcontainer" / "Dockerfile"
+    try:
+        text = dockerfile.read_text(encoding="utf-8")
+    except OSError:
+        return frozenset()
+    return frozenset(m.group("name") for m in ANNOTATED_ARG.finditer(text))
+
+
+ARG_PIN = re.compile(
+    r"^(?P<prefix>ARG[ \t]+(?P<name>[A-Z][A-Z0-9_]*)=)" + RELEASE + r"[ \t]*$"
+)
+
+
+def _normalize_arg_pin(match: re.Match[str]) -> str:
+    """Normalize the value of an annotated ARG, and nothing else."""
+    if match.group("name") not in _annotated_arg_names():
+        return match.group(0)
+    return f"{match.group('prefix')}<version>"
+
+
 def normalize(line: str, path: str = "", in_block_scalar: bool = False) -> str:
     """Reduce a line to everything about it that a version bump may not change."""
-    if path.endswith(".tool-versions"):
-        return TOOL_VERSION_LINE.sub(r"\g<prefix><version>", line)
     # Scoped to .github/workflows/, because a block scalar (`run: |`) is a
     # YAML construct and cannot occur in a Dockerfile at all, while
     # a line whose file could not be read whole is treated as inside one.
@@ -532,7 +555,8 @@ def normalize(line: str, path: str = "", in_block_scalar: bool = False) -> str:
     if in_block_scalar and path.startswith(".github/workflows/"):
         return line
     if path == ".devcontainer/Dockerfile":
-        return IMAGE_DIGEST.sub(r"\g<prefix><digest>", line)
+        line = IMAGE_DIGEST.sub(r"\g<prefix><digest>", line)
+        return ARG_PIN.sub(_normalize_arg_pin, line)
     line = ACTION_SHA.sub(_normalize_action_sha, line)
     line = BARE_ACTION_VERSION.sub(_normalize_bare_action_version, line)
     line = REV_PIN.sub(r"\g<prefix><version>", line)

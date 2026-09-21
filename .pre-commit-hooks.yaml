@@ -149,6 +149,15 @@
   require_serial: true
   verbose: true
 
+- id: checklist-dev-tofu
+  name: Development - OpenTofu Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-tofu
+  require_serial: true
+  verbose: true
+
 - id: checklist-dev-javascript
   name: Development - JavaScript Checklist
   language: script

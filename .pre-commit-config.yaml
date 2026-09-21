@@ -185,13 +185,30 @@ repos:
         require_serial: true
         verbose: true
 
+      # Scoped to its own fixture directory rather than every .tf in the
+      # repository, because checklist-dev-tofu is wired below and the two
+      # must not run over the same files: `terraform fmt` and `tofu fmt`
+      # agree today, but nothing guarantees they keep agreeing as the two
+      # diverge, and each would then rewrite what the other just wrote. A
+      # consumer adopts one checklist or the other and needs no such
+      # scoping; this repository is the only place both exist at once.
       - id: checklist-dev-terraform
         name: Development - Terraform Checklist
         language: script
         entry: ./scripts/run-checklist.sh
         args: [checklist-dev-terraform]
         stages: [pre-commit]
-        files: \.tf$
+        files: ^tests/fixtures/checklist-dev-terraform/.*\.tf$
+        require_serial: true
+        verbose: true
+
+      - id: checklist-dev-tofu
+        name: Development - OpenTofu Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-tofu]
+        stages: [pre-commit]
+        files: ^tests/fixtures/checklist-dev-tofu/.*\.tf$
         require_serial: true
         verbose: true
 
