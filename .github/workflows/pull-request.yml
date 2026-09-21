@@ -14,8 +14,8 @@ name: PR Validation
 #
 # The `pre-commit` and `self-test` jobs below publish the check contexts
 # `Pre-commit` and `Tests`, exact strings, because
-# .github/workflows/bot-auto-merge.yml and coderabbit-review-queue.yml
-# hardcode those names. See docs/MERGE_PIPELINE.md for the full required
+# .github/workflows/bot-auto-merge.yml hardcodes those names. See
+# docs/MERGE_PIPELINE.md for the full required
 # check table; `renovate-config` and `labeler` are both deliberately absent
 # from it.
 #

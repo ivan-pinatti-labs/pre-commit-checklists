@@ -79,10 +79,11 @@ on:
   # assuming the SHA it was told about is a pull request head.
   status:
   schedule:
-    # :41, offset from both rsync-crypt's own `47 * * * *` and this
-    # workflow's sibling below, coderabbit-review-queue.yml's `17 * * * *`
-    # here (and rsync-crypt's `23 * * * *`), so none of this organization's
-    # hourly CodeRabbit jobs land on the same Actions minute for no reason.
+    # :41, offset from rsync-crypt's own `47 * * * *` so this
+    # organization's hourly CodeRabbit jobs do not land on the same Actions
+    # minute for no reason. The offset also cleared
+    # coderabbit-review-queue.yml's `17 * * * *`, which was retired on
+    # 2026-09-21.
     # .github's own coderabbit-gate.yml happens to reuse rsync-crypt's `:47`
     # too, so this offset clears that collision as well.
     - cron: "41 * * * *"
