@@ -1,0 +1,34 @@
+---
+# What a dependency bot may change here without a person reading the diff.
+# Read by the shared `Pin Only` check in ivan-pinatti-labs/gh-actions, which
+# reads it from the default branch rather than from the pull request being
+# graded. This file is deliberately absent from its own allowed_paths, so a
+# bot cannot widen its own lane.
+#
+# Reproduces the scripts/assert-pin-only-diff.py this replaced, exactly: the
+# four pin surfaces real to this repository, and the annotated release ARGs
+# in the development container Dockerfile.
+allowed_paths:
+  - .pre-commit-config.yaml
+  - checklists/
+  - .github/workflows/
+  - .devcontainer/Dockerfile
+
+arg_sources:
+  - file: .devcontainer/Dockerfile
+    annotations:
+      - '^#\s*renovate:'
+
+rules:
+  - path: .devcontainer/Dockerfile
+    grammars: [image_digest, arg_pin]
+  - path: .github/workflows/
+    grammars:
+      - name: action_sha
+        when: outside_block_scalar
+      - name: bare_action_version
+        when: outside_block_scalar
+      - name: rev_pin
+        when: outside_block_scalar
+
+default_grammars: [action_sha, bare_action_version, rev_pin]

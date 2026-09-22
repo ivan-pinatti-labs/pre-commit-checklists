@@ -18,10 +18,6 @@
     selectors:  static guard, no hook combines types/types_or with files
                 (the defect-2/3 shape), across .pre-commit-hooks.yaml,
                 checklists/*.yaml and templates/pre-commit-config/*.yaml
-    pins:       static guard, the verdict scripts/assert-pin-only-diff.py
-                returns for each diff shape it has to judge, since that
-                verdict is what stands between a dependency bot pull
-                request and an unattended merge
     hooks:      per-checklist fixture tests (should-pass/should-fail)
                 plus the dogfood-wiring selection guard for defects 2/3
     shell:      shellcheck plus behavioral tests of scripts/*.sh
@@ -48,7 +44,7 @@ set -o nounset
 HERE=$(dirname "$(realpath "${0}")")
 cd "${HERE}/.."
 
-ALL_PHASES="selectors pins hooks shell links consumer commit"
+ALL_PHASES="selectors hooks shell links consumer commit"
 PHASES="${*:-${ALL_PHASES}}"
 
 OVERALL_EXIT=0
@@ -73,9 +69,6 @@ for phase in ${PHASES}; do
   case "${phase}" in
   selectors)
     run_phase selectors "Phase: selector lint (static AND-selector guard)" "python3 tests/scripts/test_selector_lint.py"
-    ;;
-  pins)
-    run_phase pins "Phase: Pin Only gate verdicts (static)" "python3 tests/scripts/test_pin_only_diff.py"
     ;;
   hooks)
     run_phase hooks "Phase: checklist fixtures + dogfood-wiring guard" "tests/scripts/check_hooks.sh"
