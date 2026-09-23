@@ -87,8 +87,9 @@ For the ones that are pin only:
    `.github/pin-only.yml` names:
    `.pre-commit-config.yaml`, `checklists/*.yaml` `rev:` pins,
    `.github/workflows/*.yml` action SHA pins, and the annotated release ARGs
-   in `.devcontainer/Dockerfile`. See that script's own
-   docstring for exactly what is and is not covered, including the three
+   in `.devcontainer/Dockerfile`. `.github/pin-only.yml` names those
+   surfaces and ivan-pinatti-labs/gh-actions documents the grammars,
+   including how they treat the three
    checklist-embedded version strings (dotenv-linter's image tag, zizmor's
    PyPI pin, markdown-link-check's npm pin) that are deliberately **not** a
    pin surface: a bump to any of them fails this assertion and waits for a
@@ -184,7 +185,7 @@ lanes: a draft is `pending`; a dependency bot pull request is graded on
 that fails it falls through to lane three); everything else is `success`
 only for the literal description `Review completed`, with an in-flight
 review (`Review queued`/`Review in progress`) read as `pending` rather than
-`failure`. See that script's own docstring for the full reasoning, and
+`failure`. See ivan-pinatti-labs/gh-actions for the full reasoning, and
 rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
