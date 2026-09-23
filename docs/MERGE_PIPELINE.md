@@ -20,7 +20,7 @@ Four required status checks on `main`'s branch protection:
 | Context | What it actually proves | Who publishes it |
 | --- | --- | --- |
 | `Pre-commit` | The full pre-commit hook set (this repo's own dogfood config) passed over every file | `pull-request.yml`, as a job |
-| `Tests` | `tests/run_tests.sh`'s five phases passed | `pull-request.yml`, as a job |
+| `Tests` | every phase of `tests/run_tests.sh` passed | `pull-request.yml`, as a job |
 | `Pin Only` | A dependency bot's diff changes nothing but a version in a pin position; `success` with a "not a dependency bot pull request" description on everything else | `coderabbit-gate.yml`, published directly onto the head SHA |
 | `Review Verified` | CodeRabbit's actual review outcome, not merely that it reported something | `coderabbit-gate.yml`, published directly onto the head SHA |
 
@@ -81,13 +81,15 @@ reasoning behind the schedule and the seven day cooling window.
 
 For the ones that are pin only:
 
-1. **`Pin Only` is graded.** `scripts/assert-pin-only-diff.py` checks that
-   every changed line differs from its counterpart in nothing but a version,
-   across four pin surfaces real to this repository:
+1. **`Pin Only` is graded.** The shared pin-only check in
+   ivan-pinatti-labs/gh-actions checks that every changed line differs from
+   its counterpart in nothing but a version, across the four pin surfaces
+   `.github/pin-only.yml` names:
    `.pre-commit-config.yaml`, `checklists/*.yaml` `rev:` pins,
    `.github/workflows/*.yml` action SHA pins, and the annotated release ARGs
-   in `.devcontainer/Dockerfile`. See that script's own
-   docstring for exactly what is and is not covered, including the three
+   in `.devcontainer/Dockerfile`. `.github/pin-only.yml` names those
+   surfaces and ivan-pinatti-labs/gh-actions documents the grammars,
+   including how they treat the three
    checklist-embedded version strings (dotenv-linter's image tag, zizmor's
    PyPI pin, markdown-link-check's npm pin) that are deliberately **not** a
    pin surface: a bump to any of them fails this assertion and waits for a
@@ -157,7 +159,7 @@ it merges, not to gate a merge on it.
 
 Same shape as rsync-crypt, summarized: a dependency bot pull request whose
 diff is pin only merges with no CodeRabbit review at all.
-`scripts/coderabbit-review-verdict.py`'s bot lane resolves `Review Verified`
+The shared review verdict's bot lane resolves `Review Verified`
 straight to `success` the moment `Pin Only` reads `success`, with no
 CodeRabbit involvement at all. This is why retiring the hourly nudge cost the
 routine path nothing: there was never anything here for it to unstick.
@@ -175,7 +177,7 @@ Ported unchanged in reasoning from rsync-crypt (which itself ported it from
 docker-torrent-box-with-vpn ahead of that repository's own #114): a green
 `CodeRabbit` check does not mean a review happened, because CodeRabbit posts
 through the legacy commit status API, which has no state for "green, but not
-for the reason you think." `scripts/coderabbit-review-verdict.py`, published
+for the reason you think." The shared review verdict, published
 as `Review Verified` by `coderabbit-gate.yml`, reads the actual description
 behind the `CodeRabbit` status rather than its color, and grades in three
 lanes: a draft is `pending`; a dependency bot pull request is graded on
@@ -183,7 +185,7 @@ lanes: a draft is `pending`; a dependency bot pull request is graded on
 that fails it falls through to lane three); everything else is `success`
 only for the literal description `Review completed`, with an in-flight
 review (`Review queued`/`Review in progress`) read as `pending` rather than
-`failure`. See that script's own docstring for the full reasoning, and
+`failure`. See ivan-pinatti-labs/gh-actions for the full reasoning, and
 rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
@@ -262,8 +264,9 @@ genuine CodeRabbit review before merging; it just could not be gated on
 ## What was ported, and what was deliberately left out
 
 Ported: `.github/workflows/coderabbit-gate.yml`,
-`.github/workflows/bot-auto-merge.yml`, `scripts/assert-pin-only-diff.py`,
-`scripts/coderabbit-review-verdict.py`, the `Pin Only`/`Review Verified`
+`.github/workflows/bot-auto-merge.yml`, the two grading scripts (which have
+since moved on again, to ivan-pinatti-labs/gh-actions, leaving
+`.github/pin-only.yml` behind), the `Pin Only`/`Review Verified`
 settings in `.coderabbit.yaml`, and the `merge_group:` trigger plus the
 `Pre-commit`/`Tests` context renames in `pull-request.yml` (this repository's
 existing `pull-request-validation.yml` equivalent; reworked in place rather

@@ -72,7 +72,7 @@
 
   // Daily. A pin-only bump spends no CodeRabbit review quota: `Pin Only`
   // passing resolves `Review Verified` straight to `success` through
-  // scripts/coderabbit-review-verdict.py's bot lane, with CodeRabbit never
+  // the shared review verdict's bot lane, with CodeRabbit never
   // asked for an opinion, which is why the org's per-repository day table
   // was dropped on 2026-09-02 in favour of checking daily everywhere. See
   // ivan-pinatti-labs/.github's README.md, "Dependency policy".
@@ -100,8 +100,7 @@
   automerge: false,
 
   // Four managers, matching the four pin surfaces real to this repository
-  // (see scripts/assert-pin-only-diff.py's own docstring for the same
-  // list from the grading side). Every other manager config:recommended
+  // (see .github/pin-only.yml for the same list from the grading side). Every other manager config:recommended
   // would otherwise turn on is disabled, so Renovate never starts watching
   // a fifth surface nobody has reviewed the implications of.
   // "pre-commit" watches every `rev:` pin, both the
@@ -171,7 +170,7 @@
     // lives here, once, instead of two copies free to drift apart. `Pin
     // Only` is the actual security gate behind that trust: every changed
     // line still has to be nothing but a version in a pin position, checked
-    // line by line by scripts/assert-pin-only-diff.py, before the label
+    // line by line by the shared pin-only check, before the label
     // alone can do anything.
     //
     // patch and minor only, not this repository's whole update-type
@@ -216,8 +215,9 @@
     // repository ages its own upstream inputs through a seven day
     // minimumReleaseAge, sends Ubuntu minor and major moves to a person, and only publishes from a reviewed merge to main. A digest
     // arriving here has therefore already passed that gate, and `Pin Only`
-    // grades the `ARG BASE_IMAGE=<image>@sha256:<digest>` line (IMAGE_DIGEST in
-    // scripts/assert-pin-only-diff.py), so the ordinary bot lane approves it.
+    // grades the `ARG BASE_IMAGE=<image>@sha256:<digest>` line (the shared
+    // pin-only check's image_digest grammar), so the ordinary bot lane
+    // approves it.
     // GHCR returns no release timestamp for a digest, so under Renovate's
     // default minimumReleaseAgeBehaviour (timestamp-required) the seven day
     // window above would hold every base image bump forever and, with
@@ -276,7 +276,7 @@
     // this migration hands Renovate exactly the scope Dependabot had, not a
     // wider one nobody has reviewed the implications of. Nothing downstream
     // would have merged one of these unattended regardless:
-    // scripts/assert-pin-only-diff.py's REV_PIN and ACTION_SHA patterns do
+    // the shared pin-only check's rev_pin and action_sha grammars do
     // not match any of the five, so `Pin Only` would have refused any such
     // diff and sent it to a person, same as a major bump. This rule stops
     // the pull request from being opened at all, rather than relying on

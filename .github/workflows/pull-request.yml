@@ -350,7 +350,7 @@ jobs:
     # A cold cache building every checklist's hook environment from scratch
     # (Python, Node, and a pre-commit-managed Go toolchain download for
     # shfmt) took real time to establish locally; 20 minutes leaves headroom
-    # over tests/run_tests.sh's five phases together, including the two
+    # over tests/run_tests.sh's phases together, including the two
     # throwaway /tmp repos the consumer/commit phases build.
     timeout-minutes: 20
     permissions:
