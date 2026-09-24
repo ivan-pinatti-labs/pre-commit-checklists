@@ -15,7 +15,7 @@ repos:
       - id: requirements-txt-fixer
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.7
+    rev: v0.16.8
     hooks:
       # --extend-select S turns on flake8-bandit, the security rules. It is a
       # floor rather than a preference: ruff with no configuration selects
