@@ -1,6 +1,7 @@
-# Egress sets this repository needs beyond workbench and github (always on).
+# Egress sets this repository needs beyond workbench, github and ghcr (always on).
 python
 node
-golang
 hashicorp
 opentofu
+# cosign verifies tflint while the L2 image builds
+sigstore
