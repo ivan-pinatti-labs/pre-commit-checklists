@@ -33,8 +33,9 @@ so all code changes happen through pull requests.
    it yet, then run `make install` (or `pre-commit install`) in your clone.
    `git clone` does not carry hooks over, so do this in every clone,
    including throwaway ones.
-3. Make your change. `make run` (or `pre-commit run --all-files`) runs the
-   same checklists this repo dogfoods on itself; see the repo's own
+3. Make your change. `make run` (or `pre-commit run --all-files`, and
+   `l2-pre-commit run --all-files` in a devcontainer-airlock workbench) runs
+   the same checklists this repo dogfoods on itself; see the repo's own
    [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) for exactly which
    ones and at which git stage.
 4. If you're adding or changing a checklist, also check it against
