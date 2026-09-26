@@ -19,11 +19,11 @@
 # modules `tofu init` resolved rather than the ones `terraform init` would
 # have.
 #
-# The development container installs `tofu` from OpenTofu's release archive,
+# The L2 image installs `tofu` from OpenTofu's release archive,
 # verified against the SHA256SUMS file OpenTofu signs with its own key. Its
 # apt repository exists but is signed by its hosting provider rather than by
 # OpenTofu, so the archive is the path where the project vouches for the
-# bytes; see .devcontainer/Dockerfile.
+# bytes; see .devcontainer/l2/Dockerfile.
 repos:
   - repo: https://github.com/tofuutils/pre-commit-opentofu
     rev: v2.4.2

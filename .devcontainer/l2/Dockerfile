@@ -1,46 +1,20 @@
-# Development container for pre-commit-checklists: everything this
-# repository's hooks and self-test suite (tests/run_tests.sh) need, on top of
-# the organization's shared base image. See .devcontainer/README.md for how to
-# start it and why each run argument is there.
+# This repository's L2 image: where its hooks and its self-test suite run,
+# with no credentials (see docs/LAYERS.md in devcontainer-airlock). It adds
+# what the terraform and tofu checklists call by name to the shared L2 image.
 #
-# The base image is pinned by digest. BASE_IMAGE is a build argument only so a
-# change to the base image can be tested against this repository before it is
-# published.
-ARG BASE_IMAGE=ghcr.io/ivan-pinatti-labs/devcontainer-base@sha256:1b4d3db91675e9d150783f0123c10460f3dca1c1bcc6e594c08f5978ace48fab
-FROM ${BASE_IMAGE}
-
+# Build context is the repository root, for the vendored OpenTofu key.
+ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:fc340eb19b1c98dd346d4ef79c0f739668e464b40a0150ad704b6f5cb2069a43
+# hadolint ignore=DL3006
+FROM ${L2_IMAGE}
 USER 0:0
 
-# python3-yaml: the selectors phase of tests/run_tests.sh imports yaml. It
-#   comes from apt because Ubuntu marks its Python as externally managed, so
-#   pip refuses to install into it.
-# pipx: detect-secrets is not packaged by Ubuntu at all (checked 2026-09-15).
-# cosign: verifies tflint's keyless signature further down. Ubuntu packages
-#   it (2.6.2 on 26.04), which is what makes that verification possible
-#   without a chicken and egg problem: verifying a downloaded cosign would
-#   itself need a cosign.
-#
-# Versions are unpinned for the same reason as in the base image: Ubuntu ships
-# security fixes by moving a package's version within a release.
+# cosign verifies tflint below; pipx installs detect-secrets, which the
+# self-test suite calls directly.
 # hadolint ignore=DL3008
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    cosign \
-    pipx \
-    python3-yaml \
+  && apt-get install -y --no-install-recommends cosign pipx \
   && rm -rf /var/lib/apt/lists/*
 
-# The shell and commit phases call the detect-secrets CLI directly. Pinned to
-# the same version as the Yelp/detect-secrets rev in
-# checklists/checklist-security-credentials.yaml, so the CLI the tests run and
-# the hook the checklist runs agree.
-#
-# HOME is set to root's own for this one step. The base image sets HOME to
-# /home/dev for every step, so pipx running as root otherwise creates
-# /home/dev/.local owned by root, and podman, running as dev, can then no
-# longer create its storage there ("mkdir /home/dev/.local/share/containers:
-# permission denied"), which breaks every hook that starts a container.
-#
 # DL3064 is a false positive here: it flags "SECRETS" in the argument name,
 # but the value is a version number, not sensitive data.
 # hadolint ignore=DL3064
@@ -49,36 +23,14 @@ RUN HOME=/root PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin \
   PIPX_MAN_DIR=/usr/local/share/man \
   pipx install "detect-secrets==${DETECT_SECRETS_VERSION}"
 
-# The tools this repository's checklists shell out to, from signed
-# repositories.
-#
-# gh and pre-commit and shellcheck: gh from GitHub's own repository, whose
-# signing key the base image checks against a fingerprint and installs
-# without enabling, so the source entry below is what opts in. pre-commit and
-# shellcheck come from Ubuntu, which packages both.
-#
-# terraform from HashiCorp's own repository, for checklist-dev-terraform's
-# terraform-fmt and terraform-validate hooks. `resolute` is Ubuntu 26.04's
-# codename, which HashiCorp publishes a component for; a base image moving to
-# a newer Ubuntu has to check that the component exists first, because apt
-# fails closed on a missing one rather than falling back.
-#
-# Versions are deliberately unpinned, and this layer is therefore rolling
-# rather than reproducible. The digest above fixes what this builds on and
-# says nothing about what apt resolves on top.
+# terraform from HashiCorp's signed repository; the base image already
+# checked its key.
 # hadolint ignore=DL3008
 RUN printf '%s\n' \
-      'deb [arch=amd64 signed-by=/usr/share/keyrings/github-cli.gpg] https://cli.github.com/packages stable main' \
-      > /etc/apt/sources.list.d/github-cli.list \
-  && printf '%s\n' \
       'deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com resolute main' \
       > /etc/apt/sources.list.d/hashicorp.list \
   && apt-get update \
-  && apt-get install -y --no-install-recommends \
-    gh \
-    pre-commit \
-    shellcheck \
-    terraform \
+  && apt-get install -y --no-install-recommends terraform \
   && rm -rf /var/lib/apt/lists/*
 
 # OpenTofu, for checklist-dev-tofu, alongside Terraform for
@@ -109,13 +61,12 @@ RUN printf '%s\n' \
 # executed, exactly as the base image does for its apt keys, so a swapped key
 # file fails the build rather than signing whatever arrives.
 #
-# HOME=/root on this step, for the same reason the pipx step above sets it:
-# the base image sets HOME=/home/dev for every build step, so anything run as
-# root that touches its home directory leaves a root owned directory there
-# that the dev account cannot then write. gpg creates ~/.gnupg, cosign
-# creates ~/.sigstore, `tofu --version` creates ~/.terraform.d and
-# `tflint --version` creates ~/.cache/tflint. Any one of them is enough to
-# break pre-commit, which needs ~/.cache/pre-commit.
+# HOME=/root on this step, as on the pipx step above. The L2 image already
+# sets it, and L2 runs everything as root with /root on a per repository
+# volume where pre-commit keeps its environments, so saying it here keeps
+# what gpg (~/.gnupg), cosign (~/.sigstore), `tofu --version`
+# (~/.terraform.d) and `tflint --version` (~/.cache/tflint) leave behind in
+# the same place even if a base image ever moves HOME.
 # renovate: datasource=github-releases depName=opentofu/opentofu
 ARG TOFU_VERSION=1.12.6
 COPY .devcontainer/keyrings/opentofu.asc /tmp/keyrings/opentofu.asc
@@ -192,28 +143,5 @@ RUN set -eu; \
     /tmp/checksums.txt.pem /tmp/tflint_linux_amd64.zip; \
   tflint --version
 
-# Nothing root owned may survive under the dev account's home. The steps
-# above all set HOME=/root, so this should find nothing; it runs anyway,
-# because a step added later that forgets would otherwise produce a container
-# that only fails when somebody tries to use it.
-# The grep is the last command in its pipeline, so its exit status is the
-# pipeline's with or without pipefail, which Podman's default OCI format
-# ignores anyway because it ignores SHELL. See the base image's Dockerfile.
-#
-# The first version of this ended `&& ... && exit 1 || true`, where the
-# trailing `|| true` swallowed its own `exit 1` along with everything else,
-# so the guard always succeeded and a root owned path would still have
-# shipped. A guard that cannot fail is worse than no guard, because it reads
-# as protection. CodeRabbit caught it on pull request 53.
-# hadolint ignore=DL4006
-RUN set -eu; \
-  find /home/dev ! -user dev -exec chown dev:dev {} + ; \
-  if find /home/dev ! -user dev | grep -q .; then \
-    echo "root owned paths survived under /home/dev:" >&2; \
-    find /home/dev ! -user dev -printf '  %u %p\n' >&2; \
-    exit 1; \
-  fi
-
 USER 1000:1000
-
 WORKDIR /workspace

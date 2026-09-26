@@ -219,8 +219,8 @@ jobs:
       # for why a consumer adopts one and not both.
       # tofu_version is explicit because the action installs `latest` without
       # it, so pinning the action SHA would pin the installer and not the CLI
-      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/Dockerfile so
-      # CI and the development container run the same OpenTofu.
+      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/l2/Dockerfile so
+      # CI and the L2 image run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
@@ -392,8 +392,8 @@ jobs:
       # for why a consumer adopts one and not both.
       # tofu_version is explicit because the action installs `latest` without
       # it, so pinning the action SHA would pin the installer and not the CLI
-      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/Dockerfile so
-      # CI and the development container run the same OpenTofu.
+      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/l2/Dockerfile so
+      # CI and the L2 image run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
