@@ -216,7 +216,7 @@ hook fires because local work happens on `main`.
   `language: python` environment via `additional_dependencies`; that
   floor is zizmor's own, see `docs/hook-catalogue.md` for why the hook
   definition does not pin `language_version` to enforce it), `terraform`
-  and `tflint`, both provided by the development container (for
+  and `tflint`, both provided by this repository's L2 image (for
   `checklist-dev-terraform`, which runs them against the fixtures under
   `tests/fixtures/checklist-dev-terraform/`), `tofu` (for
   `checklist-dev-tofu`, against `tests/fixtures/checklist-dev-tofu/`), and a Go
@@ -246,7 +246,9 @@ tests/run_tests.sh
 ```
 
 Exit 0 means every phase passed; nonzero means at least one did. The
-script needs `pre-commit` and the checklist tools on PATH, which is what the
-development container provides (`make shell`), Docker for the GitHub Actions
-checklist test, and network access for pre-commit to build hook
-environments and for the actionlint Docker image pull.
+script needs `pre-commit` and the checklist tools on PATH, which is what
+this repository's L2 image provides (`make test` in a devcontainer-airlock
+workbench runs it there, with `l2 --net`), Docker for the GitHub Actions
+checklist test (in L2, a shim runs the baked actionlint instead), and
+network access for pre-commit to build hook environments and for terraform
+and tofu to fetch providers.

@@ -69,7 +69,7 @@ and still needs a genuine human review, same as always.
 Renovate (`.github/renovate.json5`: both pre-commit surfaces, root
 `.pre-commit-config.yaml` and every `checklists/checklist-*.yaml`, the
 github-actions surface, and the two annotated release ARGs in
-`.devcontainer/Dockerfile`; daily before 7am) is the only dependency bot
+`.devcontainer/l2/Dockerfile`; daily before 7am) is the only dependency bot
 that opens pull requests here. Dependabot
 used to cover the root pre-commit surface and github-actions on its own
 weekday schedule, until this repository migrated onto Renovate as its sole
@@ -87,7 +87,7 @@ For the ones that are pin only:
    `.github/pin-only.yml` names:
    `.pre-commit-config.yaml`, `checklists/*.yaml` `rev:` pins,
    `.github/workflows/*.yml` action SHA pins, and the annotated release ARGs
-   in `.devcontainer/Dockerfile`. `.github/pin-only.yml` names those
+   in `.devcontainer/l2/Dockerfile`. `.github/pin-only.yml` names those
    surfaces and ivan-pinatti-labs/gh-actions documents the grammars,
    including how they treat the three
    checklist-embedded version strings (dotenv-linter's image tag, zizmor's

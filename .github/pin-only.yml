@@ -7,20 +7,20 @@
 #
 # Reproduces the scripts/assert-pin-only-diff.py this replaced, exactly: the
 # four pin surfaces real to this repository, and the annotated release ARGs
-# in the development container Dockerfile.
+# in the L2 image Dockerfile (.devcontainer/l2/Dockerfile).
 allowed_paths:
   - .pre-commit-config.yaml
   - checklists/
   - .github/workflows/
-  - .devcontainer/Dockerfile
+  - .devcontainer/l2/Dockerfile
 
 arg_sources:
-  - file: .devcontainer/Dockerfile
+  - file: .devcontainer/l2/Dockerfile
     annotations:
       - '^#\s*renovate:'
 
 rules:
-  - path: .devcontainer/Dockerfile
+  - path: .devcontainer/l2/Dockerfile
     grammars: [image_digest, arg_pin]
   - path: .github/workflows/
     grammars:
