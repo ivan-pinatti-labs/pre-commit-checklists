@@ -155,6 +155,21 @@ stopping Renovate from opening pull requests at all, with nothing else in
 this pipeline positioned to notice; this job exists to catch that before
 it merges, not to gate a merge on it.
 
+## SonarQube Cloud, not required yet
+
+`.github/workflows/sonarqube.yml` runs a SonarQube Cloud analysis on every
+pull request and every push to `main`, and its `SonarQube` job fails when
+the project's quality gate fails. Settings live in
+`sonar-project.properties`. It is **not** a required check yet: the
+analysis runs and reports, but branch protection does not read it. A later
+pull request makes `SonarQube` required and removes `codeql.yml`, which
+SonarQube Cloud replaces across the organization.
+
+On a `merge_group` run the job passes without analyzing, because the pull
+request head was already analyzed and gated, and the push to `main` right
+after the merge analyzes the real result. That step exists so the check is
+already in place on the queue's commit once it becomes required.
+
 ## What actually gets reviewed, and what does not
 
 Same shape as rsync-crypt, summarized: a dependency bot pull request whose
