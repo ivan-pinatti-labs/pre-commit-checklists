@@ -126,7 +126,7 @@ coverage:
 			pip install --quiet --disable-pip-version-check --root-user-action=ignore \
 				--require-hashes --only-binary=:all: -r tests/requirements.txt; \
 			coverage run -m pytest tests/tools -q -p no:cacheprovider; \
-			coverage xml -q -o /out/coverage.xml; \
+			coverage xml -q --fail-under=0 -o /out/coverage.xml; \
 			coverage report' || py=$$?; \
 	rm -rf "$(COVERAGE_DIR)"; mkdir -p "$(COVERAGE_DIR)"; \
 	cp "$$out"/python/coverage.xml "$$out"/shell/shell.xml "$(COVERAGE_DIR)"/ 2>/dev/null || true; \
