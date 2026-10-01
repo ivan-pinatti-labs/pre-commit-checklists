@@ -94,7 +94,7 @@ if [ -n "${__ticket_prefixes}" ]; then
   IFS='|'
   __prefix_pattern="${__prefix_array[*]}"
   unset IFS
-  readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})\((${__prefix_pattern})-[0-9]+\): .+"
+  readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})\((${__prefix_pattern})-[0-9]+\)!?: .+"
 
   if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
@@ -106,12 +106,14 @@ EOF
     exit 1
   fi
 else
-  readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})(\([a-zA-Z0-9_.-]+\))?: .+"
+  # An optional "!" before the colon marks a breaking change.
+  readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})(\([a-zA-Z0-9_.-]+\))?!?: .+"
 
   if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
 Error: commit message does not follow Conventional Commits.
-Expected format: 'type(optional-scope): description'
+Expected format: 'type(optional-scope): description', with '!' before the
+colon for a breaking change
 Examples: 'feat: add login page'
           'fix(auth): handle expired token'
 Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert

@@ -209,6 +209,18 @@ run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/plain.txt"
 [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: plain Conventional Commit accepted" || fail "check-commit-msg.sh: plain conventional commit should be accepted" "${OUT}"
 
 write_msg scoped.txt "fix(auth): handle expired token"
+write_msg breaking.txt "feat!: remove legacy API"
+write_msg breaking-scoped.txt "feat(api)!: remove legacy API"
+write_msg breaking-ticket.txt "feat(PROJ-7)!: remove legacy API"
+for __m in breaking breaking-scoped; do
+  run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
+  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} change marker accepted" || fail "check-commit-msg.sh: ${__m} should be accepted" "${OUT}"
+done
+run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/breaking-ticket.txt"
+[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --ticket-prefixes accepts a breaking change marker" || fail "check-commit-msg.sh: --ticket-prefixes should accept feat(PROJ-7)!: ..." "${OUT}"
+write_msg bang-misplaced.txt "feat:! misplaced marker"
+run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/bang-misplaced.txt"
+[ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: a marker after the colon is rejected" || fail "check-commit-msg.sh: feat:! should be rejected" "exit=${EXIT} ${OUT}"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/scoped.txt"
 [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: scoped Conventional Commit accepted" || fail "check-commit-msg.sh: scoped conventional commit should be accepted" "${OUT}"
 
