@@ -70,6 +70,25 @@ what the hook itself does):
   exclude: ^(CHANGELOG\.md|vendor/)
 ```
 
+## No AI attribution in commit messages
+
+`checklist-git-commit-msg` accepts any trailer by default. To refuse a
+message that credits or links an AI agent (an agent as `Co-Authored-By`,
+known by its email domain, exact name or bot account, never by a word in a
+person's name; a
+"Generated with" line, an agent session link such as `Claude-Session:` or
+`claude.ai/code/session_...`), pass `--no-ai-attribution`:
+
+```yaml
+- id: checklist-git-commit-msg
+  args: ["--no-ai-attribution"]
+  stages: [commit-msg]
+  files: ^\.git/COMMIT_EDITMSG$
+```
+
+It combines with `--ticket-prefixes`. Comment lines, which git strips from
+the message, are not checked.
+
 ## Ticket prefixes in branch names and commit messages
 
 `checklist-git-valid-branches` and `checklist-git-commit-msg` accept
