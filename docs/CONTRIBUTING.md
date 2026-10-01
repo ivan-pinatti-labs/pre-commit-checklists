@@ -85,7 +85,7 @@ that triggered (or should have triggered) it, and what you expected instead.
 - 2 spaces for indentation, not tabs, matching [`.editorconfig`](../templates/.editorconfig).
 - Shell scripts under `scripts/` use `#!/usr/bin/env bash` with the explicit
   `set -o errexit`, `set -o pipefail`, `set -o nounset` trio, and document
-  every exit status code in a leading comment. `shellcheck`
+  every exit status code in a leading `#` comment block. `shellcheck`
   (`--severity=error`) and `shfmt` (`--indent 2`) run over them through
   `checklist-dev-shell` in this repo's own dogfood config.
 - Run `make run` before pushing; it runs both the `pre-commit` and
@@ -100,6 +100,43 @@ contributor or consumer (`install.sh`). Follow the coding style above; the
 `shell` phase of `tests/run_tests.sh` runs shellcheck plus behavioral tests
 against everything under `scripts/*.sh`, so a new script needs a matching
 test there, not just a passing lint.
+
+## Coverage
+
+Every line of every `scripts/*.sh` has to run in
+[`tests/scripts/script_units.sh`](../tests/scripts/script_units.sh), the
+`units` phase, which replaces git, pre-commit, detect-secrets, curl and wget
+with stubs so it needs nothing installed and touches no network. The Python
+under [`tools/`](../tools/) (this repository's own tooling, which no consumer
+gets) is held to every line and every branch by its tests under
+`tests/tools/`. The other Python here, `tests/scripts/test_selector_lint.py`
+and the fixtures, is test code and is not measured.
+
+`make coverage` runs the shell cases under kcov and the Python tests under
+coverage.py, each in a podman container that sees the source only as a tar
+stream, and fails unless both reach 100%. It needs podman on `PATH`; in a
+devcontainer-airlock workbench run it as `l2 --engine --net -- make
+coverage`. It also runs as a pre-push hook, and the SonarQube job runs it on every
+pull request. A new
+script ships with cases that reach every line of it.
+
+## Updating the Python test dependencies
+
+`tests/requirements.in` carries the exact pins of the environment
+`make coverage` tests `tools/` in, and `tests/requirements.txt` is a lock
+compiled from it with every hash, which `pip install --require-hashes`
+checks. Renovate bumps both. To change one by hand, edit the `.in` file and
+regenerate the lock in a container, from the `tests/` directory:
+
+```bash
+podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.12-trixie-slim \
+  uv pip compile --generate-hashes --python-version=3.12 --exclude-newer=P7D \
+  --output-file=requirements.txt requirements.in
+```
+
+That is the command in the lock's own header, which Renovate replays.
+`--exclude-newer=P7D` leaves out anything released in the last seven days,
+dependencies of dependencies included.
 
 ## License
 

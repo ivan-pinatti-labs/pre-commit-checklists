@@ -30,6 +30,7 @@ tests/run_tests.sh hooks shell
 | `selectors` | `tests/scripts/test_selector_lint.py` | Static: no hook definition in `.pre-commit-hooks.yaml`, `checklists/*.yaml`, or `templates/pre-commit-config/*.yaml` combines `types:`/`types_or:` with `files:` on the same entry. pre-commit ANDs those keys; combining them is exactly how defects 2 and 3 happened. |
 | `hooks` | `tests/scripts/check_hooks.sh` | Per checklist: a `should-pass` fixture set exits 0, a `should-fail` fixture set exits nonzero, and, critically, the hook is not silently skipped for matching zero files ("(no files to check)"). Also re-runs each `should-pass` set through the real dogfood `.pre-commit-config.yaml` by hook id, asserting the file-based selector wiring there still selects the fixture. |
 | `shell` | `tests/scripts/lint_shell.sh` | `shellcheck --severity=warning` over `scripts/*.sh`, plus behavioral tests of `check-branch-name.sh`, `check-commit-msg.sh` (including the opt-in `--ticket-prefixes` path for both), `run-checklist.sh`, and `install.sh` against their documented exit codes. |
+| `units` | `tests/scripts/script_units.sh` | Every line of every `scripts/*.sh`, with git, pre-commit, detect-secrets, curl and wget replaced by stubs on a PATH that holds nothing else, so it touches no network and no real repository. `install.sh` runs through a symlink in a scratch directory for its remote (piped) mode. `make coverage` runs this phase under kcov and fails below 100% of lines. |
 | `consumer` | `tests/scripts/consumer_path.sh` | The `repo: <url>` + `rev: vX.Y.Z` consumer path, offline. See below. |
 | `commit` | `tests/scripts/real_commit.sh` | A real `git commit` through installed hooks, covering the `commit-msg` stage. |
 
@@ -228,6 +229,7 @@ hook fires because local work happens on `main`.
   that serves the phase's 404 fixture. No outbound network access: the
   dead link it checks is served from 127.0.0.1 on an ephemeral port.
 - `shell`: `shellcheck`, `git`, `pre-commit`, `detect-secrets`.
+- `units`: bash and coreutils only; everything else is a stub.
 - `consumer` / `commit`: `git`, `pre-commit`, and everything `hooks` needs
   (the throwaway consumer repos exercise the same checklists).
 

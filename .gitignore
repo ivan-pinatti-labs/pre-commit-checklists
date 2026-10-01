@@ -42,3 +42,6 @@ CLAUDE.local.md
 # provider hashes that go stale, so neither belongs in the repository.
 .terraform/
 .terraform.lock.hcl
+
+# Coverage reports, written by `make coverage`
+coverage/

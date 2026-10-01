@@ -170,6 +170,18 @@ request head was already analyzed and gated, and the push to `main` right
 after the merge analyzes the real result. That step exists so the check is
 already in place on the queue's commit once it becomes required.
 
+Before scanning, the job runs `make coverage`, which holds every
+`scripts/*.sh` at 100% of its lines and the Python under `tools/` at 100% of
+its lines and branches, and hands both reports to SonarQube Cloud. The shell
+goes through kcov, running `tests/scripts/script_units.sh` (the `units` phase
+of the self-test suite, which stubs every command the scripts call out to),
+and the Python through coverage.py, each in a podman container that sees the
+source only as a tar stream on its standard input. SonarQube has no importer
+for shell coverage, so `tools/kcov_to_sonar.py` rewrites kcov's report into
+SonarQube's generic coverage format. The job fails below 100% even though
+SonarQube's own gate only asks for 80% of new code, which the Free plan
+cannot raise.
+
 ## What actually gets reviewed, and what does not
 
 Same shape as rsync-crypt, summarized: a dependency bot pull request whose

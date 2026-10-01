@@ -1,26 +1,24 @@
 #!/usr/bin/env bash
 
-: '
-  Dispatcher for the checklist YAML files in checklists/.
-  Resolves a checklist name to its config file and hands off to
-  `pre-commit run`, passing through the file arguments pre-commit
-  itself supplied to the calling hook.
-
-  Exit status codes:
-    0 - success (pre-commit run passed)
-    1 - non-zero exit from usage/argument errors
-    2 - checklist file not found
-    non-zero - whatever `pre-commit run` returns
-
-  A checklist-file-not-found error (exit 2) is almost always a consumer
-  args: override on a checklist-* hook id in their own
-  .pre-commit-config.yaml, not a typo here: every checklist-* id except
-  checklist-git-valid-branches and checklist-git-commit-msg calls this
-  script with the checklist name as its first argument, and a consumer
-  args: entry replaces that argument instead of adding to it. See
-  docs/overrides.md, "Do not put args: on a checklist-* id that routes
-  through run-checklist.sh".
-'
+# Dispatcher for the checklist YAML files in checklists/.
+# Resolves a checklist name to its config file and hands off to
+# `pre-commit run`, passing through the file arguments pre-commit
+# itself supplied to the calling hook.
+#
+# Exit status codes:
+#   0 - success (pre-commit run passed)
+#   1 - non-zero exit from usage/argument errors
+#   2 - checklist file not found
+#   non-zero - whatever `pre-commit run` returns
+#
+# A checklist-file-not-found error (exit 2) is almost always a consumer
+# args: override on a checklist-* hook id in their own
+# .pre-commit-config.yaml, not a typo here: every checklist-* id except
+# checklist-git-valid-branches and checklist-git-commit-msg calls this
+# script with the checklist name as its first argument, and a consumer
+# args: entry replaces that argument instead of adding to it. See
+# docs/overrides.md, "Do not put args: on a checklist-* id that routes
+# through run-checklist.sh".
 
 # Print commands as they run when DEBUG=true. This deliberately does not
 # also dump the environment (an earlier version of this script ran

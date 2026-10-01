@@ -1,43 +1,41 @@
 #!/usr/bin/env bash
 
-: '
-  Bootstraps a target repository with this library: copies a chosen
-  pre-commit-config template plus the supporting tool configs into
-  --target, generates a detect-secrets baseline, and runs
-  `pre-commit install`. Pass --community-files to also copy the GitHub
-  community health files (issue templates, pull request template,
-  CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, a commented-out
-  FUNDING.yml) from templates/community/; this is opt in, not the
-  default, since plenty of consumers already have their own.
-
-  Runs in one of two modes, detected automatically, no flag needed:
-    - Local: invoked from a checkout of this repo (./scripts/install.sh,
-      or bash scripts/install.sh), copies the template files straight
-      off disk.
-    - Remote: invoked piped into bash (curl ... | bash -s -- ...), where
-      there is no checkout to copy from, so the same files are fetched
-      over HTTPS from raw.githubusercontent.com instead, pinned to
-      --ref.
-
-  This is the one script in this library that reaches outside its own
-  repo: it writes into whatever --target points at (or, in remote mode
-  with no --target given, the current directory), never into this repo.
-
-  Exit status codes:
-    0 - success
-    1 - usage/argument error
-    2 - target directory not found
-    3 - the template, or an expected supporting file (including a
-        community file, when --community-files is given), was not
-        found at the chosen --template / --ref (bad template name, bad
-        ref, or a ref from before --community-files existed)
-    4 - a file already exists at the destination and --force was not given
-    5 - a required command (pre-commit or detect-secrets) is not installed
-    6 - neither curl nor wget is installed (remote mode only)
-    7 - a network fetch failed for a reason other than "not found":
-        DNS, connection, or timeout (remote mode only)
-    non-zero - whatever the failing command returned
-'
+# Bootstraps a target repository with this library: copies a chosen
+# pre-commit-config template plus the supporting tool configs into
+# --target, generates a detect-secrets baseline, and runs
+# `pre-commit install`. Pass --community-files to also copy the GitHub
+# community health files (issue templates, pull request template,
+# CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, a commented-out
+# FUNDING.yml) from templates/community/; this is opt in, not the
+# default, since plenty of consumers already have their own.
+#
+# Runs in one of two modes, detected automatically, no flag needed:
+#   - Local: invoked from a checkout of this repo (./scripts/install.sh,
+#     or bash scripts/install.sh), copies the template files straight
+#     off disk.
+#   - Remote: invoked piped into bash (curl ... | bash -s -- ...), where
+#     there is no checkout to copy from, so the same files are fetched
+#     over HTTPS from raw.githubusercontent.com instead, pinned to
+#     --ref.
+#
+# This is the one script in this library that reaches outside its own
+# repo: it writes into whatever --target points at (or, in remote mode
+# with no --target given, the current directory), never into this repo.
+#
+# Exit status codes:
+#   0 - success
+#   1 - usage/argument error
+#   2 - target directory not found
+#   3 - the template, or an expected supporting file (including a
+#       community file, when --community-files is given), was not
+#       found at the chosen --template / --ref (bad template name, bad
+#       ref, or a ref from before --community-files existed)
+#   4 - a file already exists at the destination and --force was not given
+#   5 - a required command (pre-commit or detect-secrets) is not installed
+#   6 - neither curl nor wget is installed (remote mode only)
+#   7 - a network fetch failed for a reason other than "not found":
+#       DNS, connection, or timeout (remote mode only)
+#   non-zero - whatever the failing command returned
 
 # `set -x` alone, deliberately. A bare `export` prints every inherited
 # environment variable's value, which in CI includes whatever a neighbouring
@@ -264,8 +262,7 @@ else
       [[ "${__code}" = "404" ]] && return 2
       return 1
     fi
-    __code=$(wget --https-only -nv --server-response -O "${__dest}" "${__url}" 2>&1 |
-      awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}') || __status=$?
+    __code=$(wget --https-only -nv --server-response -O "${__dest}" "${__url}" 2>&1 | awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}') || __status=$?
     if [[ -z "${__code}" ]] || [[ "${__code}" = "200" ]]; then
       [[ -s "${__dest}" ]] && return 0
     fi
@@ -428,11 +425,8 @@ fi
 # Append the gitignore fragment once, marked so re-running is idempotent.
 __marker="# --- pre-commit-checklists (scripts/install.sh) ---"
 if [[ ! -f "${__target}/.gitignore" ]] || ! grep -qF "${__marker}" "${__target}/.gitignore"; then
-  {
-    echo ""
-    echo "${__marker}"
-    tail -n +2 "${TEMPLATES_DIR}/gitignore.fragment"
-  } >>"${__target}/.gitignore"
+  printf '\n%s\n' "${__marker}" >>"${__target}/.gitignore"
+  tail -n +2 "${TEMPLATES_DIR}/gitignore.fragment" >>"${__target}/.gitignore"
   echo "Appended gitignore entries to ${__target}/.gitignore"
 else
   echo "Skipping .gitignore: already has the pre-commit-checklists section."
@@ -488,8 +482,7 @@ if (cd "${__target}" && pre-commit autoupdate --repo "${LIBRARY_URL}" >/dev/null
   # message. errexit plus pipefail would otherwise let a failed grep abort a
   # bootstrap that has already succeeded, which is a bad trade for a cosmetic
   # line.
-  __resolved=$(grep -E '^[[:space:]]+rev:' "${__target}/.pre-commit-config.yaml" |
-    head -1 | awk '{print $2}') || true
+  __resolved=$(grep -E '^[[:space:]]+rev:' "${__target}/.pre-commit-config.yaml" | head -1 | awk '{print $2}') || true
   if [[ -n "${__resolved}" ]]; then
     echo "Resolved the pre-commit-checklists pin to ${__resolved}."
   else

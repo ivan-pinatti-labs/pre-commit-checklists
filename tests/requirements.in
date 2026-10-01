@@ -1,0 +1,14 @@
+# The environment `make coverage` runs tests/tools/ in, exact pins rather
+# than `>=` floors.
+#
+# A floor resolves to whatever is newest on PyPI when the environment is
+# built, which puts the seven day `minimumReleaseAge` in
+# .github/renovate.json5 out of the loop entirely: that window governs when
+# Renovate proposes a change, not what pip installs.
+#
+# tests/requirements.txt is compiled from this file with hashes; regenerate
+# it with the command in its header (see docs/CONTRIBUTING.md), never edit it
+# by hand. pytest runs the tests of tools/kcov_to_sonar.py, and coverage
+# measures them for SonarQube Cloud.
+coverage==7.16.1
+pytest==9.1.1

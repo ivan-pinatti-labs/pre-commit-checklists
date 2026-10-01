@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
 
-: '
-  Validates a commit message against Conventional Commits.
-
-  By default, checks plain Conventional Commits: "type(scope): subject",
-  with the scope optional, e.g. "feat: add login page" or
-  "fix(auth): handle expired token".
-
-  Ticket enforcement is opt-in. Pass --ticket-prefixes to require the
-  scope to be a ticket id from one of the given prefixes, e.g.
-  --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
-
-  AI attribution is refused only when asked for. Pass --no-ai-attribution
-  to reject a message with a line crediting or linking an AI agent: a
-  Co-Authored-By trailer naming one, a "Generated with" line, or an agent
-  session link (Claude-Session:, claude.ai/code/session_..., and the
-  task or session links of Codex, Jules, Devin and the Cursor agents).
-
-  Exit status codes:
-    0 - commit message is valid
-    1 - commit message is invalid
-    2 - invalid arguments
-    3 - missing commit message file
-'
+# Validates a commit message against Conventional Commits.
+#
+# By default, checks plain Conventional Commits: "type(scope): subject",
+# with the scope optional, e.g. "feat: add login page" or
+# "fix(auth): handle expired token".
+#
+# Ticket enforcement is opt-in. Pass --ticket-prefixes to require the
+# scope to be a ticket id from one of the given prefixes, e.g.
+# --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
+#
+# AI attribution is refused only when asked for. Pass --no-ai-attribution
+# to reject a message with a line crediting or linking an AI agent: a
+# Co-Authored-By trailer naming one, a "Generated with" line, or an agent
+# session link (Claude-Session:, claude.ai/code/session_..., and the
+# task or session links of Codex, Jules, Devin and the Cursor agents).
+#
+# Exit status codes:
+#   0 - commit message is valid
+#   1 - commit message is invalid
+#   2 - invalid arguments
+#   3 - missing commit message file
 
 if [[ "${DEBUG:-false}" = true ]]; then
   set -x

@@ -21,6 +21,9 @@
     hooks:      per-checklist fixture tests (should-pass/should-fail)
                 plus the dogfood-wiring selection guard for defects 2/3
     shell:      shellcheck plus behavioral tests of scripts/*.sh
+    units:      every line of scripts/*.sh, against stubs of the commands
+                they call (git, pre-commit, detect-secrets, curl, wget);
+                make coverage runs this one under kcov
     links:      how checklist-markdown handles a .markdown-link-check.json
                 (absent / matching / non-matching), in a scratch repo
     consumer:   offline repo:+rev: consumer-path test via a tagged
@@ -44,7 +47,7 @@ set -o nounset
 HERE=$(dirname "$(realpath "${0}")")
 cd "${HERE}/.."
 
-ALL_PHASES="selectors hooks shell links consumer commit"
+ALL_PHASES="selectors hooks shell units links consumer commit"
 PHASES="${*:-${ALL_PHASES}}"
 
 OVERALL_EXIT=0
@@ -75,6 +78,9 @@ for phase in ${PHASES}; do
     ;;
   shell)
     run_phase shell "Phase: shellcheck + scripts/*.sh behavior" "tests/scripts/lint_shell.sh"
+    ;;
+  units)
+    run_phase units "Phase: scripts/*.sh line by line, against stubs" "tests/scripts/script_units.sh"
     ;;
   links)
     run_phase links "Phase: markdown-link-check config handling" "tests/scripts/markdown_link_config.sh"
