@@ -76,8 +76,9 @@ what the hook itself does):
 message that credits or links an AI agent (an agent as `Co-Authored-By`,
 known by its email domain, exact name or bot account, never by a word in a
 person's name; a
-"Generated with" line, an agent session link such as `Claude-Session:` or
-`claude.ai/code/session_...`), pass `--no-ai-attribution`:
+"Generated with" line, an agent session or task link such as `Claude-Session:`,
+`claude.ai/code/session_...` or `chatgpt.com/codex/tasks/...`), pass
+`--no-ai-attribution`:
 
 ```yaml
 - id: checklist-git-commit-msg

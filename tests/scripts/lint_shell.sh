@@ -209,6 +209,18 @@ run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/plain.txt"
 [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: plain Conventional Commit accepted" || fail "check-commit-msg.sh: plain conventional commit should be accepted" "${OUT}"
 
 write_msg scoped.txt "fix(auth): handle expired token"
+write_msg breaking.txt "feat!: remove legacy API"
+write_msg breaking-scoped.txt "feat(api)!: remove legacy API"
+write_msg breaking-ticket.txt "feat(PROJ-7)!: remove legacy API"
+for __m in breaking breaking-scoped; do
+  run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
+  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} change marker accepted" || fail "check-commit-msg.sh: ${__m} should be accepted" "${OUT}"
+done
+run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/breaking-ticket.txt"
+[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --ticket-prefixes accepts a breaking change marker" || fail "check-commit-msg.sh: --ticket-prefixes should accept feat(PROJ-7)!: ..." "${OUT}"
+write_msg bang-misplaced.txt "feat:! misplaced marker"
+run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/bang-misplaced.txt"
+[ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: a marker after the colon is rejected" || fail "check-commit-msg.sh: feat:! should be rejected" "exit=${EXIT} ${OUT}"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/scoped.txt"
 [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: scoped Conventional Commit accepted" || fail "check-commit-msg.sh: scoped conventional commit should be accepted" "${OUT}"
 
@@ -225,6 +237,9 @@ run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/plain.txt"
 
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/coauthor.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Claude-Session: https://claude.ai/code/session_01ABC" >"${__msg_dir}/session.txt"
+printf '%s\n\n%s\n' "feat: document setup" "OpenAI Codex session: https://chatgpt.com/codex/tasks/12345678" >"${__msg_dir}/codex-task.txt"
+printf '%s\n\n%s\n' "feat: document setup" "Task: https://jules.google.com/task/987" >"${__msg_dir}/jules-task.txt"
+printf '%s\n\n%s\n' "docs: link the Codex docs" "See https://developers.openai.com/codex for setup." >"${__msg_dir}/codex-docs.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Generated with [Claude Code](https://claude.com/claude-code)" >"${__msg_dir}/generated.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: A Person <person@example.com>" >"${__msg_dir}/human.txt"
 printf '%s\n\n%s\n' "feat: add login page" "# Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/comment.txt"
@@ -236,13 +251,13 @@ printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Codex <codex@openai.
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Jo Doe <jo@example.com> reviewed with copilot-swe-agent[bot]" >"${__msg_dir}/bot-after.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Jo Doe <jo@example.com> (formerly @openai.com>)" >"${__msg_dir}/domain-after.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude <noreply@example.com>" >"${__msg_dir}/claude-name.txt"
-for __m in coauthor session generated copilot devin-bot codex claude-name; do
+for __m in coauthor session generated copilot devin-bot codex claude-name codex-task jules-task; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --no-ai-attribution rejects ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should reject ${__m} (exit 1)" "exit=${EXIT} ${OUT}"
   run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} accepted without --no-ai-attribution" || fail "check-commit-msg.sh: ${__m} should pass when the check is not asked for" "${OUT}"
 done
-for __m in human comment plain devin-person claude-person bot-after domain-after; do
+for __m in human comment plain devin-person claude-person bot-after domain-after codex-docs; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --no-ai-attribution accepts ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should accept ${__m}" "${OUT}"
 done
