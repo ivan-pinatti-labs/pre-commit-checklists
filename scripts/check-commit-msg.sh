@@ -121,9 +121,15 @@ fi
 
 if [ "${__no_ai_attribution}" = true ]; then
   # Comment lines (which git strips) do not count; the rest are matched
-  # case-insensitively.
-  readonly AI_AGENTS="claude|anthropic|openai|codex|chatgpt|copilot|gemini|cursor|devin|aider|windsurf"
-  readonly AI_ATTRIBUTION_REGEX="(^co-authored-by:.*(${AI_AGENTS}))|(generated (with|by) .*(${AI_AGENTS}))|(^claude-session:)|(claude\\.ai/code/session_)"
+  # case-insensitively. A co-author is an agent by its identity, never by a
+  # word in a name: an agent's own email domain, an agent's exact product
+  # name, or an agent's bot account. A person named Devin or Claude passes.
+  readonly AI_AGENT_DOMAINS="anthropic\.com|openai\.com|cursor\.(com|sh)|cognition\.ai|aider\.chat|codeium\.com|windsurf\.com"
+  readonly AI_AGENT_NAMES="claude( code)?|chatgpt|codex|(github )?copilot|gemini( code assist)?|cursor( agent)?|devin( ai)?|aider|windsurf"
+  readonly AI_AGENT_BOTS="(copilot|devin-ai-integration|cursor|claude|codex|openai)[a-z0-9-]*\[bot\]"
+  readonly AI_COAUTHOR="^co-authored-by:[[:space:]]*((${AI_AGENT_NAMES})[[:space:]]*<|.*${AI_AGENT_BOTS}|.*@(${AI_AGENT_DOMAINS})>)"
+  readonly AI_GENERATED="generated (with|by) .*(claude|anthropic|openai|codex|chatgpt|copilot|gemini|cursor|devin|aider|windsurf)"
+  readonly AI_ATTRIBUTION_REGEX="(${AI_COAUTHOR})|(${AI_GENERATED})|(^claude-session:)|(claude\.ai/code/session_)"
   __found="$(grep -v '^#' "${COMMIT_MSG_FILE}" | grep -i -n -E "${AI_ATTRIBUTION_REGEX}" || true)"
   if [ -n "${__found}" ]; then
     printf '%s\n%s\n%s\n' \

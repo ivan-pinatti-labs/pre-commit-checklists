@@ -73,7 +73,9 @@ what the hook itself does):
 ## No AI attribution in commit messages
 
 `checklist-git-commit-msg` accepts any trailer by default. To refuse a
-message that credits or links an AI agent (a `Co-Authored-By` naming one, a
+message that credits or links an AI agent (an agent as `Co-Authored-By`,
+known by its email domain, exact name or bot account, never by a word in a
+person's name; a
 "Generated with" line, an agent session link such as `Claude-Session:` or
 `claude.ai/code/session_...`), pass `--no-ai-attribution`:
 

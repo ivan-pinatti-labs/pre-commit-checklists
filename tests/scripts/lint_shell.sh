@@ -228,13 +228,18 @@ printf '%s\n\n%s\n' "feat: add login page" "Claude-Session: https://claude.ai/co
 printf '%s\n\n%s\n' "feat: add login page" "Generated with [Claude Code](https://claude.com/claude-code)" >"${__msg_dir}/generated.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: A Person <person@example.com>" >"${__msg_dir}/human.txt"
 printf '%s\n\n%s\n' "feat: add login page" "# Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/comment.txt"
-for __m in coauthor session generated; do
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Devin Smith <devin.smith@example.com>" >"${__msg_dir}/devin-person.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude Monet <claude@example.org>" >"${__msg_dir}/claude-person.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>" >"${__msg_dir}/copilot.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: devin-ai-integration[bot] <158243242+devin-ai-integration[bot]@users.noreply.github.com>" >"${__msg_dir}/devin-bot.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Codex <codex@openai.com>" >"${__msg_dir}/codex.txt"
+for __m in coauthor session generated copilot devin-bot codex; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --no-ai-attribution rejects ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should reject ${__m} (exit 1)" "exit=${EXIT} ${OUT}"
   run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} accepted without --no-ai-attribution" || fail "check-commit-msg.sh: ${__m} should pass when the check is not asked for" "${OUT}"
 done
-for __m in human comment plain; do
+for __m in human comment plain devin-person claude-person; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
   [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --no-ai-attribution accepts ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should accept ${__m}" "${OUT}"
 done
