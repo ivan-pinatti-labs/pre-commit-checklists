@@ -120,19 +120,42 @@ EOF
 fi
 
 if [ "${__no_ai_attribution}" = true ]; then
-  # Comment lines (which git strips) do not count; the rest are matched
-  # case-insensitively. A co-author is an agent by its identity, never by a
-  # word in a name: an agent's own email domain, an agent's exact product
-  # name, or an agent's bot account. A person named Devin or Claude passes.
-  readonly AI_AGENT_DOMAINS="anthropic\.com|openai\.com|cursor\.(com|sh)|cognition\.ai|aider\.chat|codeium\.com|windsurf\.com"
+  # Comment lines (which git strips) do not count; everything is matched
+  # case-insensitively. A co-author is an agent by its identity only: the
+  # trailer is split into its name and its email, and the name must be an
+  # agent's exact product name or bot account, or the email an agent's
+  # domain or bot account. A person named Devin or Claude passes, and so
+  # does text after the email.
   readonly AI_AGENT_NAMES="claude( code)?|chatgpt|codex|(github )?copilot|gemini( code assist)?|cursor( agent)?|devin( ai)?|aider|windsurf"
   readonly AI_AGENT_BOTS="(copilot|devin-ai-integration|cursor|claude|codex|openai)[a-z0-9-]*\[bot\]"
-  readonly AI_COAUTHOR="^co-authored-by:[[:space:]]*((${AI_AGENT_NAMES})[[:space:]]*<|.*${AI_AGENT_BOTS}|.*@(${AI_AGENT_DOMAINS})>)"
+  readonly AI_AGENT_DOMAINS="anthropic\.com|openai\.com|cursor\.(com|sh)|cognition\.ai|aider\.chat|codeium\.com|windsurf\.com"
+  readonly COAUTHOR_TRAILER="^co-authored-by:[[:space:]]*(.*[^[:space:]])[[:space:]]*<([^<>]*)>"
   readonly AI_GENERATED="generated (with|by) .*(claude|anthropic|openai|codex|chatgpt|copilot|gemini|cursor|devin|aider|windsurf)"
-  readonly AI_ATTRIBUTION_REGEX="(${AI_COAUTHOR})|(${AI_GENERATED})|(^claude-session:)|(claude\.ai/code/session_)"
-  __found="$(grep -v '^#' "${COMMIT_MSG_FILE}" | grep -i -n -E "${AI_ATTRIBUTION_REGEX}" || true)"
+  readonly AI_SESSION="(^claude-session:)|(claude\.ai/code/session_)"
+  __found=""
+  __n=0
+  shopt -s nocasematch
+  while IFS= read -r __line || [ -n "${__line}" ]; do
+    __n=$((__n + 1))
+    [[ ${__line} == "#"* ]] && continue
+    __hit=false
+    if [[ ${__line} =~ ${COAUTHOR_TRAILER} ]]; then
+      __name="${BASH_REMATCH[1]}"
+      __email="${BASH_REMATCH[2]}"
+      if [[ ${__name} =~ ^(${AI_AGENT_NAMES})$ ]] || [[ ${__name} =~ ^${AI_AGENT_BOTS}$ ]] ||
+        [[ ${__email} =~ @(${AI_AGENT_DOMAINS})$ ]] || [[ ${__email} =~ ^([0-9]+\+)?${AI_AGENT_BOTS}@ ]]; then
+        __hit=true
+      fi
+    elif [[ ${__line} =~ ${AI_GENERATED} ]] || [[ ${__line} =~ ${AI_SESSION} ]]; then
+      __hit=true
+    fi
+    if [ "${__hit}" = true ]; then
+      __found="${__found}${__n}:${__line}"$'\n'
+    fi
+  done <"${COMMIT_MSG_FILE}"
+  shopt -u nocasematch
   if [ -n "${__found}" ]; then
-    printf '%s\n%s\n%s\n' \
+    printf '%s\n%s\n%s' \
       "Error: commit message carries AI attribution, which this repository does not" \
       "allow (--no-ai-attribution). Remove these lines:" "${__found}"
     exit 1
