@@ -14,7 +14,8 @@
   AI attribution is refused only when asked for. Pass --no-ai-attribution
   to reject a message with a line crediting or linking an AI agent: a
   Co-Authored-By trailer naming one, a "Generated with" line, or an agent
-  session link (claude.ai/code/session_..., Claude-Session:).
+  session link (Claude-Session:, claude.ai/code/session_..., and the
+  task or session links of Codex, Jules, Devin and the Cursor agents).
 
   Exit status codes:
     0 - commit message is valid
@@ -131,7 +132,10 @@ if [ "${__no_ai_attribution}" = true ]; then
   readonly AI_AGENT_DOMAINS="anthropic\.com|openai\.com|cursor\.(com|sh)|cognition\.ai|aider\.chat|codeium\.com|windsurf\.com"
   readonly COAUTHOR_TRAILER="^co-authored-by:[[:space:]]*(.*[^[:space:]])[[:space:]]*<([^<>]*)>"
   readonly AI_GENERATED="generated (with|by) .*(claude|anthropic|openai|codex|chatgpt|copilot|gemini|cursor|devin|aider|windsurf)"
-  readonly AI_SESSION="(^claude-session:)|(claude\.ai/code/session_)"
+  # Links to an agent's own session or task, which harnesses append on
+  # their own: Claude Code, OpenAI Codex, Google Jules, Devin, Cursor's
+  # background agents.
+  readonly AI_SESSION="(^claude-session:)|(claude\.ai/code/session_)|(chatgpt\.com/codex/tasks/)|(jules\.google\.com/task/)|(app\.devin\.ai/sessions/)|(cursor\.com/agents/)"
   __found=""
   __n=0
   shopt -s nocasematch
