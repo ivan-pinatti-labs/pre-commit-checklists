@@ -30,7 +30,7 @@ build your own selection from scratch.
 | `checklist-xml` | check-xml | `types: [xml]` | none |
 | `checklist-security-credentials` | detect-private-key, detect-secrets | all files (no selector needed) | `.secrets.baseline` at repo root, `scripts/install.sh` generates one |
 | `checklist-git-valid-branches` | `scripts/check-branch-name.sh` | not file-based: `pass_filenames: false`, `always_run: true` | none |
-| `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: ^\.git/COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
+| `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned to an explicit release, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |

@@ -119,11 +119,12 @@ repos:
         verbose: true
 
       - id: checklist-git-commit-msg
+        args: ["--no-ai-attribution"]
         name: Git - Commit Message Checklist
         language: script
         entry: ./scripts/check-commit-msg.sh
         stages: [commit-msg]
-        files: ^\.git/COMMIT_EDITMSG$
+        files: COMMIT_EDITMSG$
         require_serial: true
         verbose: true
 

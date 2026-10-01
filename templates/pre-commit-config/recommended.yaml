@@ -97,7 +97,7 @@ repos:
       # ticket prefix is required by default; see docs/overrides.md.
       - id: checklist-git-commit-msg
         stages: [commit-msg]
-        files: ^\.git/COMMIT_EDITMSG$
+        files: COMMIT_EDITMSG$
 
       # Blocks direct commits to your long-lived branches (main, master,
       # develop, staging by default). Adjust the pattern in

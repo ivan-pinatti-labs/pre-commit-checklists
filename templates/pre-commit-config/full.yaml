@@ -75,7 +75,7 @@ repos:
         stages: [pre-commit]
       - id: checklist-git-commit-msg
         stages: [commit-msg]
-        files: ^\.git/COMMIT_EDITMSG$
+        files: COMMIT_EDITMSG$
       - id: checklist-git-protected-branches
         pass_filenames: false
         always_run: true

@@ -83,7 +83,7 @@ person's name; a
 - id: checklist-git-commit-msg
   args: ["--no-ai-attribution"]
   stages: [commit-msg]
-  files: ^\.git/COMMIT_EDITMSG$
+  files: COMMIT_EDITMSG$
 ```
 
 It combines with `--ticket-prefixes`. Comment lines, which git strips from
@@ -105,7 +105,7 @@ plain names by default (`add-login-page`,
 - id: checklist-git-commit-msg
   args: ["--ticket-prefixes", "PROJ ACME"]
   stages: [commit-msg]
-  files: ^\.git/COMMIT_EDITMSG$
+  files: COMMIT_EDITMSG$
 ```
 
 With that, branches must look like `proj-123-add-login-page` and commits
