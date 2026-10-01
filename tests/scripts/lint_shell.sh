@@ -4,7 +4,7 @@
   Phase 3: shellcheck plus behavioral assertions for scripts/*.sh.
 
   Covers run-checklist.sh, check-branch-name.sh (including the opt-in
-  --ticket-prefixes path), check-commit-msg.sh (including --ticket-prefixes)
+  --ticket-prefixes path), check-commit-msg.sh (including --ticket-prefixes and --no-ai-attribution)
   and install.sh, against their documented exit codes, using real scratch
   git repositories under /tmp rather than mocks.
 '
@@ -222,6 +222,22 @@ run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/ticket.txt"
 
 run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/plain.txt"
 [ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --ticket-prefixes PROJ rejects a message with no ticket scope" || fail "check-commit-msg.sh: --ticket-prefixes PROJ should reject a message with no ticket scope (exit 1)" "exit=${EXIT} ${OUT}"
+
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/coauthor.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Claude-Session: https://claude.ai/code/session_01ABC" >"${__msg_dir}/session.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Generated with [Claude Code](https://claude.com/claude-code)" >"${__msg_dir}/generated.txt"
+printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: A Person <person@example.com>" >"${__msg_dir}/human.txt"
+printf '%s\n\n%s\n' "feat: add login page" "# Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/comment.txt"
+for __m in coauthor session generated; do
+  run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
+  [ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --no-ai-attribution rejects ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should reject ${__m} (exit 1)" "exit=${EXIT} ${OUT}"
+  run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
+  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} accepted without --no-ai-attribution" || fail "check-commit-msg.sh: ${__m} should pass when the check is not asked for" "${OUT}"
+done
+for __m in human comment plain; do
+  run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
+  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --no-ai-attribution accepts ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should accept ${__m}" "${OUT}"
+done
 
 run_and_capture "${MSG_SCRIPT}"
 [ "${EXIT}" -eq 3 ] && pass "check-commit-msg.sh: missing file argument rejected with exit 3" || fail "check-commit-msg.sh: missing file argument should exit 3" "exit=${EXIT} ${OUT}"

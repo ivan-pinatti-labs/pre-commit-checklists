@@ -11,6 +11,11 @@
   scope to be a ticket id from one of the given prefixes, e.g.
   --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
 
+  AI attribution is refused only when asked for. Pass --no-ai-attribution
+  to reject a message with a line crediting or linking an AI agent: a
+  Co-Authored-By trailer naming one, a "Generated with" line, or an agent
+  session link (claude.ai/code/session_..., Claude-Session:).
+
   Exit status codes:
     0 - commit message is valid
     1 - commit message is invalid
@@ -27,13 +32,15 @@ set -o pipefail
 set -o nounset
 
 __ticket_prefixes=""
+__no_ai_attribution=false
 
 usage() {
   cat <<EOF
-Usage: $(basename "${0}") [--ticket-prefixes "PROJ"] <commit-message-file>
+Usage: $(basename "${0}") [--ticket-prefixes "PROJ"] [--no-ai-attribution] <commit-message-file>
 
 By default, checks plain Conventional Commits with an optional scope.
 Pass --ticket-prefixes to require the scope to be a ticket id.
+Pass --no-ai-attribution to reject lines crediting or linking an AI agent.
 
 Examples:
   $(basename "${0}") .git/COMMIT_EDITMSG
@@ -46,6 +53,10 @@ while [ $# -gt 0 ]; do
   --ticket-prefixes)
     __ticket_prefixes="${2:-}"
     shift 2
+    ;;
+  --no-ai-attribution)
+    __no_ai_attribution=true
+    shift
     ;;
   -h | --help)
     usage
@@ -104,6 +115,20 @@ Examples: 'feat: add login page'
           'fix(auth): handle expired token'
 Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 EOF
+    exit 1
+  fi
+fi
+
+if [ "${__no_ai_attribution}" = true ]; then
+  # Comment lines (which git strips) do not count; the rest are matched
+  # case-insensitively.
+  readonly AI_AGENTS="claude|anthropic|openai|codex|chatgpt|copilot|gemini|cursor|devin|aider|windsurf"
+  readonly AI_ATTRIBUTION_REGEX="(^co-authored-by:.*(${AI_AGENTS}))|(generated (with|by) .*(${AI_AGENTS}))|(^claude-session:)|(claude\\.ai/code/session_)"
+  __found="$(grep -v '^#' "${COMMIT_MSG_FILE}" | grep -i -n -E "${AI_ATTRIBUTION_REGEX}" || true)"
+  if [ -n "${__found}" ]; then
+    printf '%s\n%s\n%s\n' \
+      "Error: commit message carries AI attribution, which this repository does not" \
+      "allow (--no-ai-attribution). Remove these lines:" "${__found}"
     exit 1
   fi
 fi
