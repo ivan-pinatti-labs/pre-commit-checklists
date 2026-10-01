@@ -123,7 +123,7 @@ repos:
         language: script
         entry: ./scripts/check-commit-msg.sh
         stages: [commit-msg]
-        files: ^\.git/COMMIT_EDITMSG$
+        files: COMMIT_EDITMSG$
         require_serial: true
         verbose: true
 

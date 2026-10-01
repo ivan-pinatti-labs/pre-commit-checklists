@@ -49,7 +49,7 @@ __consumer=$(mktemp -d /tmp/pcc-real-commit-repo.XXXXXX)
 __test_tag="v0.0.0-test-real-commit"
 
 cleanup() {
-  rm -rf "${__clone}" "${__consumer}"
+  rm -rf "${__clone}" "${__consumer}" "${__consumer}-worktree"
 }
 trap cleanup EXIT
 
@@ -72,7 +72,7 @@ repos:
         stages: [pre-commit]
       - id: checklist-git-commit-msg
         stages: [commit-msg]
-        files: ^\.git/COMMIT_EDITMSG\$
+        files: COMMIT_EDITMSG\$
 EOF
 
 (cd "${__consumer}" && "${PC}" install --install-hooks >/dev/null 2>&1)
@@ -116,6 +116,25 @@ if ! echo "${__log}" | grep -q "did some stuff"; then
   pass "real commit: the blocked commit did not land in history"
 else
   fail "real commit: the blocked commit landed anyway" "${__log}"
+fi
+
+# The same from a linked worktree, where git hands the hook
+# .git/worktrees/<name>/COMMIT_EDITMSG: a files: filter anchored on
+# .git/COMMIT_EDITMSG matched nothing there, and the check was skipped.
+__worktree="${__consumer}-worktree"
+git -C "${__consumer}" worktree add -q -b wt-branch "${__worktree}"
+printf 'title = "three"\n' >"${__worktree}/third.toml"
+git -C "${__worktree}" add -A
+set +o errexit
+OUT3=$(cd "${__worktree}" && git commit -m "did more stuff, still no prefix" 2>&1)
+EXIT3=$?
+set -o errexit
+
+if [ "${EXIT3}" -ne 0 ] && echo "${OUT3}" | grep -qi "conventional"; then
+  pass "real commit: non-conventional message is blocked from a linked worktree too"
+else
+  fail "real commit: a non-conventional message from a worktree should have been blocked" "exit=${EXIT3}
+${OUT3}"
 fi
 
 summarize
