@@ -38,7 +38,7 @@ TESTS_FAILED=0
 FAILED_NAMES=()
 
 resolve_pre_commit() {
-  if [ -n "${PRE_COMMIT_BIN:-}" ] && command -v "${PRE_COMMIT_BIN}" >/dev/null 2>&1; then
+  if [[ -n "${PRE_COMMIT_BIN:-}" ]] && command -v "${PRE_COMMIT_BIN}" >/dev/null 2>&1; then
     echo "${PRE_COMMIT_BIN}"
     return 0
   fi
@@ -65,7 +65,7 @@ fail() {
   TESTS_FAILED=$((TESTS_FAILED + 1))
   FAILED_NAMES+=("${1}")
   echo "  FAIL: ${1}"
-  if [ -n "${2:-}" ]; then
+  if [[ -n "${2:-}" ]]; then
     echo "${2}" | sed 's/^/         /'
   fi
 }
@@ -81,7 +81,7 @@ run_hook() {
   # errexit must be off for the duration of this call or the caller's
   # script would abort on the first expected failure.
   set +o errexit
-  if [ -n "${__hook_id}" ]; then
+  if [[ -n "${__hook_id}" ]]; then
     HOOK_OUTPUT=$("${__pc}" run --config "${__config}" "${__hook_id}" --hook-stage pre-commit --files "$@" --verbose 2>&1)
   else
     HOOK_OUTPUT=$("${__pc}" run --config "${__config}" --files "$@" --verbose 2>&1)
@@ -97,14 +97,14 @@ assert_exit() {
   __name="${1}"
   __expect="${2}"
   __exit="${3}"
-  if [ "${__expect}" = "pass" ]; then
-    if [ "${__exit}" -eq 0 ]; then
+  if [[ "${__expect}" = "pass" ]]; then
+    if [[ "${__exit}" -eq 0 ]]; then
       pass "${__name}: exit 0 as expected"
     else
       fail "${__name}: expected exit 0, got ${__exit}" "${HOOK_OUTPUT}"
     fi
   else
-    if [ "${__exit}" -ne 0 ]; then
+    if [[ "${__exit}" -ne 0 ]]; then
       pass "${__name}: nonzero exit as expected (${__exit})"
     else
       fail "${__name}: expected a nonzero exit, got 0" "${HOOK_OUTPUT}"
@@ -125,7 +125,7 @@ assert_selected() {
   __name="${1}"
   __total=$(echo "${HOOK_OUTPUT}" | grep -cE '\.{3,}(Passed|Failed|\(no files to check\)Skipped)$' || true)
   __skipped=$(echo "${HOOK_OUTPUT}" | grep -cE '\.{3,}\(no files to check\)Skipped$' || true)
-  if [ "${__total}" -gt 0 ] && [ "${__total}" -eq "${__skipped}" ]; then
+  if [[ "${__total}" -gt 0 ]] && [[ "${__total}" -eq "${__skipped}" ]]; then
     fail "${__name}: every hook reported (no files to check); the selector did not match the fixture, this is the defect-2/3 shape" "${HOOK_OUTPUT}"
   else
     pass "${__name}: hook selected the fixture file(s) (not skipped)"
@@ -144,7 +144,7 @@ summarize() {
   echo ""
   echo "=== Summary ==="
   echo "${TESTS_TOTAL} assertions, $((TESTS_TOTAL - TESTS_FAILED)) passed, ${TESTS_FAILED} failed."
-  if [ "${TESTS_FAILED}" -gt 0 ]; then
+  if [[ "${TESTS_FAILED}" -gt 0 ]]; then
     echo "Failed:"
     for n in "${FAILED_NAMES[@]}"; do
       echo "  - ${n}"

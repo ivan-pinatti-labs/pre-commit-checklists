@@ -77,32 +77,32 @@ check_branch_with_head_ref() {
 }
 
 check_branch "main"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: protected branch 'main' accepted" || fail "check-branch-name.sh: 'main' should be accepted" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: protected branch 'main' accepted" || fail "check-branch-name.sh: 'main' should be accepted" "${OUT}"
 
 check_branch "feature/add-thing"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: ordinary slug 'feature/add-thing' accepted" || fail "check-branch-name.sh: ordinary slug should be accepted" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: ordinary slug 'feature/add-thing' accepted" || fail "check-branch-name.sh: ordinary slug should be accepted" "${OUT}"
 
 check_branch "BadBranchName"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'BadBranchName' rejected with exit 1" || fail "check-branch-name.sh: uppercase/no-slug branch should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'BadBranchName' rejected with exit 1" || fail "check-branch-name.sh: uppercase/no-slug branch should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch "proj-123-add-thing"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: ticket-shaped slug accepted with no --ticket-prefixes given" || fail "check-branch-name.sh: ticket-shaped slug should still pass as an ordinary slug" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: ticket-shaped slug accepted with no --ticket-prefixes given" || fail "check-branch-name.sh: ticket-shaped slug should still pass as an ordinary slug" "${OUT}"
 
 check_branch "proj-123-add-thing" --ticket-prefixes PROJ
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: --ticket-prefixes PROJ accepts 'proj-123-add-thing'" || fail "check-branch-name.sh: --ticket-prefixes PROJ should accept a matching ticket branch" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: --ticket-prefixes PROJ accepts 'proj-123-add-thing'" || fail "check-branch-name.sh: --ticket-prefixes PROJ should accept a matching ticket branch" "${OUT}"
 
 check_branch "random-no-ticket" --ticket-prefixes PROJ
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: --ticket-prefixes PROJ rejects a branch with no ticket" || fail "check-branch-name.sh: --ticket-prefixes PROJ should reject a non-ticket branch (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: --ticket-prefixes PROJ rejects a branch with no ticket" || fail "check-branch-name.sh: --ticket-prefixes PROJ should reject a non-ticket branch (exit 1)" "exit=${EXIT} ${OUT}"
 
 # GITHUB_HEAD_REF precedence. This is the behaviour that made two cases above
 # fail on the first real CI run, so it is asserted rather than assumed: the
 # environment variable must win over the working tree's branch in both
 # directions, otherwise a pull_request run would validate the wrong name.
 check_branch_with_head_ref "main" "BadBranchName"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides a valid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred over the checked out branch" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides a valid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred over the checked out branch" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "BadBranchName" "feature/add-thing"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides an invalid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred even when the checked out branch is invalid" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: GITHUB_HEAD_REF overrides an invalid working tree branch" || fail "check-branch-name.sh: GITHUB_HEAD_REF should be preferred even when the checked out branch is invalid" "exit=${EXIT} ${OUT}"
 
 # Dependabot and Renovate default branch names, taken verbatim from a real
 # consumer repo. Both bots embed a separator character the old
@@ -114,16 +114,16 @@ check_branch_with_head_ref "BadBranchName" "feature/add-thing"
 # are exactly the strings GitHub Actions hands the script on a pull_request
 # event.
 check_branch_with_head_ref "main" "dependabot/github_actions/github-actions-151ba0d261"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot github_actions branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot github_actions branch should be accepted" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: Dependabot github_actions branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot github_actions branch should be accepted" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "dependabot/pre_commit/pre-commit-hooks-941c2d6198"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot pre_commit branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot pre_commit branch should be accepted" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: Dependabot pre_commit branch (underscore) accepted" || fail "check-branch-name.sh: Dependabot pre_commit branch should be accepted" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "renovate/alpine-3.x"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch with a dot (renovate/alpine-3.x) accepted" || fail "check-branch-name.sh: Renovate branch with a dot should be accepted" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: Renovate branch with a dot (renovate/alpine-3.x) accepted" || fail "check-branch-name.sh: Renovate branch with a dot should be accepted" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "renovate/github-actions"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Renovate branch (renovate/github-actions) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: Renovate branch (renovate/github-actions) accepted" || fail "check-branch-name.sh: Renovate branch should be accepted" "exit=${EXIT} ${OUT}"
 
 # Dependabot encodes an "https://" hook repository URL into the branch name
 # as "https-/", a hyphen directly followed by a slash. A consumer that names
@@ -131,7 +131,7 @@ check_branch_with_head_ref "main" "renovate/github-actions"
 # of it, so rejecting it left Pre-commit permanently red on those pull
 # requests. Observed on ivan-pinatti-labs/github-template#11.
 check_branch_with_head_ref "main" "dependabot/pre_commit/https-/github.com/ivan-pinatti-labs/pre-commit-checklists-2.2.3"
-[ "${EXIT}" -eq 0 ] && pass "check-branch-name.sh: Dependabot URL-encoded hook repo branch (https-/) accepted" || fail "check-branch-name.sh: Dependabot 'https-/' branch should be accepted" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-branch-name.sh: Dependabot URL-encoded hook repo branch (https-/) accepted" || fail "check-branch-name.sh: Dependabot 'https-/' branch should be accepted" "exit=${EXIT} ${OUT}"
 
 # The separator class widened for the bots above (Fix 1) must still reject
 # everything it rejected before: mixed case, spaces, leading/trailing
@@ -141,44 +141,44 @@ check_branch_with_head_ref "main" "dependabot/pre_commit/https-/github.com/ivan-
 # validates the string itself rather than re-deriving it from git once
 # GITHUB_HEAD_REF is set.
 check_branch_with_head_ref "main" "Fix/MyThing"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'Fix/MyThing' (mixed case) rejected" || fail "check-branch-name.sh: 'Fix/MyThing' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'Fix/MyThing' (mixed case) rejected" || fail "check-branch-name.sh: 'Fix/MyThing' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "name with spaces"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'name with spaces' rejected" || fail "check-branch-name.sh: 'name with spaces' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'name with spaces' rejected" || fail "check-branch-name.sh: 'name with spaces' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "UPPERCASE"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'UPPERCASE' rejected" || fail "check-branch-name.sh: 'UPPERCASE' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'UPPERCASE' rejected" || fail "check-branch-name.sh: 'UPPERCASE' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "/leading-slash"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: '/leading-slash' rejected" || fail "check-branch-name.sh: '/leading-slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: '/leading-slash' rejected" || fail "check-branch-name.sh: '/leading-slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "trailing-slash/"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'trailing-slash/' rejected" || fail "check-branch-name.sh: 'trailing-slash/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'trailing-slash/' rejected" || fail "check-branch-name.sh: 'trailing-slash/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "double//slash"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'double//slash' rejected" || fail "check-branch-name.sh: 'double//slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'double//slash' rejected" || fail "check-branch-name.sh: 'double//slash' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "under__score"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'under__score' (doubled separator) rejected" || fail "check-branch-name.sh: 'under__score' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'under__score' (doubled separator) rejected" || fail "check-branch-name.sh: 'under__score' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "dot..dot"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'dot..dot' (doubled separator) rejected" || fail "check-branch-name.sh: 'dot..dot' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'dot..dot' (doubled separator) rejected" || fail "check-branch-name.sh: 'dot..dot' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 # The "https-/" allowance above is a single optional hyphen directly before a
 # slash, and nothing wider. These two pin that down: without them, relaxing
 # the pattern to a general "one or more separators" would still pass every
 # other case in this file, so the narrowness would be free to erode silently.
 check_branch_with_head_ref "main" "foo--/bar"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'foo--/bar' (two hyphens before a slash) rejected" || fail "check-branch-name.sh: 'foo--/bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'foo--/bar' (two hyphens before a slash) rejected" || fail "check-branch-name.sh: 'foo--/bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "foo-/-bar"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'foo-/-bar' (hyphen after the slash) rejected" || fail "check-branch-name.sh: 'foo-/-bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'foo-/-bar' (hyphen after the slash) rejected" || fail "check-branch-name.sh: 'foo-/-bar' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "-leading-hyphen"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: '-leading-hyphen' rejected" || fail "check-branch-name.sh: '-leading-hyphen' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: '-leading-hyphen' rejected" || fail "check-branch-name.sh: '-leading-hyphen' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 check_branch_with_head_ref "main" "fix/"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: 'fix/' (trailing separator) rejected" || fail "check-branch-name.sh: 'fix/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: 'fix/' (trailing separator) rejected" || fail "check-branch-name.sh: 'fix/' should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 # Locale independence (Fix 2). [a-z0-9] is a collation-order range, not a
 # fixed ASCII set: under an accented locale such as en_US.UTF-8, bash's
@@ -193,7 +193,7 @@ check_branch_with_head_ref "main" "fix/"
 # already; either way, the point being tested is that the script's own
 # result does not depend on what locale the caller happens to be in.
 run_and_capture env -u GITHUB_HEAD_REF "GITHUB_HEAD_REF=café-accents" "LC_ALL=en_US.UTF-8" "${BRANCH_SCRIPT}"
-[ "${EXIT}" -eq 1 ] && pass "check-branch-name.sh: accented branch name rejected even under an ambient locale that widens [a-z]" || fail "check-branch-name.sh: accented branch name should be rejected regardless of the caller's ambient LC_ALL (locale independence)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-branch-name.sh: accented branch name rejected even under an ambient locale that widens [a-z]" || fail "check-branch-name.sh: accented branch name should be rejected regardless of the caller's ambient LC_ALL (locale independence)" "exit=${EXIT} ${OUT}"
 
 rm -rf "${__scratch}"
 
@@ -206,7 +206,7 @@ write_msg() {
 
 write_msg plain.txt "feat: add login page"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/plain.txt"
-[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: plain Conventional Commit accepted" || fail "check-commit-msg.sh: plain conventional commit should be accepted" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: plain Conventional Commit accepted" || fail "check-commit-msg.sh: plain conventional commit should be accepted" "${OUT}"
 
 write_msg scoped.txt "fix(auth): handle expired token"
 write_msg breaking.txt "feat!: remove legacy API"
@@ -214,26 +214,26 @@ write_msg breaking-scoped.txt "feat(api)!: remove legacy API"
 write_msg breaking-ticket.txt "feat(PROJ-7)!: remove legacy API"
 for __m in breaking breaking-scoped; do
   run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
-  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} change marker accepted" || fail "check-commit-msg.sh: ${__m} should be accepted" "${OUT}"
+  [[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: ${__m} change marker accepted" || fail "check-commit-msg.sh: ${__m} should be accepted" "${OUT}"
 done
 run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/breaking-ticket.txt"
-[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --ticket-prefixes accepts a breaking change marker" || fail "check-commit-msg.sh: --ticket-prefixes should accept feat(PROJ-7)!: ..." "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: --ticket-prefixes accepts a breaking change marker" || fail "check-commit-msg.sh: --ticket-prefixes should accept feat(PROJ-7)!: ..." "${OUT}"
 write_msg bang-misplaced.txt "feat:! misplaced marker"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/bang-misplaced.txt"
-[ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: a marker after the colon is rejected" || fail "check-commit-msg.sh: feat:! should be rejected" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-commit-msg.sh: a marker after the colon is rejected" || fail "check-commit-msg.sh: feat:! should be rejected" "exit=${EXIT} ${OUT}"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/scoped.txt"
-[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: scoped Conventional Commit accepted" || fail "check-commit-msg.sh: scoped conventional commit should be accepted" "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: scoped Conventional Commit accepted" || fail "check-commit-msg.sh: scoped conventional commit should be accepted" "${OUT}"
 
 write_msg bad.txt "did some stuff"
 run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/bad.txt"
-[ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: non-conventional message rejected with exit 1" || fail "check-commit-msg.sh: non-conventional message should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-commit-msg.sh: non-conventional message rejected with exit 1" || fail "check-commit-msg.sh: non-conventional message should be rejected (exit 1)" "exit=${EXIT} ${OUT}"
 
 write_msg ticket.txt "feat(PROJ-123): add login page"
 run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/ticket.txt"
-[ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --ticket-prefixes PROJ accepts a matching ticket scope" || fail "check-commit-msg.sh: --ticket-prefixes PROJ should accept feat(PROJ-123): ..." "${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: --ticket-prefixes PROJ accepts a matching ticket scope" || fail "check-commit-msg.sh: --ticket-prefixes PROJ should accept feat(PROJ-123): ..." "${OUT}"
 
 run_and_capture "${MSG_SCRIPT}" --ticket-prefixes PROJ "${__msg_dir}/plain.txt"
-[ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --ticket-prefixes PROJ rejects a message with no ticket scope" || fail "check-commit-msg.sh: --ticket-prefixes PROJ should reject a message with no ticket scope (exit 1)" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "check-commit-msg.sh: --ticket-prefixes PROJ rejects a message with no ticket scope" || fail "check-commit-msg.sh: --ticket-prefixes PROJ should reject a message with no ticket scope (exit 1)" "exit=${EXIT} ${OUT}"
 
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude <noreply@anthropic.com>" >"${__msg_dir}/coauthor.txt"
 printf '%s\n\n%s\n' "feat: add login page" "Claude-Session: https://claude.ai/code/session_01ABC" >"${__msg_dir}/session.txt"
@@ -253,26 +253,26 @@ printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Jo Doe <jo@example.c
 printf '%s\n\n%s\n' "feat: add login page" "Co-Authored-By: Claude <noreply@example.com>" >"${__msg_dir}/claude-name.txt"
 for __m in coauthor session generated copilot devin-bot codex claude-name codex-task jules-task; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
-  [ "${EXIT}" -eq 1 ] && pass "check-commit-msg.sh: --no-ai-attribution rejects ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should reject ${__m} (exit 1)" "exit=${EXIT} ${OUT}"
+  [[ "${EXIT}" -eq 1 ]] && pass "check-commit-msg.sh: --no-ai-attribution rejects ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should reject ${__m} (exit 1)" "exit=${EXIT} ${OUT}"
   run_and_capture "${MSG_SCRIPT}" "${__msg_dir}/${__m}.txt"
-  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: ${__m} accepted without --no-ai-attribution" || fail "check-commit-msg.sh: ${__m} should pass when the check is not asked for" "${OUT}"
+  [[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: ${__m} accepted without --no-ai-attribution" || fail "check-commit-msg.sh: ${__m} should pass when the check is not asked for" "${OUT}"
 done
 for __m in human comment plain devin-person claude-person bot-after domain-after codex-docs; do
   run_and_capture "${MSG_SCRIPT}" --no-ai-attribution "${__msg_dir}/${__m}.txt"
-  [ "${EXIT}" -eq 0 ] && pass "check-commit-msg.sh: --no-ai-attribution accepts ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should accept ${__m}" "${OUT}"
+  [[ "${EXIT}" -eq 0 ]] && pass "check-commit-msg.sh: --no-ai-attribution accepts ${__m}" || fail "check-commit-msg.sh: --no-ai-attribution should accept ${__m}" "${OUT}"
 done
 
 run_and_capture "${MSG_SCRIPT}"
-[ "${EXIT}" -eq 3 ] && pass "check-commit-msg.sh: missing file argument rejected with exit 3" || fail "check-commit-msg.sh: missing file argument should exit 3" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 3 ]] && pass "check-commit-msg.sh: missing file argument rejected with exit 3" || fail "check-commit-msg.sh: missing file argument should exit 3" "exit=${EXIT} ${OUT}"
 
 rm -rf "${__msg_dir}"
 
 section "run-checklist.sh"
 run_and_capture "${RUN_SCRIPT}"
-[ "${EXIT}" -eq 1 ] && pass "run-checklist.sh: no arguments exits 1 (usage)" || fail "run-checklist.sh: no arguments should exit 1" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "run-checklist.sh: no arguments exits 1 (usage)" || fail "run-checklist.sh: no arguments should exit 1" "exit=${EXIT} ${OUT}"
 
 run_and_capture "${RUN_SCRIPT}" checklist-does-not-exist tests/fixtures/checklist-toml/should-pass/config.toml
-[ "${EXIT}" -eq 2 ] && pass "run-checklist.sh: unknown checklist name exits 2" || fail "run-checklist.sh: unknown checklist should exit 2" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 2 ]] && pass "run-checklist.sh: unknown checklist name exits 2" || fail "run-checklist.sh: unknown checklist should exit 2" "exit=${EXIT} ${OUT}"
 
 # Defect 4: a consumer args: override on a checklist-* hook id replaces
 # the baked-in checklist-name argument, so run-checklist.sh receives
@@ -280,17 +280,17 @@ run_and_capture "${RUN_SCRIPT}" checklist-does-not-exist tests/fixtures/checklis
 # string) as its first argument instead. This must fail loudly, pointing
 # at the actual cause, not just exit nonzero.
 run_and_capture "${RUN_SCRIPT}" --some-flag tests/fixtures/checklist-toml/should-pass/config.toml
-if [ "${EXIT}" -eq 2 ] && echo "${OUT}" | grep -q "docs/overrides.md" && echo "${OUT}" | grep -q "args:"; then
+if [[ "${EXIT}" -eq 2 ]] && echo "${OUT}" | grep -q "docs/overrides.md" && echo "${OUT}" | grep -q "args:"; then
   pass "run-checklist.sh: an args:-shaped first argument exits 2 with a pointer to the args: hazard in docs/overrides.md"
 else
   fail "run-checklist.sh: an args:-shaped first argument should exit 2 and explain the args: override hazard" "exit=${EXIT} ${OUT}"
 fi
 
 run_and_capture "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/should-pass/config.toml
-[ "${EXIT}" -eq 0 ] && pass "run-checklist.sh: valid checklist against a passing fixture exits 0" || fail "run-checklist.sh: passing fixture should exit 0" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 0 ]] && pass "run-checklist.sh: valid checklist against a passing fixture exits 0" || fail "run-checklist.sh: passing fixture should exit 0" "exit=${EXIT} ${OUT}"
 
 run_and_capture "${RUN_SCRIPT}" checklist-toml tests/fixtures/checklist-toml/should-fail/config.toml
-[ "${EXIT}" -ne 0 ] && pass "run-checklist.sh: valid checklist against a failing fixture exits nonzero" || fail "run-checklist.sh: failing fixture should exit nonzero" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -ne 0 ]] && pass "run-checklist.sh: valid checklist against a failing fixture exits nonzero" || fail "run-checklist.sh: failing fixture should exit nonzero" "exit=${EXIT} ${OUT}"
 
 # DEBUG=true must trace commands without dumping the environment: an
 # earlier version of this script ran `export` here, which would print a
@@ -312,14 +312,14 @@ fi
 
 section "install.sh"
 run_and_capture "${INSTALL_SCRIPT}"
-[ "${EXIT}" -eq 1 ] && pass "install.sh: missing --target exits 1 (usage)" || fail "install.sh: missing --target should exit 1" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 1 ]] && pass "install.sh: missing --target exits 1 (usage)" || fail "install.sh: missing --target should exit 1" "exit=${EXIT} ${OUT}"
 
 run_and_capture "${INSTALL_SCRIPT}" --target /tmp/pcc-install-does-not-exist-xyz
-[ "${EXIT}" -eq 2 ] && pass "install.sh: nonexistent --target exits 2" || fail "install.sh: nonexistent target directory should exit 2" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 2 ]] && pass "install.sh: nonexistent --target exits 2" || fail "install.sh: nonexistent target directory should exit 2" "exit=${EXIT} ${OUT}"
 
 __target=$(mktemp -d /tmp/pcc-install.XXXXXX)
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template does-not-exist
-[ "${EXIT}" -eq 3 ] && pass "install.sh: unknown --template exits 3" || fail "install.sh: unknown template should exit 3" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 3 ]] && pass "install.sh: unknown --template exits 3" || fail "install.sh: unknown template should exit 3" "exit=${EXIT} ${OUT}"
 rm -rf "${__target}"
 
 # Happy path: bootstraps a real throwaway git repo end to end. This used to
@@ -329,20 +329,20 @@ rm -rf "${__target}"
 __target=$(mktemp -d /tmp/pcc-install-happy.XXXXXX)
 git init -q "${__target}"
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal
-if [ "${EXIT}" -eq 0 ] && [ -f "${__target}/.pre-commit-config.yaml" ] && [ -f "${__target}/.secrets.baseline" ] && [ -f "${__target}/.git/hooks/pre-commit" ]; then
+if [[ "${EXIT}" -eq 0 ]] && [[ -f "${__target}/.pre-commit-config.yaml" ]] && [[ -f "${__target}/.secrets.baseline" ]] && [[ -f "${__target}/.git/hooks/pre-commit" ]]; then
   pass "install.sh: happy path bootstraps .pre-commit-config.yaml, .secrets.baseline, and the git hook"
 else
   fail "install.sh: happy path did not produce the expected files" "exit=${EXIT} ${OUT}"
 fi
 
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal
-if [ "${EXIT}" -eq 0 ] && echo "${OUT}" | grep -q "already exists"; then
+if [[ "${EXIT}" -eq 0 ]] && echo "${OUT}" | grep -q "already exists"; then
   pass "install.sh: re-running without --force skips existing files instead of clobbering them"
 else
   fail "install.sh: re-running without --force should skip existing files and still exit 0" "exit=${EXIT} ${OUT}"
 fi
 
-if [ -e "${__target}/CONTRIBUTING.md" ] || [ -e "${__target}/.github" ]; then
+if [[ -e "${__target}/CONTRIBUTING.md" ]] || [[ -e "${__target}/.github" ]]; then
   fail "install.sh: community files should not appear without --community-files" "$(ls -la "${__target}")"
 else
   pass "install.sh: --community-files is opt in, no community files without the flag"
@@ -366,9 +366,9 @@ SECURITY.md
 "
 __all_present=true
 for __f in ${__community_files_expected}; do
-  [ -f "${__target}/${__f}" ] || __all_present=false
+  [[ -f "${__target}/${__f}" ]] || __all_present=false
 done
-if [ "${EXIT}" -eq 0 ] && [ "${__all_present}" = true ]; then
+if [[ "${EXIT}" -eq 0 ]] && [[ "${__all_present}" = true ]]; then
   pass "install.sh --community-files: writes every issue/PR template, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, and FUNDING.yml"
 else
   fail "install.sh --community-files: expected all community files to be written" "exit=${EXIT} ${OUT}"
@@ -379,14 +379,14 @@ fi
 # replace it.
 echo "PRE-EXISTING CONTRIBUTING CONTENT" >"${__target}/CONTRIBUTING.md"
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files
-if [ "${EXIT}" -eq 0 ] && grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
+if [[ "${EXIT}" -eq 0 ]] && grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
   pass "install.sh --community-files: re-running without --force does not clobber an existing CONTRIBUTING.md"
 else
   fail "install.sh --community-files: existing CONTRIBUTING.md should survive a re-run without --force" "exit=${EXIT} ${OUT}"
 fi
 
 run_and_capture "${INSTALL_SCRIPT}" --target "${__target}" --template minimal --community-files --force
-if [ "${EXIT}" -eq 0 ] && ! grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
+if [[ "${EXIT}" -eq 0 ]] && ! grep -q "PRE-EXISTING CONTRIBUTING CONTENT" "${__target}/CONTRIBUTING.md"; then
   pass "install.sh --community-files --force: overwrites an existing CONTRIBUTING.md"
 else
   fail "install.sh --community-files --force: should overwrite an existing CONTRIBUTING.md" "exit=${EXIT} ${OUT}"
@@ -417,7 +417,7 @@ done
 __target=$(mktemp -d /tmp/pcc-install-old-checkout.XXXXXX)
 git init -q "${__target}"
 run_and_capture "${__old_checkout}/scripts/install.sh" --target "${__target}" --template minimal --community-files
-[ "${EXIT}" -eq 3 ] && pass "install.sh --community-files: a checkout with no templates/community/ exits 3" || fail "install.sh --community-files: a checkout with no templates/community/ should exit 3" "exit=${EXIT} ${OUT}"
+[[ "${EXIT}" -eq 3 ]] && pass "install.sh --community-files: a checkout with no templates/community/ exits 3" || fail "install.sh --community-files: a checkout with no templates/community/ should exit 3" "exit=${EXIT} ${OUT}"
 rm -rf "${__old_checkout}" "${__target}"
 
 summarize

@@ -46,7 +46,7 @@
 # into a build log. The trace already shows the resolved paths, the fetch
 # URLs, and every command run, which is what is actually useful here. Same
 # contract as run-checklist.sh, check-branch-name.sh, check-commit-msg.sh.
-if [ "${DEBUG:-false}" = true ]; then
+if [[ "${DEBUG:-false}" = true ]]; then
   set -x
 fi
 
@@ -104,7 +104,7 @@ EOF
   exit 1
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "${1}" in
   --target)
     __target="${2:-}"
@@ -145,9 +145,9 @@ done
 # check below naturally falls through to remote mode in that case; no
 # flag needed to tell the two apart.
 detect_local_repo_root() {
-  if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ -f "${BASH_SOURCE[0]}" ]]; then
     __candidate=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-    if [ -d "${__candidate}/templates/pre-commit-config" ]; then
+    if [[ -d "${__candidate}/templates/pre-commit-config" ]]; then
       printf '%s\n' "${__candidate}"
       return 0
     fi
@@ -163,14 +163,14 @@ fi
 
 STAGING_DIR=""
 cleanup_staging() {
-  if [ -n "${STAGING_DIR}" ] && [ -d "${STAGING_DIR}" ]; then
+  if [[ -n "${STAGING_DIR}" ]] && [[ -d "${STAGING_DIR}" ]]; then
     rm -rf "${STAGING_DIR}"
   fi
 }
 trap cleanup_staging EXIT
 
-if [ -z "${__target}" ]; then
-  if [ "${MODE}" = "remote" ]; then
+if [[ -z "${__target}" ]]; then
+  if [[ "${MODE}" = "remote" ]]; then
     __target=$(pwd)
   else
     echo "Error: --target is required." >&2
@@ -178,7 +178,7 @@ if [ -z "${__target}" ]; then
   fi
 fi
 
-if [ ! -d "${__target}" ]; then
+if [[ ! -d "${__target}" ]]; then
   echo "Error: target directory '${__target}' does not exist." >&2
   exit 2
 fi
@@ -190,13 +190,13 @@ __target=$(realpath "${__target}")
 
 TEMPLATES_DIR=""
 
-if [ "${MODE}" = "local" ]; then
+if [[ "${MODE}" = "local" ]]; then
   TEMPLATES_DIR="${LOCAL_REPO_ROOT}/templates"
-  if [ ! -f "${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml" ]; then
+  if [[ ! -f "${TEMPLATES_DIR}/pre-commit-config/${__template}.yaml" ]]; then
     echo "Error: no template named '${__template}' in templates/pre-commit-config/." >&2
     exit 3
   fi
-  if [ "${__community_files}" = true ] && [ ! -f "${TEMPLATES_DIR}/community/CONTRIBUTING.md" ]; then
+  if [[ "${__community_files}" = true ]] && [[ ! -f "${TEMPLATES_DIR}/community/CONTRIBUTING.md" ]]; then
     echo "Error: no templates/community/ directory found next to this checkout." >&2
     exit 3
   fi
@@ -240,32 +240,37 @@ else
   # file. wget has no equivalent of -w, so its status is parsed from the
   # --server-response header dump, which needs -nv rather than -q because -q
   # suppresses that output too.
+  #
+  # Every fetch here, this one and latest_release_tag() below, refuses
+  # anything but HTTPS, redirects included: `--proto '=https' --tlsv1.2` for
+  # curl, `--https-only` for wget. Both hosts answer over HTTPS already, so
+  # this only closes the door on a redirect to plain HTTP.
   fetch_url() {
     __url="${1}"
     __dest="${2}"
     __status=0
     __code=""
-    if [ "${FETCHER}" = "curl" ]; then
+    if [[ "${FETCHER}" = "curl" ]]; then
       # An `if cmd; then ...; fi` with no `else` returns exit status 0 when cmd
       # fails, not cmd's own status, so the real status is captured via `||`
       # before that ever runs.
-      __code=$(curl -sSL -o "${__dest}" -w '%{http_code}' "${__url}" 2>/dev/null) || __status=$?
-      if [ "${__status}" -eq 0 ]; then
+      __code=$(curl --proto '=https' --tlsv1.2 -sSL -o "${__dest}" -w '%{http_code}' "${__url}" 2>/dev/null) || __status=$?
+      if [[ "${__status}" -eq 0 ]]; then
         case "${__code}" in
         2??) return 0 ;;
         esac
       fi
       rm -f "${__dest}"
-      [ "${__code}" = "404" ] && return 2
+      [[ "${__code}" = "404" ]] && return 2
       return 1
     fi
-    __code=$(wget -nv --server-response -O "${__dest}" "${__url}" 2>&1 |
+    __code=$(wget --https-only -nv --server-response -O "${__dest}" "${__url}" 2>&1 |
       awk '/^[[:space:]]*HTTP\//{code=$2} END{print code}') || __status=$?
-    if [ -z "${__code}" ] || [ "${__code}" = "200" ]; then
-      [ -s "${__dest}" ] && return 0
+    if [[ -z "${__code}" ]] || [[ "${__code}" = "200" ]]; then
+      [[ -s "${__dest}" ]] && return 0
     fi
     rm -f "${__dest}"
-    [ "${__code}" = "404" ] && return 2
+    [[ "${__code}" = "404" ]] && return 2
     return 1
   }
 
@@ -279,17 +284,17 @@ else
   latest_release_tag() {
     __api_url="https://api.github.com/repos/${GITHUB_OWNER_REPO}/releases/latest"
     __body=""
-    if [ "${FETCHER}" = "curl" ]; then
-      __body=$(curl -fsSL "${__api_url}" 2>/dev/null) || true
+    if [[ "${FETCHER}" = "curl" ]]; then
+      __body=$(curl --proto '=https' --tlsv1.2 -fsSL "${__api_url}" 2>/dev/null) || true
     else
-      __body=$(wget -qO- "${__api_url}" 2>/dev/null) || true
+      __body=$(wget --https-only -qO- "${__api_url}" 2>/dev/null) || true
     fi
     printf '%s' "${__body}" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true
   }
 
-  if [ -z "${__ref}" ]; then
+  if [[ -z "${__ref}" ]]; then
     __resolved_ref=$(latest_release_tag)
-    if [ -n "${__resolved_ref}" ]; then
+    if [[ -n "${__resolved_ref}" ]]; then
       __ref="${__resolved_ref}"
     else
       __ref="main"
@@ -310,10 +315,10 @@ else
     __dest="${TEMPLATES_DIR}/${__rel}"
     __rc=0
     fetch_url "${REMOTE_BASE_URL}/${__rel}" "${__dest}" || __rc=$?
-    if [ "${__rc}" -eq 2 ]; then
+    if [[ "${__rc}" -eq 2 ]]; then
       echo "Error: ${__not_found_message}" >&2
       exit 3
-    elif [ "${__rc}" -ne 0 ]; then
+    elif [[ "${__rc}" -ne 0 ]]; then
       echo "Error: failed to fetch ${REMOTE_BASE_URL}/${__rel} (ref '${__ref}'). Check your network connection." >&2
       exit 7
     fi
@@ -329,11 +334,11 @@ else
     __dest="${TEMPLATES_DIR}/${__rel}"
     __rc=0
     fetch_url "${REMOTE_BASE_URL}/${__rel}" "${__dest}" || __rc=$?
-    if [ "${__rc}" -eq 2 ]; then
+    if [[ "${__rc}" -eq 2 ]]; then
       echo "Note: templates/${__rel} does not exist at ref '${__ref}'; skipping it." >&2
       rm -f "${__dest}"
       return 0
-    elif [ "${__rc}" -ne 0 ]; then
+    elif [[ "${__rc}" -ne 0 ]]; then
       echo "Error: failed to fetch ${REMOTE_BASE_URL}/${__rel} (ref '${__ref}'). Check your network connection." >&2
       exit 7
     fi
@@ -351,7 +356,7 @@ else
   fetch_required ".lycheeignore" "could not find templates/.lycheeignore at ref '${__ref}'."
   fetch_required "gitignore.fragment" "could not find templates/gitignore.fragment at ref '${__ref}'."
 
-  if [ "${__community_files}" = true ]; then
+  if [[ "${__community_files}" = true ]]; then
     mkdir -p "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE"
     __not_found_suffix="at ref '${__ref}'. --community-files needs a ref that includes templates/community/; pass --ref <tag|branch> to pick a newer one."
     fetch_required "community/.github/ISSUE_TEMPLATE/bug_report.md" "could not find templates/community/.github/ISSUE_TEMPLATE/bug_report.md ${__not_found_suffix}"
@@ -375,12 +380,12 @@ copy_file() {
   # A source that is not here at all comes from fetch_optional declining to
   # fetch a template this ref predates. Report it and move on; letting cp
   # fail into the caller's `|| true` would hide it behind a bare cp error.
-  if [ ! -e "${__src}" ]; then
+  if [[ ! -e "${__src}" ]]; then
     echo "Skipping ${__dest}: $(basename "${__src}") is not part of this ref." >&2
     return 5
   fi
 
-  if [ -e "${__dest}" ] && [ "${__force}" != true ]; then
+  if [[ -e "${__dest}" ]] && [[ "${__force}" != true ]]; then
     echo "Skipping ${__dest}: already exists (pass --force to overwrite)." >&2
     return 4
   fi
@@ -404,7 +409,7 @@ copy_file "${TEMPLATES_DIR}/checkmake.ini" "${__target}/checkmake.ini" || true
 copy_file "${TEMPLATES_DIR}/ruff.toml" "${__target}/ruff.toml" || true
 copy_file "${TEMPLATES_DIR}/.lycheeignore" "${__target}/.lycheeignore" || true
 
-if [ "${__community_files}" = true ]; then
+if [[ "${__community_files}" = true ]]; then
   mkdir -p "${__target}/.github/ISSUE_TEMPLATE"
   copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/bug_report.md" "${__target}/.github/ISSUE_TEMPLATE/bug_report.md" || true
   copy_file "${TEMPLATES_DIR}/community/.github/ISSUE_TEMPLATE/feature_request.md" "${__target}/.github/ISSUE_TEMPLATE/feature_request.md" || true
@@ -419,7 +424,7 @@ fi
 
 # Append the gitignore fragment once, marked so re-running is idempotent.
 __marker="# --- pre-commit-checklists (scripts/install.sh) ---"
-if [ ! -f "${__target}/.gitignore" ] || ! grep -qF "${__marker}" "${__target}/.gitignore"; then
+if [[ ! -f "${__target}/.gitignore" ]] || ! grep -qF "${__marker}" "${__target}/.gitignore"; then
   {
     echo ""
     echo "${__marker}"
@@ -435,7 +440,7 @@ if ! command -v detect-secrets >/dev/null 2>&1; then
   exit 5
 fi
 
-if [ -f "${__target}/.secrets.baseline" ] && [ "${__force}" != true ]; then
+if [[ -f "${__target}/.secrets.baseline" ]] && [[ "${__force}" != true ]]; then
   echo "Skipping .secrets.baseline: already exists (pass --force to regenerate)."
 else
   (cd "${__target}" && detect-secrets scan --exclude-files '\.git/' >.secrets.baseline)
@@ -482,7 +487,7 @@ if (cd "${__target}" && pre-commit autoupdate --repo "${LIBRARY_URL}" >/dev/null
   # line.
   __resolved=$(grep -E '^[[:space:]]+rev:' "${__target}/.pre-commit-config.yaml" |
     head -1 | awk '{print $2}') || true
-  if [ -n "${__resolved}" ]; then
+  if [[ -n "${__resolved}" ]]; then
     echo "Resolved the pre-commit-checklists pin to ${__resolved}."
   else
     echo "Resolved the pre-commit-checklists pin to this library's latest release."
@@ -504,7 +509,7 @@ ${__pin_note}
   3. Run: pre-commit run --all-files
 EOF
 
-if [ "${__community_files}" = true ]; then
+if [[ "${__community_files}" = true ]]; then
   cat <<EOF
   4. The community files carry generic placeholders (e.g. OWNER/REPO,
     [INSERT CONTACT METHOD]). Search CODE_OF_CONDUCT.md and SECURITY.md

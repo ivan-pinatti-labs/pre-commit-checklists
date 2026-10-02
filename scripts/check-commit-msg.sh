@@ -24,7 +24,7 @@
     3 - missing commit message file
 '
 
-if [ "${DEBUG:-false}" = true ]; then
+if [[ "${DEBUG:-false}" = true ]]; then
   set -x
 fi
 
@@ -49,7 +49,7 @@ Examples:
 EOF
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "${1}" in
   --ticket-prefixes)
     __ticket_prefixes="${2:-}"
@@ -78,7 +78,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ $# -lt 1 ]; then
+if [[ $# -lt 1 ]]; then
   echo "Error: missing commit message file argument." >&2
   usage
   exit 3
@@ -89,7 +89,7 @@ COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 
 readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
-if [ -n "${__ticket_prefixes}" ]; then
+if [[ -n "${__ticket_prefixes}" ]]; then
   IFS=' ' read -r -a __prefix_array <<<"${__ticket_prefixes}"
   IFS='|'
   __prefix_pattern="${__prefix_array[*]}"
@@ -122,7 +122,7 @@ EOF
   fi
 fi
 
-if [ "${__no_ai_attribution}" = true ]; then
+if [[ "${__no_ai_attribution}" = true ]]; then
   # Comment lines (which git strips) do not count; everything is matched
   # case-insensitively. A co-author is an agent by its identity only: the
   # trailer is split into its name and its email, and the name must be an
@@ -141,7 +141,7 @@ if [ "${__no_ai_attribution}" = true ]; then
   __found=""
   __n=0
   shopt -s nocasematch
-  while IFS= read -r __line || [ -n "${__line}" ]; do
+  while IFS= read -r __line || [[ -n "${__line}" ]]; do
     __n=$((__n + 1))
     [[ ${__line} == "#"* ]] && continue
     __hit=false
@@ -155,12 +155,12 @@ if [ "${__no_ai_attribution}" = true ]; then
     elif [[ ${__line} =~ ${AI_GENERATED} ]] || [[ ${__line} =~ ${AI_SESSION} ]]; then
       __hit=true
     fi
-    if [ "${__hit}" = true ]; then
+    if [[ "${__hit}" = true ]]; then
       __found="${__found}${__n}:${__line}"$'\n'
     fi
   done <"${COMMIT_MSG_FILE}"
   shopt -u nocasematch
-  if [ -n "${__found}" ]; then
+  if [[ -n "${__found}" ]]; then
     printf '%s\n%s\n%s' \
       "Error: commit message carries AI attribution, which this repository does not" \
       "allow (--no-ai-attribution). Remove these lines:" "${__found}"

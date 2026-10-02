@@ -60,7 +60,7 @@ section "markdown-link-check: .markdown-link-check.json handling"
 __scratch=$(mktemp -d /tmp/pcc-mlc.XXXXXX)
 
 cleanup() {
-  if [ -n "${__server_pid:-}" ]; then
+  if [[ -n "${__server_pid:-}" ]]; then
     kill "${__server_pid}" 2>/dev/null || true
     wait "${__server_pid}" 2>/dev/null || true
   fi
@@ -107,10 +107,10 @@ PY
 __server_pid=$!
 
 for _ in $(seq 1 50); do
-  [ -s "${__port_file}" ] && break
+  [[ -s "${__port_file}" ]] && break
   sleep 0.1
 done
-if [ ! -s "${__port_file}" ]; then
+if [[ ! -s "${__port_file}" ]]; then
   fail "markdown-link-check: the local 404 server never reported a port" ""
   summarize
 fi
@@ -136,7 +136,7 @@ OUT_A=$(run_case)
 EXIT_A=$?
 set -o errexit
 
-if [ "${EXIT_A}" -ne 0 ] && echo "${OUT_A}" | grep -q "dead link"; then
+if [[ "${EXIT_A}" -ne 0 ]] && echo "${OUT_A}" | grep -q "dead link"; then
   pass "markdown-link-check: no config file, a dead link still fails the hook"
 else
   fail "markdown-link-check: expected a dead link to fail with no config present" "exit=${EXIT_A}
@@ -156,7 +156,7 @@ OUT_B=$(run_case)
 EXIT_B=$?
 set -o errexit
 
-if [ "${EXIT_B}" -eq 0 ]; then
+if [[ "${EXIT_B}" -eq 0 ]]; then
   pass "markdown-link-check: .markdown-link-check.json is read, matching link ignored"
 else
   fail "markdown-link-check: config with a matching ignorePattern should have passed" "exit=${EXIT_B}
@@ -176,7 +176,7 @@ OUT_C=$(run_case)
 EXIT_C=$?
 set -o errexit
 
-if [ "${EXIT_C}" -ne 0 ] && echo "${OUT_C}" | grep -q "dead link"; then
+if [[ "${EXIT_C}" -ne 0 ]] && echo "${OUT_C}" | grep -q "dead link"; then
   pass "markdown-link-check: a non-matching config is not a blanket rubber stamp"
 else
   fail "markdown-link-check: non-matching ignorePattern should still have failed" "exit=${EXIT_C}
