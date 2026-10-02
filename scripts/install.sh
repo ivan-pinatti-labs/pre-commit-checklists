@@ -281,13 +281,16 @@ else
   # convenience default, and a release-less repo is an expected state,
   # not an error. A hard fetch failure still surfaces later, when the
   # actual template files are fetched against whichever ref was chosen.
+  #
+  # The API answers this URL directly, with no redirect, so wget also
+  # refuses to follow one at all (`--max-redirect=0`).
   latest_release_tag() {
     __api_url="https://api.github.com/repos/${GITHUB_OWNER_REPO}/releases/latest"
     __body=""
     if [[ "${FETCHER}" = "curl" ]]; then
       __body=$(curl --proto '=https' --tlsv1.2 -fsSL "${__api_url}" 2>/dev/null) || true
     else
-      __body=$(wget --https-only -q -O - "${__api_url}" 2>/dev/null) || true
+      __body=$(wget --https-only --max-redirect=0 -q -O - "${__api_url}" 2>/dev/null) || true
     fi
     printf '%s' "${__body}" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true
   }
