@@ -67,6 +67,10 @@ RUN printf '%s\n' \
 # what gpg (~/.gnupg), cosign (~/.sigstore), `tofu --version`
 # (~/.terraform.d) and `tflint --version` (~/.cache/tflint) leave behind in
 # the same place even if a base image ever moves HOME.
+#
+# Every download in this step and the tflint one refuses anything but HTTPS,
+# redirects included (`--proto '=https' --tlsv1.2`). GitHub's release links
+# redirect to its asset host over HTTPS, so nothing they fetch changes.
 # renovate: datasource=github-releases depName=opentofu/opentofu
 ARG TOFU_VERSION=1.12.6
 COPY .devcontainer/keyrings/opentofu.asc /tmp/keyrings/opentofu.asc
@@ -84,9 +88,9 @@ RUN set -eu; \
   fi; \
   gpg --dearmor < /tmp/keyrings/opentofu.asc > /tmp/keyrings/opentofu.gpg; \
   base="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}"; \
-  curl -fsSL -o SHA256SUMS "${base}/tofu_${TOFU_VERSION}_SHA256SUMS"; \
-  curl -fsSL -o SHA256SUMS.gpgsig "${base}/tofu_${TOFU_VERSION}_SHA256SUMS.gpgsig"; \
-  curl -fsSL -o "tofu_${TOFU_VERSION}_linux_amd64.tar.gz" \
+  curl --proto '=https' --tlsv1.2 -fsSL -o SHA256SUMS "${base}/tofu_${TOFU_VERSION}_SHA256SUMS"; \
+  curl --proto '=https' --tlsv1.2 -fsSL -o SHA256SUMS.gpgsig "${base}/tofu_${TOFU_VERSION}_SHA256SUMS.gpgsig"; \
+  curl --proto '=https' --tlsv1.2 -fsSL -o "tofu_${TOFU_VERSION}_linux_amd64.tar.gz" \
     "${base}/tofu_${TOFU_VERSION}_linux_amd64.tar.gz"; \
   gpg --no-default-keyring --keyring /tmp/keyrings/opentofu.gpg \
     --verify SHA256SUMS.gpgsig SHA256SUMS; \
@@ -128,7 +132,7 @@ RUN set -eu; \
   export HOME=/root; \
   base="https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}"; \
   for f in checksums.txt checksums.txt.keyless.sig checksums.txt.pem tflint_linux_amd64.zip; do \
-    curl -fsSL -o "${f}" "${base}/${f}"; \
+    curl --proto '=https' --tlsv1.2 -fsSL -o "${f}" "${base}/${f}"; \
   done; \
   cosign verify-blob \
     --certificate checksums.txt.pem \

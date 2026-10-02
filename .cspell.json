@@ -96,6 +96,7 @@
     "tflint",
     "tfvars",
     "timestampexpanded",
+    "tlsv",
     "tofu",
     "tofuutils",
     "tonumber",

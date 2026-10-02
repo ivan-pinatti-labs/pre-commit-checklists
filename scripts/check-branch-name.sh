@@ -23,7 +23,7 @@
     3 - invalid arguments
 '
 
-if [ "${DEBUG:-false}" = true ]; then
+if [[ "${DEBUG:-false}" = true ]]; then
   set -x
 fi
 
@@ -57,7 +57,7 @@ EOF
   exit 3
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "${1}" in
   --ticket-prefixes)
     __ticket_prefixes="${2:-}"
@@ -80,7 +80,7 @@ done
 # Use GITHUB_HEAD_REF if present (GitHub Actions), else fall back to git.
 __branch_name=${GITHUB_HEAD_REF:-$(git symbolic-ref --short HEAD 2>/dev/null || true)}
 
-if [ -z "${__branch_name}" ]; then
+if [[ -z "${__branch_name}" ]]; then
   echo "Error: branch name could not be determined." >&2
   exit 2
 fi
@@ -92,7 +92,7 @@ if [[ ${__branch_name} =~ ^(${__protected_pattern})$ ]]; then
   exit 0
 fi
 
-if [ -n "${__ticket_prefixes}" ]; then
+if [[ -n "${__ticket_prefixes}" ]]; then
   __prefix_pattern="${__ticket_prefixes// /|}"
   __prefix_pattern_lower=$(tr '[:upper:]' '[:lower:]' <<<"${__prefix_pattern}")
   __prefix_pattern_upper=$(tr '[:lower:]' '[:upper:]' <<<"${__prefix_pattern}")

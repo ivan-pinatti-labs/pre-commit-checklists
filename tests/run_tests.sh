@@ -94,7 +94,7 @@ for phase in ${PHASES}; do
 done
 
 echo ""
-if [ "${OVERALL_EXIT}" -eq 0 ]; then
+if [[ "${OVERALL_EXIT}" -eq 0 ]]; then
   echo "All phases passed."
 else
   echo "One or more phases failed. See output above."

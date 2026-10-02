@@ -156,7 +156,13 @@ jobs:
         # this repository's own side at all. Bump this pin by hand; Renovate
         # has no ecosystem of its own that watches this string, and adding
         # one is not worth it for a version this job only reads once.
-        run: npx --yes --package renovate@44.69.12 renovate-config-validator --strict
+        #
+        # --ignore-scripts: npx installs Renovate and its dependency tree on
+        # the fly, and none of their install scripts need to run for the
+        # validator to read a config file.
+        run: >-
+          npx --yes --ignore-scripts --package renovate@44.69.12
+          renovate-config-validator --strict
 
   pre-commit:
     name: Pre-commit
@@ -228,8 +234,9 @@ jobs:
           tofu_version: 1.12.6
           tofu_wrapper: false
 
+      # Wheels only, so no package's build script runs at install time.
       - name: Install pre-commit
-        run: pip install "pre-commit==4.5.1"
+        run: pip install "--only-binary=:all:" "pre-commit==4.5.1"
 
       # A hook that only reformats, such as end-of-file-fixer or
       # ruff --fix, still exits non-zero on the run that first finds the
@@ -404,8 +411,12 @@ jobs:
       # Docker, Node/npm and shellcheck ship on the ubuntu-24.04 runner
       # image already; see tests/README.md's "What each phase needs
       # installed" for the full list this satisfies.
+      #
+      # Wheels only, as in the Pre-commit job above.
       - name: Install Python-based tooling
-        run: pip install "pre-commit==4.5.1" pyyaml detect-secrets
+        run: >-
+          pip install "--only-binary=:all:"
+          "pre-commit==4.5.1" pyyaml detect-secrets
 
       - name: Run the self-test suite
         run: tests/run_tests.sh

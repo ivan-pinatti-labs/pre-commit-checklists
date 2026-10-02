@@ -109,7 +109,7 @@ set -o errexit
 # skipped hook, so grepping for it alone would pass while the hook matched
 # nothing. assert_selected below cannot cover this either; it only fails
 # when *every* hook was skipped, not one out of three.
-if [ "${EXIT}" -eq 0 ] &&
+if [[ "${EXIT}" -eq 0 ]] &&
   echo "${OUT}" | grep -q "checklist-toml" &&
   echo "${OUT}" | grep -q "checklist-dev-dotenv" &&
   ! echo "${OUT}" | grep -q "Bash/Shell Script Checklist\.*(no files to check)Skipped"; then
@@ -135,7 +135,7 @@ OUT_SH=$(cd "${__consumer}" && "${PC}" run --config .pre-commit-config.yaml --al
 EXIT_SH=$?
 set -o errexit
 
-if [ "${EXIT_SH}" -ne 0 ] && echo "${OUT_SH}" | grep -q "SC2168"; then
+if [[ "${EXIT_SH}" -ne 0 ]] && echo "${OUT_SH}" | grep -q "SC2168"; then
   pass "consumer path: checklist-dev-shell reaches an extensionless shell dotfile"
 else
   fail "consumer path: a broken .bashrc should have failed checklist-dev-shell" "exit=${EXIT_SH}
@@ -154,7 +154,7 @@ OUT2=$(cd "${__consumer}" && "${PC}" run --config .pre-commit-config.yaml --all-
 EXIT2=$?
 set -o errexit
 
-if [ "${EXIT2}" -ne 0 ]; then
+if [[ "${EXIT2}" -ne 0 ]]; then
   pass "consumer path: invalid TOML through repo:+rev: still fails (not a rubber stamp)"
 else
   fail "consumer path: invalid TOML through repo:+rev: should have failed" "${OUT2}"

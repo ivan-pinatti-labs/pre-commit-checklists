@@ -78,7 +78,7 @@ test_checklist() {
   __config="${2:-checklists/${__id}.yaml}"
   __fix_dir="tests/fixtures/${__id}"
 
-  if [ ! -d "${__fix_dir}" ]; then
+  if [[ ! -d "${__fix_dir}" ]]; then
     fail "${__id}: no fixtures directory at ${__fix_dir}"
     return
   fi
@@ -87,12 +87,12 @@ test_checklist() {
 
   for __kind in should-pass should-fail; do
     __dir="${__fix_dir}/${__kind}"
-    if [ ! -d "${__dir}" ]; then
+    if [[ ! -d "${__dir}" ]]; then
       fail "${__id}/${__kind}: missing fixture directory"
       continue
     fi
     mapfile -t __files < <(find "${__dir}" -type f | sort)
-    if [ "${#__files[@]}" -eq 0 ]; then
+    if [[ "${#__files[@]}" -eq 0 ]]; then
       fail "${__id}/${__kind}: no fixture files found"
       continue
     fi
@@ -105,7 +105,7 @@ test_checklist() {
     assert_selected "${__id}/${__kind}"
 
     HOOK_OUTPUT="${__output}"
-    if [ "${__kind}" = "should-pass" ]; then
+    if [[ "${__kind}" = "should-pass" ]]; then
       assert_exit "${__id}/${__kind}" pass "${__exit}"
     else
       assert_exit "${__id}/${__kind}" fail "${__exit}"
@@ -120,7 +120,7 @@ test_checklist() {
   if is_dogfood_wired "${__id}"; then
     __dir="${__fix_dir}/should-pass"
     mapfile -t __files < <(find "${__dir}" -type f | sort)
-    if [ "${#__files[@]}" -gt 0 ]; then
+    if [[ "${#__files[@]}" -gt 0 ]]; then
       run_hook "${PC}" ".pre-commit-config.yaml" "${__id}" "${__files[@]}"
       HOOK_OUTPUT="${HOOK_OUTPUT}"
       assert_selected "${__id}/dogfood-wiring"
@@ -146,7 +146,7 @@ test_protected_branches() {
   (cd "${__scratch}" && "${PC}" run --config "${__config}" --files f.txt --verbose) >/tmp/pcc-protected-main.log 2>&1
   __exit_main=$?
   set -o errexit
-  if [ "${__exit_main}" -ne 0 ]; then
+  if [[ "${__exit_main}" -ne 0 ]]; then
     pass "checklist-git-protected-branches/on-main: blocked as expected"
   else
     fail "checklist-git-protected-branches/on-main: expected a block, got exit 0" "$(cat /tmp/pcc-protected-main.log)"
@@ -157,7 +157,7 @@ test_protected_branches() {
   (cd "${__scratch}" && "${PC}" run --config "${__config}" --files f.txt --verbose) >/tmp/pcc-protected-feature.log 2>&1
   __exit_feature=$?
   set -o errexit
-  if [ "${__exit_feature}" -eq 0 ]; then
+  if [[ "${__exit_feature}" -eq 0 ]]; then
     pass "checklist-git-protected-branches/on-feature-branch: allowed as expected"
   else
     fail "checklist-git-protected-branches/on-feature-branch: expected exit 0" "$(cat /tmp/pcc-protected-feature.log)"
@@ -179,7 +179,7 @@ test_protected_branches() {
 test_github_actions_dogfood_wiring() {
   section "checklist-github-actions (dogfood wiring, real .github/workflows)"
   mapfile -t __wf_files < <(find "${REPO_ROOT}/.github/workflows" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
-  if [ "${#__wf_files[@]}" -eq 0 ]; then
+  if [[ "${#__wf_files[@]}" -eq 0 ]]; then
     echo "  (skip: no .github/workflows/*.yml in this repo yet)"
     return
   fi
@@ -202,13 +202,13 @@ test_python_security_floor() {
   section "checklist-dev-python: flake8-bandit floor"
 
   __fixture="tests/fixtures/checklist-dev-python/should-fail/insecure_sample.py"
-  if [ ! -f "${__fixture}" ]; then
+  if [[ ! -f "${__fixture}" ]]; then
     fail "python security floor: fixture missing at ${__fixture}"
     return
   fi
 
   __asserting="tests/fixtures/checklist-dev-python/should-pass/test_asserting.py"
-  if [ ! -f "${__asserting}" ]; then
+  if [[ ! -f "${__asserting}" ]]; then
     fail "python security floor: fixture missing at ${__asserting}"
     return
   fi

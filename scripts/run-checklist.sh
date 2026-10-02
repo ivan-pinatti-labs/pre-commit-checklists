@@ -33,7 +33,7 @@
 # resolved checklist path and the exact nested `pre-commit run` command,
 # which is what a consumer actually needs to see; see check-branch-name.sh
 # and check-commit-msg.sh for the same DEBUG=true contract.
-if [ "${DEBUG:-false}" = true ]; then
+if [[ "${DEBUG:-false}" = true ]]; then
   set -x
 fi
 
@@ -62,14 +62,14 @@ EOF
   exit 1
 }
 
-if [ $# -lt 1 ]; then
+if [[ $# -lt 1 ]]; then
   usage
 fi
 
 CHECKLIST_NAME="${1}"
 CONFIG_PATH="${CHECKLISTS_DIR}/${CHECKLIST_NAME}.yaml"
 
-if [ ! -f "${CONFIG_PATH}" ]; then
+if [[ ! -f "${CONFIG_PATH}" ]]; then
   echo "Error: checklist '${CHECKLIST_NAME}' not found at '${CONFIG_PATH}'." >&2
   echo "" >&2
   echo "This usually means the args: of a checklist-* hook id were" >&2

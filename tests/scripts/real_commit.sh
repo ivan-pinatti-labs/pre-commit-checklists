@@ -86,7 +86,7 @@ OUT=$(cd "${__consumer}" && git commit -m "feat: add a toml config file" 2>&1)
 EXIT=$?
 set -o errexit
 
-if [ "${EXIT}" -eq 0 ]; then
+if [[ "${EXIT}" -eq 0 ]]; then
   pass "real commit: clean file + Conventional Commit message succeeds through both hook stages"
 else
   fail "real commit: a clean commit should have succeeded" "exit=${EXIT}
@@ -103,7 +103,7 @@ OUT2=$(cd "${__consumer}" && git commit -m "did some stuff, no conventional pref
 EXIT2=$?
 set -o errexit
 
-if [ "${EXIT2}" -ne 0 ] && echo "${OUT2}" | grep -qi "commit"; then
+if [[ "${EXIT2}" -ne 0 ]] && echo "${OUT2}" | grep -qi "commit"; then
   pass "real commit: non-conventional commit message is blocked at the commit-msg stage"
 else
   fail "real commit: a non-conventional message should have been blocked" "exit=${EXIT2}
@@ -130,7 +130,7 @@ OUT3=$(cd "${__worktree}" && git commit -m "did more stuff, still no prefix" 2>&
 EXIT3=$?
 set -o errexit
 
-if [ "${EXIT3}" -ne 0 ] && echo "${OUT3}" | grep -qi "conventional"; then
+if [[ "${EXIT3}" -ne 0 ]] && echo "${OUT3}" | grep -qi "conventional"; then
   pass "real commit: non-conventional message is blocked from a linked worktree too"
 else
   fail "real commit: a non-conventional message from a worktree should have been blocked" "exit=${EXIT3}
