@@ -118,8 +118,9 @@
   // same way: that path is not a pin surface either, so a digest bump waits
   // for a person.
   // "pip-compile" watches tests/requirements.in, the exact pins of the
-  // environment `make coverage` tests tools/ in, and regenerates its hash
-  // locked tests/requirements.txt (see "pip-compile" below). "custom.regex"
+  // environment `make coverage` tests tools/ in and the Tests job runs the
+  // self-test suite in, and regenerates its hash locked
+  // tests/requirements.txt (see "pip-compile" below). "custom.regex"
   // also watches the digests of the two images `make coverage` runs, pinned
   // in the Makefile.
   enabledManagers: [

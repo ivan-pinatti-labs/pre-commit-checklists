@@ -412,11 +412,14 @@ jobs:
       # image already; see tests/README.md's "What each phase needs
       # installed" for the full list this satisfies.
       #
-      # Wheels only, as in the Pre-commit job above.
+      # From tests/requirements.txt, the hash lock compiled from the exact
+      # pins in tests/requirements.in: pip refuses any file whose hash is not
+      # in the lock, and wheels only, as in the Pre-commit job above.
+      # Renovate's pip-compile manager moves the pins and the hashes together.
       - name: Install Python-based tooling
         run: >-
-          pip install "--only-binary=:all:"
-          "pre-commit==4.5.1" pyyaml detect-secrets
+          pip install --require-hashes "--only-binary=:all:"
+          -r tests/requirements.txt
 
       - name: Run the self-test suite
         run: tests/run_tests.sh

@@ -123,7 +123,8 @@ script ships with cases that reach every line of it.
 ## Updating the Python test dependencies
 
 `tests/requirements.in` carries the exact pins of the environment
-`make coverage` tests `tools/` in, and `tests/requirements.txt` is a lock
+`make coverage` tests `tools/` in and the Tests job runs the self-test
+suite in, and `tests/requirements.txt` is a lock
 compiled from it with every hash, which `pip install --require-hashes`
 checks. Renovate bumps both. To change one by hand, edit the `.in` file and
 regenerate the lock in a container, from the `tests/` directory:
