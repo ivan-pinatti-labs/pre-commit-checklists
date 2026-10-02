@@ -15,17 +15,18 @@ rebased branch, and so on) that apply here unchanged.
 
 ## What actually gates a merge
 
-Four required status checks on `main`'s branch protection:
+Five required status checks on `main`'s branch protection:
 
 | Context | What it actually proves | Who publishes it |
 | --- | --- | --- |
 | `Pre-commit` | The full pre-commit hook set (this repo's own dogfood config) passed over every file | `pull-request.yml`, as a job |
 | `Tests` | every phase of `tests/run_tests.sh` passed | `pull-request.yml`, as a job |
+| `SonarQube` | SonarQube Cloud analyzed the pull request and its quality gate passed, and `make coverage` held the shell under `scripts/` and the Python under `tools/` at 100%; on a merge queue commit it passes without analyzing, see below | `sonarqube.yml`, as a job |
 | `Pin Only` | A dependency bot's diff changes nothing but a version in a pin position; `success` with a "not a dependency bot pull request" description on everything else | `coderabbit-gate.yml`, published directly onto the head SHA |
 | `Review Verified` | CodeRabbit's actual review outcome, not merely that it reported something | `coderabbit-gate.yml`, published directly onto the head SHA |
 
-`Pre-commit` and `Tests` are ordinary workflow jobs: GitHub reports a job's
-own pass or fail as the check. The other two are commit statuses, written
+`Pre-commit`, `Tests` and `SonarQube` are ordinary workflow jobs: GitHub
+reports a job's own pass or fail as the check. The other two are commit statuses, written
 directly by a workflow step rather than read off a job's outcome, for the
 same reason as in rsync-crypt: a status a workflow chooses whether to write,
 and what to write, does not read as passed merely because it was skipped.
@@ -40,9 +41,9 @@ file, and CodeRabbit does not review a draft at all: `.coderabbit.yaml` sets
 `drafts: false` on purpose, so a review is not spent on a diff the mechanical
 linters have not finished cleaning up yet.
 
-**Mark it ready for review** once `Pre-commit` and `Tests` are green. That is
-what starts CodeRabbit. Address what it raises, pushing fixes as needed; each
-push re-runs both jobs and gets a fresh review.
+**Mark it ready for review** once `Pre-commit`, `Tests` and `SonarQube` are
+green. That is what starts CodeRabbit. Address what it raises, pushing fixes
+as needed; each push re-runs all three jobs and gets a fresh review.
 
 Once every required check reads green and a maintainer has approved it, the
 pull request is eligible for the merge queue, but entering it still needs
@@ -56,11 +57,13 @@ run of the same check set passes on the commit the queue actually builds; see
 Ivan is the only account with write access here, and GitHub refuses to let an
 account approve its own pull request. `bot-auto-merge.yml`'s `approve-owner`
 job is the fix, ported unchanged in reasoning from rsync-crypt: once
-`Pre-commit`, `Tests`, `Pin Only` and `Review Verified` are all green, it
-supplies the approval that makes the pull request queue eligible, without
-arming auto-merge, so the owner still decides when to enqueue. This approval
-is not evidence a human read the diff; it is issued the moment the four
-contexts settle, which is exactly why it waits for `Review Verified` rather
+`Pre-commit`, `Tests`, `SonarQube`, `Pin Only` and `Review Verified` are all
+green, it supplies the approval that makes the pull request queue eligible,
+without arming auto-merge, so the owner still decides when to enqueue. It
+also re-checks whenever `coderabbit-gate.yml`, `pull-request.yml` or
+`sonarqube.yml` finishes a run, so whichever context settles last triggers
+it. This approval is not evidence a human read the diff; it is issued the
+moment the five contexts settle, which is exactly why it waits for `Review Verified` rather
 than `Pin Only` alone. A contributor or a fork gets no approval from this job
 and still needs a genuine human review, same as always.
 
@@ -155,20 +158,23 @@ stopping Renovate from opening pull requests at all, with nothing else in
 this pipeline positioned to notice; this job exists to catch that before
 it merges, not to gate a merge on it.
 
-## SonarQube Cloud, not required yet
+## SonarQube Cloud
 
-`.github/workflows/sonarqube.yml` runs a SonarQube Cloud analysis on every
-pull request and every push to `main`, and its `SonarQube` job fails when
-the project's quality gate fails. Settings live in
-`sonar-project.properties`. It is **not** a required check yet: the
-analysis runs and reports, but branch protection does not read it. A later
-pull request makes `SonarQube` required and removes `codeql.yml`, which
-SonarQube Cloud replaces across the organization.
+`SonarQube` is the `sonarqube.yml` job. It runs a SonarQube Cloud analysis on
+every pull request and every push to `main`, and fails when the project's
+quality gate does (`sonar.qualitygate.wait=true`). Settings live in
+`sonar-project.properties`. SonarQube Cloud's own GitHub App posts a second
+check, `SonarCloud Code Analysis`, which is deliberately not required: that
+app never posts on a merge queue commit, so requiring it would stall the
+queue. It replaced CodeQL, which only ever analyzed the Python here; see
+[SECURITY.md](SECURITY.md) for what scans what.
 
 On a `merge_group` run the job passes without analyzing, because the pull
-request head was already analyzed and gated, and the push to `main` right
-after the merge analyzes the real result. That step exists so the check is
-already in place on the queue's commit once it becomes required.
+request head was already analyzed and gated and SonarQube Cloud has no pull
+request to attach a queue commit to; the push to `main` right after the merge
+analyzes the result. A fork's pull request fails the job with an explanation,
+since GitHub withholds `SONAR_TOKEN` from it; a maintainer pushes the
+contributor's commits to a branch here and opens a pull request from that.
 
 Before scanning, the job runs `make coverage`, which holds every
 `scripts/*.sh` at 100% of its lines and the Python under `tools/` at 100% of
@@ -261,13 +267,13 @@ account rather than from `GITHUB_TOKEN`.
 This repository transferred from a personal account to the
 `ivan-pinatti-labs` organization specifically so a `merge_queue` ruleset rule
 could exist at all: GitHub refuses that rule under personal ownership and
-accepts it under an organization. `merge_group:` triggers on `pull-request.yml`
-and `coderabbit-gate.yml` are what let every required context run a second
+accepts it under an organization. `merge_group:` triggers on `pull-request.yml`,
+`sonarqube.yml` and `coderabbit-gate.yml` are what let every required context run a second
 time against the queue's own temporary commit before anything actually
 merges.
 
-Branch protection on `main` requires `Pre-commit`, `Tests`, `Pin Only` and
-`Review Verified`, one approval, dismissal of stale reviews, approval of the
+Branch protection on `main` requires `Pre-commit`, `Tests`, `SonarQube`,
+`Pin Only` and `Review Verified`, one approval, dismissal of stale reviews, approval of the
 last push, conversation resolution and a linear history. `enforce_admins` is
 `false`, which lets the owner merge without being blocked by rules an admin
 can bypass, but does not exempt the owner's own pull request from the

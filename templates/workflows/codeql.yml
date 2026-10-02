@@ -6,6 +6,15 @@ name: CodeQL
 # matrix, to what your repository actually contains, and the push branch
 # filter, to your default branch.
 #
+# For a public repository, templates/workflows/sonarqube.yml (SonarQube
+# Cloud) is the recommended default: it is free there, it reads shell,
+# Dockerfiles, YAML and workflows as well as the languages CodeQL supports,
+# and it gates pull requests. CodeQL may serve a private repository or a
+# private organization better, since it needs no outside service and its
+# findings stay in GitHub's security tab. On a private or internal
+# repository, code scanning needs GitHub Code Security enabled; without it
+# the upload step fails.
+#
 # This is the slow half of the security gate. The fast half runs on every
 # commit through checklist-dev-python (ruff with flake8-bandit) and
 # checklist-dev-shell (shellcheck), and those are the ones that block a pull

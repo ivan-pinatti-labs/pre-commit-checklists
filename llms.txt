@@ -24,6 +24,7 @@ for common cases and a handful of languages.
 - [.pre-commit-hooks.yaml](.pre-commit-hooks.yaml): Every hook id this library exposes
 - [checklists/](checklists/): The curated hook lists, one YAML file per checklist
 - [templates/pre-commit-config/](templates/pre-commit-config/): Ready-to-copy consumer configs
+- [templates/workflows/](templates/workflows/): Copy-ready GitHub Actions workflows: pre-commit on pull requests, SonarQube Cloud (recommended for public repositories) and CodeQL (an option for private ones with GitHub Code Security enabled)
 - [scripts/install.sh](scripts/install.sh): Bootstraps a target repository from a template
 - [docs/hook-catalogue.md](docs/hook-catalogue.md): What each hook id runs and matches
 - [docs/getting-started.md](docs/getting-started.md): Full setup walkthrough

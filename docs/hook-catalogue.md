@@ -304,15 +304,35 @@ commit. It does not follow data across function or module boundaries, so it
 cannot see a value that arrives untrusted in one file and reaches a dangerous
 call in another.
 
-That is CodeQL's job, and [`templates/workflows/codeql.yml`](../templates/workflows/codeql.yml)
-is a starting point for it. The two are complementary, and the split is
-deliberate: the fast per-file analysis blocks a pull request, while the slow
-cross-file analysis runs on the default branch and reports to the security tab.
-See that template's header for why it carries no `pull_request` trigger.
+That is the job of a whole repository analyzer, and this library ships two
+copy-ready workflows for it:
 
-CodeQL supports no shell at all, so for a repository whose product is bash
-scripts, `checklist-dev-shell`'s shellcheck remains the only analysis that
-sees the code that matters most.
+- [`templates/workflows/sonarqube.yml`](../templates/workflows/sonarqube.yml),
+  SonarQube Cloud, the recommended default for a public repository. It is free
+  there, it reads shell, Dockerfiles, YAML and workflows as well as Python,
+  and it runs on every pull request targeting `main`. A pull request from a
+  branch of the repository gets a quality gate verdict that can fail the
+  check; a fork's pull request fails it before any analysis, because it
+  cannot receive `SONAR_TOKEN` (push the branch to the repository instead).
+  [`templates/sonar-project.properties`](../templates/sonar-project.properties)
+  is the settings file it reads. The header of the workflow lists the one time
+  setup in SonarQube Cloud.
+- [`templates/workflows/codeql.yml`](../templates/workflows/codeql.yml),
+  GitHub's CodeQL, which may serve a private repository or a private
+  organization better, since it needs no outside service and its findings stay
+  in GitHub's security tab. On a private or internal repository code scanning
+  needs GitHub Code Security enabled, or the upload fails. It runs on the
+  default branch rather than on pull requests; see that template's header for
+  why.
+
+Either way the split is deliberate: the fast per-file analysis runs on every
+commit, and the whole repository analysis runs in CI beside it, not in place of
+it.
+
+Neither replaces shellcheck. CodeQL supports no shell at all, and SonarQube's
+shell rules are few and different from shellcheck's, so for a repository whose
+product is bash scripts, `checklist-dev-shell`'s shellcheck remains the
+analysis that sees the code that matters most.
 
 ## Makefile linting
 
