@@ -138,8 +138,11 @@ if [[ "${__no_ai_attribution}" = true ]]; then
   readonly AI_SESSION="(^claude-session:)|(claude\.ai/code/session_)|(chatgpt\.com/codex/tasks/)|(jules\.google\.com/task/)|(app\.devin\.ai/sessions/)|(cursor\.com/agents/)"
   __found=""
   __n=0
+  # The loop reads the file through descriptor 3 rather than a redirect on
+  # its `done`, which kcov never counts as run. read -u is in bash 3.2 too.
+  exec 3<"${COMMIT_MSG_FILE}"
   shopt -s nocasematch
-  while IFS= read -r __line || [[ -n "${__line}" ]]; do
+  while IFS= read -r -u 3 __line || [[ -n "${__line}" ]]; do
     __n=$((__n + 1))
     [[ ${__line} == "#"* ]] && continue
     __hit=false
@@ -156,7 +159,8 @@ if [[ "${__no_ai_attribution}" = true ]]; then
     if [[ "${__hit}" = true ]]; then
       __found="${__found}${__n}:${__line}"$'\n'
     fi
-  done <"${COMMIT_MSG_FILE}"
+  done
+  exec 3<&-
   shopt -u nocasematch
   if [[ -n "${__found}" ]]; then
     printf '%s\n%s\n%s' \

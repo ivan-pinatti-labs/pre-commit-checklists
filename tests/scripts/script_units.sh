@@ -314,6 +314,23 @@ check "an unknown option exits 2" 2 err "Unknown option: --bogus"
 run "${STUBS}" check-commit-msg.sh
 check "no message file exits 3" 3 err "missing commit message file"
 
+# A person who shares an agent's name passes, and so does a comment line
+# git strips; the last line has no newline, as an editor may leave it.
+printf '%s\n' "feat: add login" "" "# Claude-Session: https://example.invalid/x" >"${MSG}"
+printf '%s' "Co-Authored-By: Devin Smith <devin@example.com>" >>"${MSG}"
+run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
+check "a human co-author passes --no-ai-attribution" 0 out "Commit message is valid."
+
+printf '%s\n' "feat: add login" "" \
+  "Co-Authored-By: Claude <someone@example.com>" \
+  "Co-Authored-By: Someone <bot@anthropic.com>" \
+  "Generated with Claude Code" \
+  "Claude-Session: https://example.invalid/x" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
+check "every kind of AI attribution fails --no-ai-attribution" 1 \
+  out "carries AI attribution" out "3:Co-Authored-By: Claude" \
+  out "4:Co-Authored-By: Someone" out "5:Generated with" out "6:Claude-Session:"
+
 # --- run-checklist.sh -------------------------------------------------------
 
 echo "=== run-checklist.sh ==="
