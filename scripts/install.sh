@@ -287,7 +287,7 @@ else
     if [[ "${FETCHER}" = "curl" ]]; then
       __body=$(curl --proto '=https' --tlsv1.2 -fsSL "${__api_url}" 2>/dev/null) || true
     else
-      __body=$(wget --https-only -qO- "${__api_url}" 2>/dev/null) || true
+      __body=$(wget --https-only -q -O - "${__api_url}" 2>/dev/null) || true
     fi
     printf '%s' "${__body}" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true
   }
