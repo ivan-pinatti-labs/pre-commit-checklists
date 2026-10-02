@@ -11,7 +11,9 @@ name: CodeQL
 # Dockerfiles, YAML and workflows as well as the languages CodeQL supports,
 # and it gates pull requests. CodeQL may serve a private repository or a
 # private organization better, since it needs no outside service and its
-# findings stay in GitHub's security tab.
+# findings stay in GitHub's security tab. On a private or internal
+# repository, code scanning needs GitHub Code Security enabled; without it
+# the upload step fails.
 #
 # This is the slow half of the security gate. The fast half runs on every
 # commit through checklist-dev-python (ruff with flake8-bandit) and

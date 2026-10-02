@@ -205,7 +205,8 @@ For CI, [`templates/workflows/`](templates/workflows/) holds copy-ready
 workflows that `install.sh` does not install: `pull-request.yml` runs your
 hooks on every pull request, `sonarqube.yml` adds SonarQube Cloud analysis
 (the recommended default for a public repository), and `codeql.yml` is the
-CodeQL alternative, which may suit a private repository better.
+CodeQL alternative, which may suit a private repository better if it has
+GitHub Code Security enabled (code scanning on a private repository needs it).
 
 ## Hook catalogue
 

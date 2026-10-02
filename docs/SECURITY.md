@@ -12,11 +12,11 @@ Please report through the GitHub Report Security Issues page:
 | `.devcontainer/l2/Dockerfile` | hadolint | `checklist-dev-docker`, every commit |
 | `.github/workflows/*` | actionlint, zizmor | `checklist-github-actions`, every commit |
 | Everything | detect-secrets | `checklist-security-credentials`, every commit |
-| Everything SonarQube Cloud has an analyzer for: shell, Python, the `Dockerfile`, YAML, `.github/workflows/*`, secrets | SonarQube Cloud, Sonar way quality gate, plus 100% coverage of `scripts/*.sh` and `tools/` | `sonarqube.yml`, every pull request from a branch of this repository and every push to `main` |
+| Everything SonarQube Cloud has an analyzer for: shell, Python, the `Dockerfile`, YAML, `.github/workflows/*`, secrets | SonarQube Cloud, Sonar way quality gate, plus 100% coverage of `scripts/*.sh` and `tools/` | `sonarqube.yml`, every pull request targeting `main` from a branch of this repository and every push to `main` |
 
 Two layers, deliberately. The pre-commit hooks fail before anything is
 pushed; SonarQube Cloud reads the whole repository at once on every pull
-request from a branch of this repository (a fork's pull request cannot
+request targeting `main` from a branch of this repository (a fork's pull request cannot
 receive its token, so a maintainer pushes the branch here first). Neither
 replaces the other: SonarQube's shell rules are few and different from
 shellcheck's, not a superset of them. The test fixtures under

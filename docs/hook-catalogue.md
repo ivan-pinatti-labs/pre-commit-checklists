@@ -310,15 +310,18 @@ copy-ready workflows for it:
 - [`templates/workflows/sonarqube.yml`](../templates/workflows/sonarqube.yml),
   SonarQube Cloud, the recommended default for a public repository. It is free
   there, it reads shell, Dockerfiles, YAML and workflows as well as Python,
-  and it runs on every pull request with a quality gate that fails the check.
+  and it runs on every pull request targeting `main` with a quality gate that
+  fails the check.
   [`templates/sonar-project.properties`](../templates/sonar-project.properties)
   is the settings file it reads. The header of the workflow lists the one time
   setup in SonarQube Cloud.
 - [`templates/workflows/codeql.yml`](../templates/workflows/codeql.yml),
   GitHub's CodeQL, which may serve a private repository or a private
   organization better, since it needs no outside service and its findings stay
-  in GitHub's security tab. It runs on the default branch rather than on pull
-  requests; see that template's header for why.
+  in GitHub's security tab. On a private or internal repository code scanning
+  needs GitHub Code Security enabled, or the upload fails. It runs on the
+  default branch rather than on pull requests; see that template's header for
+  why.
 
 Either way the split is deliberate: the fast per-file analysis runs on every
 commit, and the whole repository analysis runs in CI beside it, not in place of

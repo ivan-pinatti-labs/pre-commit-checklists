@@ -171,7 +171,8 @@ keeps that from happening.
    copies them: `pull-request.yml` runs your hooks on every pull request, and
    for whole repository analysis `sonarqube.yml` (with
    `templates/sonar-project.properties`) is the recommended default for a
-   public repository, while `codeql.yml` may suit a private one better. See
+   public repository, while `codeql.yml` may suit a private one better, if it
+   has GitHub Code Security enabled (code scanning there needs it). See
    [`docs/hook-catalogue.md`](hook-catalogue.md#what-this-does-not-cover).
 4. Generate a secrets baseline:
 
