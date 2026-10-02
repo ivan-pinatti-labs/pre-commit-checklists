@@ -310,8 +310,10 @@ copy-ready workflows for it:
 - [`templates/workflows/sonarqube.yml`](../templates/workflows/sonarqube.yml),
   SonarQube Cloud, the recommended default for a public repository. It is free
   there, it reads shell, Dockerfiles, YAML and workflows as well as Python,
-  and it runs on every pull request targeting `main` with a quality gate that
-  fails the check.
+  and it runs on every pull request targeting `main`. A pull request from a
+  branch of the repository gets a quality gate verdict that can fail the
+  check; a fork's pull request fails it before any analysis, because it
+  cannot receive `SONAR_TOKEN` (push the branch to the repository instead).
   [`templates/sonar-project.properties`](../templates/sonar-project.properties)
   is the settings file it reads. The header of the workflow lists the one time
   setup in SonarQube Cloud.
