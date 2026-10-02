@@ -128,7 +128,7 @@ coverage:
 			coverage run -m pytest tests/tools -q -p no:cacheprovider; \
 			coverage xml -q --fail-under=0 -o /out/coverage.xml; \
 			coverage report' || py=$$?; \
-	rm -rf "$(COVERAGE_DIR)"; mkdir -p "$(COVERAGE_DIR)"; \
+	mkdir -p "$(COVERAGE_DIR)"; rm -f "$(COVERAGE_DIR)/coverage.xml" "$(COVERAGE_DIR)/shell.xml"; \
 	cp "$$out"/python/coverage.xml "$$out"/shell/shell.xml "$(COVERAGE_DIR)"/ 2>/dev/null || true; \
 	test "$$py" -eq 0 && test "$$sh" -eq 0
 
