@@ -8,7 +8,7 @@ name: SonarQube
 # to the pre-commit hooks, it does not replace them: shellcheck, actionlint,
 # zizmor and the rest keep running on every commit through this
 # repository's own checklists, and Sonar's rules are different from theirs,
-# not a superset. codeql.yml still runs alongside it for now.
+# not a superset. It replaced CodeQL, which only ever read the Python.
 #
 # Coverage comes from `make coverage` (see the "Measure coverage" step),
 # which holds the shell under scripts/ and the Python under tools/ at 100%.

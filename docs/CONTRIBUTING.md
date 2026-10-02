@@ -13,7 +13,7 @@ project as easy and transparent as possible, whether it's:
 
 | Stage | What runs | What you do |
 | --- | --- | --- |
-| Open as a **draft** | `Pre-commit` and `Tests` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)) | Fix whatever `Pre-commit` or `Tests` report |
+| Open as a **draft** | `Pre-commit` and `Tests` run on the same push, plus a `Labeler` pass and a `Post Pre-Commit Log` comment (see [`.github/workflows/pull-request.yml`](../.github/workflows/pull-request.yml)), and `SonarQube` runs SonarQube Cloud's quality gate (see [`.github/workflows/sonarqube.yml`](../.github/workflows/sonarqube.yml)); a fork's pull request cannot receive its token, so a maintainer pushes the branch here | Fix whatever `Pre-commit`, `Tests` or `SonarQube` report |
 | **Mark ready for review** | CodeRabbit reviews (it skips drafts; see [`.coderabbit.yaml`](../.coderabbit.yaml)) | Address its comments, pushing fixes |
 | Merge | `Pin Only` and `Review Verified` also have to be green (see [`docs/MERGE_PIPELINE.md`](MERGE_PIPELINE.md)) | Human pull requests wait for a maintainer; eligible bot and owner pull requests may merge automatically once every check is green and approval is present |
 

@@ -166,7 +166,13 @@ keeps that from happening.
    [latest release tag](https://github.com/ivan-pinatti-labs/pre-commit-checklists/releases),
    see [`docs/versioning.md`](versioning.md) for what that pin means.
 3. Copy the supporting tool configs you need from
-   [`templates/`](../templates/) into your repo root.
+   [`templates/`](../templates/) into your repo root. CI workflows are in
+   [`templates/workflows/`](../templates/workflows/), and `install.sh` never
+   copies them: `pull-request.yml` runs your hooks on every pull request, and
+   for whole repository analysis `sonarqube.yml` (with
+   `templates/sonar-project.properties`) is the recommended default for a
+   public repository, while `codeql.yml` may suit a private one better. See
+   [`docs/hook-catalogue.md`](hook-catalogue.md#what-this-does-not-cover).
 4. Generate a secrets baseline:
 
    ```shell

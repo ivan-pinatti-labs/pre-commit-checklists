@@ -8,6 +8,8 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](https://github.com/ivan-pinatti-labs/pre-commit-checklists)
 [![GitHub forks](https://img.shields.io/github/forks/ivan-pinatti-labs/pre-commit-checklists?logo=Github&style=for-the-badge)](https://github.com/ivan-pinatti-labs/pre-commit-checklists/forks)
 [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/ivan-pinatti-labs/pre-commit-checklists?utm_source=oss&utm_medium=github&utm_campaign=ivan-pinatti-labs%2Fpre-commit-checklists&labelColor=171717&color=FF570A&label=CodeRabbit+Reviews&style=for-the-badge)](https://coderabbit.ai)
+[![SonarQube Quality Gate](https://img.shields.io/sonar/quality_gate/ivan-pinatti-labs_pre-commit-checklists?server=https%3A%2F%2Fsonarcloud.io&logo=sonarqubecloud&style=for-the-badge)](https://sonarcloud.io/project/overview?id=ivan-pinatti-labs_pre-commit-checklists)
+[![SonarQube Coverage](https://img.shields.io/sonar/coverage/ivan-pinatti-labs_pre-commit-checklists?server=https%3A%2F%2Fsonarcloud.io&logo=sonarqubecloud&style=for-the-badge)](https://sonarcloud.io/component_measures?id=ivan-pinatti-labs_pre-commit-checklists&metric=coverage)
 
 `pre-commit-checklists` packages curated selections of public
 [pre-commit](https://pre-commit.com/) hooks into checklists, then exposes
@@ -198,6 +200,12 @@ placeholders to fill in before publishing. See
 [`docs/getting-started.md`](docs/getting-started.md) for the full walkthrough,
 including doing it by hand instead, and
 [`docs/versioning.md`](docs/versioning.md) for what the `rev:` pin means.
+
+For CI, [`templates/workflows/`](templates/workflows/) holds copy-ready
+workflows that `install.sh` does not install: `pull-request.yml` runs your
+hooks on every pull request, `sonarqube.yml` adds SonarQube Cloud analysis
+(the recommended default for a public repository), and `codeql.yml` is the
+CodeQL alternative, which may suit a private repository better.
 
 ## Hook catalogue
 
