@@ -377,7 +377,8 @@ check "bootstraps every file, with DEBUG on" 0 \
   log "detect-secrets scan" \
   log "pre-commit autoupdate --repo https://github.com/ivan-pinatti-labs/pre-commit-checklists" \
   log "pre-commit install"
-expect "the baseline is private to its owner" test "$(stat -c %a "${TARGET}/.secrets.baseline")" = 600
+# find -perm, not stat: GNU stat takes -c and BSD stat (macOS) takes -f.
+expect "the baseline is private to its owner" test -n "$(find "${TARGET}/.secrets.baseline" -perm 600)"
 
 STUB_AUTOUPDATE=fail run "${STUBS}" install.sh --target "${TARGET}" --template minimal
 check "a second run skips what exists and survives a failed autoupdate" 0 \

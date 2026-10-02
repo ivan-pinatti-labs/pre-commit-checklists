@@ -104,24 +104,30 @@ SHELL_SCRIPTS := $(sort $(wildcard scripts/*.sh))
 _comma := ,
 _empty :=
 _space := $(_empty) $(_empty)
+# Builds $$out/src.tar: the files git would commit (tracked, plus new ones
+# not ignored), minus any deleted in the working tree, each step checked,
+# so the containers never measure a partial tree.
 _sources := git ls-files -z --cached --others --exclude-standard --deduplicate \
-	| tar --create --owner=0 --group=0 --numeric-owner --null --files-from=- \
-		--ignore-failed-read --file=-
+		>"$$out/all" || exit 1; \
+	xargs -0 sh -c 'for f do if [ -e "$$f" ] || [ -L "$$f" ]; then printf "%s\0" "$$f"; fi; done' sh \
+		<"$$out/all" >"$$out/list" || exit 1; \
+	tar --create --owner=0 --group=0 --numeric-owner --null --files-from="$$out/list" --file="$$out/src.tar" || exit 1
 _unpack := set -e; mkdir /tmp/w; tar -x --no-same-owner -C /tmp/w; cd /tmp/w
 _locked := --cap-drop=ALL --security-opt no-new-privileges
 
 .PHONY: coverage
 coverage:
 	@set -u; out="$$(mktemp -d)"; trap 'rm -rf "$$out"' EXIT; \
+	$(_sources); \
 	mkdir "$$out/python" "$$out/shell"; py=0; sh=0; \
-	$(_sources) | $(PODMAN) run --rm --interactive $(_locked) \
+	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
 		--network=none --read-only --tmpfs /tmp \
 		-v "$$out/shell:/out:rw,Z" "$(KCOV_IMAGE)" sh -c '$(_unpack); \
 			kcov --include-path=$(subst $(_space),$(_comma),$(addprefix /tmp/w/,$(SHELL_SCRIPTS))) \
 				/out/kcov tests/scripts/script_units.sh; \
 			python3 tools/kcov_to_sonar.py /tmp/w /out/kcov/script_units.sh.*/cobertura.xml \
 				/out/shell.xml $(SHELL_SCRIPTS)' || sh=$$?; \
-	$(_sources) | $(PODMAN) run --rm --interactive $(_locked) \
+	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
 		-v "$$out/python:/out:rw,Z" "$(PYTHON_IMAGE)" sh -c '$(_unpack); \
 			pip install --quiet --disable-pip-version-check --root-user-action=ignore \
 				--require-hashes --only-binary=:all: -r tests/requirements.txt; \
