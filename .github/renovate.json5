@@ -12,7 +12,7 @@
   // pre-commit ecosystem only ever reads a file literally named
   // .pre-commit-config.yaml, never a directory of differently named ones.
   // .github/dependabot.yml is gone now, and Renovate covers every pin
-  // surface this repository has; see enabledManagers below for the four
+  // surface this repository has; see enabledManagers below for the five
   // that matter.
   extends: ["config:recommended"],
 
@@ -99,10 +99,10 @@
   // rather than merging on the strength of a default nobody chose.
   automerge: false,
 
-  // Four managers, matching the four pin surfaces real to this repository
+  // Five managers, matching the pin surfaces real to this repository
   // (see .github/pin-only.yml for the same list from the grading side). Every other manager config:recommended
   // would otherwise turn on is disabled, so Renovate never starts watching
-  // a fifth surface nobody has reviewed the implications of.
+  // a surface nobody has reviewed the implications of.
   // "pre-commit" watches every `rev:` pin, both the
   // root .pre-commit-config.yaml and every checklists/checklist-*.yaml file,
   // see that manager's own config below for how the two are covered.
@@ -117,11 +117,18 @@
   // that one file by the packageRules entry further down, and is graded the
   // same way: that path is not a pin surface either, so a digest bump waits
   // for a person.
+  // "pip-compile" watches tests/requirements.in, the exact pins of the
+  // environment `make coverage` tests tools/ in and the Tests job runs the
+  // self-test suite in, and regenerates its hash locked
+  // tests/requirements.txt (see "pip-compile" below). "custom.regex"
+  // also watches the digests of the two images `make coverage` runs, pinned
+  // in the Makefile.
   enabledManagers: [
     "pre-commit",
     "custom.regex",
     "github-actions",
     "dockerfile",
+    "pip-compile",
   ],
 
   // A cooling window before an update is offered at all, mirroring
@@ -292,6 +299,16 @@
       ],
       enabled: false,
     },
+    // The two images `make coverage` runs, pinned in the Makefile, move by
+    // digest only. A tag change is not a pin bump: python 3.12 is the
+    // interpreter the tests and SonarQube's python version setting assume,
+    // and kcov publishes nothing but `latest`.
+    {
+      matchManagers: ["custom.regex"],
+      matchFileNames: ["Makefile"],
+      matchUpdateTypes: ["major", "minor", "patch"],
+      enabled: false,
+    },
   ],
 
   // The built-in pre-commit manager now covers both of this repository's
@@ -327,6 +344,19 @@
   // at all; it does not flip an individually-disabled manager back on. The
   // customManagers below need no such key: customType: "regex" managers
   // have no per-manager enabled default to override.
+  // tests/requirements.txt is a hash lock compiled from tests/requirements.in
+  // with `uv pip compile --generate-hashes`. pip-compile reads the lock's
+  // header, bumps the pin in the .in file and replays that command, so the
+  // hashes move with the version; pip_requirements would edit the lock line
+  // by line and leave the hashes behind. `--exclude-newer=P7D` in the header
+  // is a rolling window, so a replay never resolves a release younger than
+  // seven days, transitive ones included, matching minimumReleaseAge. The
+  // tests/fixtures/** entry in ignorePaths keeps the fixtures' own
+  // requirements.txt files out of its reach.
+  "pip-compile": {
+    managerFilePatterns: ["/^tests/requirements\\.txt$/"],
+  },
+
   "pre-commit": {
     enabled: true,
     managerFilePatterns: ["/^checklists/checklist-.+\\.ya?ml$/"],
@@ -400,6 +430,17 @@
       managerFilePatterns: ["/^\\.devcontainer/l2/Dockerfile$/"],
       matchStrings: [
         "# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\s+ARG [A-Z0-9_]+=(?<currentValue>[^\\s]+)",
+      ],
+    },
+    {
+      // The container images in the Makefile, each annotated the way
+      // Renovate documents for a regex manager:
+      //   # renovate: datasource=docker depName=<image>
+      //   NAME ?= <image>:<tag>@sha256:<digest>
+      customType: "regex",
+      managerFilePatterns: ["/^Makefile$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+[A-Z_]+ \\?= \\S+?:(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[0-9a-f]{64})",
       ],
     },
   ],

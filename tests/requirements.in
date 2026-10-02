@@ -1,0 +1,25 @@
+# The environment `make coverage` runs tests/tools/ in, exact pins rather
+# than `>=` floors.
+#
+# A floor resolves to whatever is newest on PyPI when the environment is
+# built, which puts the seven day `minimumReleaseAge` in
+# .github/renovate.json5 out of the loop entirely: that window governs when
+# Renovate proposes a change, not what pip installs.
+#
+# tests/requirements.txt is compiled from this file with hashes; regenerate
+# it with the command in its header (see docs/CONTRIBUTING.md), never edit it
+# by hand. The Tests job in .github/workflows/pull-request.yml installs the
+# same lock, so the self-test suite and `make coverage` share one
+# environment.
+#
+# pytest runs the tests of tools/kcov_to_sonar.py, and coverage measures
+# them for SonarQube Cloud.
+coverage==7.16.1
+pytest==9.1.1
+# The self-test suite: pre-commit runs every phase that installs hooks,
+# pyyaml reads the hook definitions in the selectors phase, and
+# detect-secrets is the tool the security checklists and install.sh call.
+# pre-commit stays at the version the Pre-commit job installs.
+detect-secrets==1.5.0
+pre-commit==4.5.1
+pyyaml==6.0.3

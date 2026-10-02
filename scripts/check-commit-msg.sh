@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
 
-: '
-  Validates a commit message against Conventional Commits.
-
-  By default, checks plain Conventional Commits: "type(scope): subject",
-  with the scope optional, e.g. "feat: add login page" or
-  "fix(auth): handle expired token".
-
-  Ticket enforcement is opt-in. Pass --ticket-prefixes to require the
-  scope to be a ticket id from one of the given prefixes, e.g.
-  --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
-
-  AI attribution is refused only when asked for. Pass --no-ai-attribution
-  to reject a message with a line crediting or linking an AI agent: a
-  Co-Authored-By trailer naming one, a "Generated with" line, or an agent
-  session link (Claude-Session:, claude.ai/code/session_..., and the
-  task or session links of Codex, Jules, Devin and the Cursor agents).
-
-  Exit status codes:
-    0 - commit message is valid
-    1 - commit message is invalid
-    2 - invalid arguments
-    3 - missing commit message file
-'
+# Validates a commit message against Conventional Commits.
+#
+# By default, checks plain Conventional Commits: "type(scope): subject",
+# with the scope optional, e.g. "feat: add login page" or
+# "fix(auth): handle expired token".
+#
+# Ticket enforcement is opt-in. Pass --ticket-prefixes to require the
+# scope to be a ticket id from one of the given prefixes, e.g.
+# --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
+#
+# AI attribution is refused only when asked for. Pass --no-ai-attribution
+# to reject a message with a line crediting or linking an AI agent: a
+# Co-Authored-By trailer naming one, a "Generated with" line, or an agent
+# session link (Claude-Session:, claude.ai/code/session_..., and the
+# task or session links of Codex, Jules, Devin and the Cursor agents).
+#
+# Exit status codes:
+#   0 - commit message is valid
+#   1 - commit message is invalid
+#   2 - invalid arguments
+#   3 - missing commit message file
 
 if [[ "${DEBUG:-false}" = true ]]; then
   set -x
@@ -140,8 +138,11 @@ if [[ "${__no_ai_attribution}" = true ]]; then
   readonly AI_SESSION="(^claude-session:)|(claude\.ai/code/session_)|(chatgpt\.com/codex/tasks/)|(jules\.google\.com/task/)|(app\.devin\.ai/sessions/)|(cursor\.com/agents/)"
   __found=""
   __n=0
+  # The loop reads the file through descriptor 3 rather than a redirect on
+  # its `done`, which kcov never counts as run. read -u is in bash 3.2 too.
+  exec 3<"${COMMIT_MSG_FILE}"
   shopt -s nocasematch
-  while IFS= read -r __line || [[ -n "${__line}" ]]; do
+  while IFS= read -r -u 3 __line || [[ -n "${__line}" ]]; do
     __n=$((__n + 1))
     [[ ${__line} == "#"* ]] && continue
     __hit=false
@@ -158,7 +159,8 @@ if [[ "${__no_ai_attribution}" = true ]]; then
     if [[ "${__hit}" = true ]]; then
       __found="${__found}${__n}:${__line}"$'\n'
     fi
-  done <"${COMMIT_MSG_FILE}"
+  done
+  exec 3<&-
   shopt -u nocasematch
   if [[ -n "${__found}" ]]; then
     printf '%s\n%s\n%s' \

@@ -1,27 +1,25 @@
 #!/usr/bin/env bash
 
-: '
-  Validates the current branch name.
-
-  By default, any ordinary branch name is accepted: lowercase letters,
-  digits, hyphens, underscores, dots and slashes (e.g. "add-login-page",
-  "fix/flaky-test", "dependabot/github_actions/actions-abc123"). The
-  underscore and dot are accepted because Dependabot and Renovate default
-  branch names use them and neither bot lets that be reconfigured away.
-  Protected branch names (main, master, develop by default) are always
-  accepted too.
-
-  Ticket-prefix enforcement is opt-in. Pass --ticket-prefixes to require
-  branches to start with one of the given prefixes followed by a ticket
-  number, e.g. --ticket-prefixes "PROJ" accepts "proj-123-add-login" and
-  rejects an unprefixed "add-login-page".
-
-  Exit status codes:
-    0 - branch name is valid
-    1 - branch name is invalid
-    2 - branch name could not be determined
-    3 - invalid arguments
-'
+# Validates the current branch name.
+#
+# By default, any ordinary branch name is accepted: lowercase letters,
+# digits, hyphens, underscores, dots and slashes (e.g. "add-login-page",
+# "fix/flaky-test", "dependabot/github_actions/actions-abc123"). The
+# underscore and dot are accepted because Dependabot and Renovate default
+# branch names use them and neither bot lets that be reconfigured away.
+# Protected branch names (main, master, develop by default) are always
+# accepted too.
+#
+# Ticket-prefix enforcement is opt-in. Pass --ticket-prefixes to require
+# branches to start with one of the given prefixes followed by a ticket
+# number, e.g. --ticket-prefixes "PROJ" accepts "proj-123-add-login" and
+# rejects an unprefixed "add-login-page".
+#
+# Exit status codes:
+#   0 - branch name is valid
+#   1 - branch name is invalid
+#   2 - branch name could not be determined
+#   3 - invalid arguments
 
 if [[ "${DEBUG:-false}" = true ]]; then
   set -x

@@ -5,14 +5,19 @@
 # graded. This file is deliberately absent from its own allowed_paths, so a
 # bot cannot widen its own lane.
 #
-# Reproduces the scripts/assert-pin-only-diff.py this replaced, exactly: the
-# four pin surfaces real to this repository, and the annotated release ARGs
-# in the L2 image Dockerfile (.devcontainer/l2/Dockerfile).
+# Reproduces the scripts/assert-pin-only-diff.py this replaced: the four pin
+# surfaces real to this repository, and the annotated release ARGs in the L2
+# image Dockerfile (.devcontainer/l2/Dockerfile). Since then two more: the
+# hash locked test requirements `make coverage` installs, and the Makefile's
+# two coverage images.
 allowed_paths:
   - .pre-commit-config.yaml
   - checklists/
   - .github/workflows/
   - .devcontainer/l2/Dockerfile
+  - tests/requirements.in
+  - tests/requirements.txt
+  - Makefile
 
 arg_sources:
   - file: .devcontainer/l2/Dockerfile
@@ -20,6 +25,18 @@ arg_sources:
       - '^#\s*renovate:'
 
 rules:
+  # The exact pins Renovate bumps, and the hash lock compiled from them.
+  # hash_locked_requirements grades a lock as a whole: same packages, only
+  # versions and hashes moved, and every new hash one PyPI publishes for that
+  # release. A bump that pulls in a new package waits for a person.
+  - path: tests/requirements.in
+    grammars: [requirement_line]
+  - path: tests/requirements.txt
+    grammars: [hash_locked_requirements]
+  # The images `make coverage` runs, pinned by digest; Renovate's packageRules
+  # keep their tags fixed, so only the digest ever moves.
+  - path: Makefile
+    grammars: [digest]
   - path: .devcontainer/l2/Dockerfile
     grammars: [image_digest, arg_pin]
   - path: .github/workflows/

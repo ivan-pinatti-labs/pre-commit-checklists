@@ -62,6 +62,84 @@ test:
 	@$(L2_NET) tests/run_tests.sh
 	@echo "Self-test suite successful"
 
+# Coverage of everything this repository writes as code, held at 100%: the
+# shell under scripts/ (lines; kcov reports no branches for bash) and the
+# Python under tools/ (lines and branches, .coveragerc). Writes the two
+# reports SonarQube Cloud reads, $(COVERAGE_DIR)/shell.xml and
+# $(COVERAGE_DIR)/coverage.xml, and fails if either is under 100%.
+# .github/workflows/sonarqube.yml runs this, and so does the `coverage`
+# pre-push hook.
+#
+# The shell is measured by tests/scripts/script_units.sh (the `units` phase
+# of tests/run_tests.sh), which stubs every command the scripts call out to,
+# not by the rest of the self-test suite: that needs Docker, the network and
+# every checklist's tools, none of which this locked down container has.
+# Every scripts/*.sh is held to it, so a new script fails here until a case
+# there runs each of its lines.
+#
+# Both tools run in containers that cannot see this checkout. The files git
+# would commit (tracked, plus new ones not ignored) go in on standard input
+# as a tar stream, and the only host path either container gets is an empty
+# scratch directory for its report. Nothing else is mounted: no home
+# directory, no SSH agent, no token, and podman passes no environment
+# variable that is not named. Both drop every capability; kcov also gets no
+# network and a read only root filesystem. The Python container needs the
+# network for its pip install. The images are pinned by digest, and Renovate
+# moves the digests.
+#
+# The scratch directory comes from mktemp, so it lands in TMPDIR. In a
+# devcontainer-airlock workbench run this as `l2 --engine --net -- make
+# coverage`: the engine can only mount paths under the TMPDIR it sets.
+#
+# Both reports are written before either verdict is given, so CI can still
+# hand SonarQube the report of a run that falls short.
+COVERAGE_DIR ?= coverage
+PODMAN ?= $(if $(CONTAINER_HOST),podman-remote,podman)
+# renovate: datasource=docker depName=docker.io/library/python
+PYTHON_IMAGE ?= docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+# renovate: datasource=docker depName=docker.io/kcov/kcov
+KCOV_IMAGE ?= docker.io/kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd10948a4f76dfed381765577db909664fc603
+SHELL_SCRIPTS := $(sort $(wildcard scripts/*.sh))
+
+_comma := ,
+_empty :=
+_space := $(_empty) $(_empty)
+# Builds $$out/src.tar: the files git would commit (tracked, plus new ones
+# not ignored), minus any deleted in the working tree, each step checked,
+# so the containers never measure a partial tree.
+_sources := git ls-files -z --cached --others --exclude-standard --deduplicate \
+		>"$$out/all" || exit 1; \
+	xargs -0 sh -c 'for f do if [ -e "$$f" ] || [ -L "$$f" ]; then printf "%s\0" "$$f"; fi; done' sh \
+		<"$$out/all" >"$$out/list" || exit 1; \
+	tar --create --owner=0 --group=0 --numeric-owner --null --files-from="$$out/list" --file="$$out/src.tar" || exit 1
+_unpack := set -e; mkdir /tmp/w; tar -x --no-same-owner -C /tmp/w; cd /tmp/w
+_locked := --cap-drop=ALL --security-opt no-new-privileges
+
+.PHONY: coverage
+coverage:
+	@set -u; out="$$(mktemp -d)"; trap 'rm -rf "$$out"' EXIT; \
+	$(_sources); \
+	mkdir "$$out/python" "$$out/shell"; py=0; sh=0; \
+	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
+		--network=none --read-only --tmpfs /tmp \
+		-v "$$out/shell:/out:rw,Z" "$(KCOV_IMAGE)" sh -c '$(_unpack); \
+			kcov --include-path=$(subst $(_space),$(_comma),$(addprefix /tmp/w/,$(SHELL_SCRIPTS))) \
+				/out/kcov tests/scripts/script_units.sh; \
+			python3 tools/kcov_to_sonar.py /tmp/w /out/kcov/script_units.sh.*/cobertura.xml \
+				/out/shell.xml $(SHELL_SCRIPTS)' || sh=$$?; \
+	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
+		-v "$$out/python:/out:rw,Z" "$(PYTHON_IMAGE)" sh -c '$(_unpack); \
+			pip install --quiet --disable-pip-version-check --root-user-action=ignore \
+				--require-hashes --only-binary=:all: -r tests/requirements.txt; \
+			coverage run -m pytest tests/tools -q -p no:cacheprovider; \
+			coverage xml -q --fail-under=0 -o /out/coverage.xml; \
+			coverage report' || py=$$?; \
+	mkdir -p "$(COVERAGE_DIR)" && rm -f "$(COVERAGE_DIR)/coverage.xml" "$(COVERAGE_DIR)/shell.xml" || exit 1; \
+	for report in "$$out/python/coverage.xml" "$$out/shell/shell.xml"; do \
+		if [ -f "$$report" ]; then cp "$$report" "$(COVERAGE_DIR)"/ || exit 1; fi; \
+	done; \
+	test "$$py" -eq 0 && test "$$sh" -eq 0
+
 # The workbench targets (make claude, make codex, make unlock and the rest)
 # come from a devcontainer-airlock clone, by default the one next to this
 # repository's main clone, so every worktree finds the same one. See

@@ -134,8 +134,16 @@ docs/overrides.md), not a convention this repository's own history follows.
 - Checklists live under `checklists/`, one YAML file per checklist, each a
   standalone `pre-commit` config consumed through `scripts/run-checklist.sh`.
 - Shell scripts use `#!/usr/bin/env bash`, the explicit `set -o errexit`,
-  `set -o pipefail`, `set -o nounset` trio, and a leading `: '...'` doc
-  comment naming every exit status code.
+  `set -o pipefail`, `set -o nounset` trio, and a leading `#` comment block
+  naming every exit status code. Not a `: '...'` block under `scripts/`:
+  kcov counts the lines of that string as code no test can reach.
+- Every line of every `scripts/*.sh` runs in `tests/scripts/script_units.sh`,
+  and `make coverage` fails otherwise. kcov attributes a command split over
+  several lines to its first line only, so keep a pipeline or a `{ ...; }`
+  group on one line, or the lines after the first read as never run.
+- `tools/` holds this repository's own tooling (today the kcov to SonarQube
+  converter), which ships to nobody. Its Python is held at 100% of lines and
+  branches by `make coverage`, with its tests under `tests/tools/`.
 - A hook id's `types:`/`types_or:` and `files:` selectors are ANDed by
   pre-commit, not ORed. Read docs/hook-catalogue.md's "Why the selector
   matters" section before adding either to a new hook id; two defects in an
