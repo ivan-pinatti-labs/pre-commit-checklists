@@ -41,6 +41,9 @@ code:
 - duplicates more than 3% of its lines; or
 - has less than 80% of its lines covered.
 
+On a change under 20 new lines SonarQube Cloud skips the coverage and
+duplication conditions; the 100% gate below still applies.
+
 This repository holds its own code above that floor: `make coverage`, run by
 the same job, requires 100% of every `scripts/*.sh` and 100% of the lines and
 branches under `tools/`, and fails the job otherwise. Fix what a rule asks
