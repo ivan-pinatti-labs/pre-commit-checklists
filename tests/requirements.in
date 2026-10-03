@@ -21,5 +21,5 @@ pytest==9.1.1
 # detect-secrets is the tool the security checklists and install.sh call.
 # pre-commit stays at the version the Pre-commit job installs.
 detect-secrets==1.5.0
-pre-commit==4.5.1
+pre-commit==4.6.2
 pyyaml==6.0.3
