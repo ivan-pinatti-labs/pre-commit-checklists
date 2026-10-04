@@ -75,7 +75,7 @@ def awk_to_python(pattern: str) -> re.Pattern[str]:
 def discovery_patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
     """The file name and first line patterns of the Makefile's awk rule."""
     line = makefile_variable("SHELL_SCRIPTS")
-    name = re.search(r"FILENAME ~ " + AWK_REGEX, line)
+    name = re.search(r"FILENAME ~ " + AWK_REGEX + r" \|\| \$\$0", line)
     shebang = re.search(r"\$\$0 ~ " + AWK_REGEX, line)
     assert name, "SHELL_SCRIPTS no longer matches FILENAME against a pattern"
     assert shebang, "SHELL_SCRIPTS no longer matches the first line against a pattern"
