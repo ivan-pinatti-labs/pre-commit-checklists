@@ -338,6 +338,7 @@ repos:
             \.github/workflows/pull-request\.yml$|
             sonar-project\.properties$|
             templates/workflows/pull-request\.yml$|
-            templates/ruff\.toml$
+            templates/ruff\.toml$|
+            ruff\.toml$
           )
         stages: [pre-push]

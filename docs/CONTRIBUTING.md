@@ -118,7 +118,8 @@ under [`tools/`](../tools/) (this repository's own tooling, which no consumer
 gets) is held to every line and every branch by its tests under
 `tests/tools/`, which also holds `test_python_version_pin.py`: it fails when
 the Python version in CI, `sonar.python.version`, the Makefile's python
-images and the consumer templates stop agreeing, since nothing moves them
+images, the `target-version` of the root `ruff.toml` and the consumer
+templates stop agreeing, since nothing moves them
 together. The other Python here, `tests/scripts/test_selector_lint.py`
 and the fixtures, is test code and is not measured.
 

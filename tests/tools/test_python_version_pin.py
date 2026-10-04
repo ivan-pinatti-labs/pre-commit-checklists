@@ -9,6 +9,8 @@ another:
   version dependent Python rules judge tools/ and tests/ against;
 - every python image the Makefile pins, today PYTHON_IMAGE, the interpreter
   `make coverage` (and so sonarqube.yml) runs the tests in;
+- the `target-version` of the root ruff.toml, the Python ruff judges this
+  repository's own code against;
 - the consumer templates, templates/workflows/pull-request.yml and the
   `target-version` of templates/ruff.toml, which consumers copy as they are.
 
@@ -29,6 +31,7 @@ WORKFLOW = REPO_ROOT / ".github/workflows/pull-request.yml"
 TEMPLATE_WORKFLOW = REPO_ROOT / "templates/workflows/pull-request.yml"
 SONAR_PROPERTIES = REPO_ROOT / "sonar-project.properties"
 MAKEFILE = REPO_ROOT / "Makefile"
+RUFF = REPO_ROOT / "ruff.toml"
 TEMPLATE_RUFF = REPO_ROOT / "templates/ruff.toml"
 
 # `python-version: "3.14"`, as actions/setup-python is given it. Quoted on
@@ -116,9 +119,20 @@ def test_template_workflow_matches_ci():
         )
 
 
+def ruff_target(path: Path, where: str) -> tuple[str, str]:
+    ruff = RUFF_TARGET.search(path.read_text(encoding="utf-8"))
+    assert ruff, f"no target-version in {where}"
+    return (ruff.group("major"), ruff.group("minor"))
+
+
+def test_ruff_target_matches_ci():
+    ci = ci_version()
+    found = ruff_target(RUFF, RUFF.name)
+    assert found == ci, mismatch(RUFF.name, found, ci)
+
+
 def test_template_ruff_target_matches_ci():
     ci = ci_version()
-    ruff = RUFF_TARGET.search(TEMPLATE_RUFF.read_text(encoding="utf-8"))
-    assert ruff, f"no target-version in templates/{TEMPLATE_RUFF.name}"
-    found = (ruff.group("major"), ruff.group("minor"))
-    assert found == ci, mismatch(f"templates/{TEMPLATE_RUFF.name}", found, ci)
+    where = f"templates/{TEMPLATE_RUFF.name}"
+    found = ruff_target(TEMPLATE_RUFF, where)
+    assert found == ci, mismatch(where, found, ci)
