@@ -333,6 +333,10 @@ repos:
             tests/scripts/script_units\.sh$|
             tests/requirements\.txt$|
             \.coveragerc$|
-            Makefile$
+            Makefile$|
+            \.github/workflows/pull-request\.yml$|
+            sonar-project\.properties$|
+            templates/workflows/pull-request\.yml$|
+            templates/ruff\.toml$
           )
         stages: [pre-push]

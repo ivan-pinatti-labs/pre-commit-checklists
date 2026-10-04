@@ -109,7 +109,10 @@ Every line of every `scripts/*.sh` has to run in
 with stubs so it needs nothing installed and touches no network. The Python
 under [`tools/`](../tools/) (this repository's own tooling, which no consumer
 gets) is held to every line and every branch by its tests under
-`tests/tools/`. The other Python here, `tests/scripts/test_selector_lint.py`
+`tests/tools/`, which also holds `test_python_version_pin.py`: it fails when
+the Python version in CI, `sonar.python.version`, the Makefile's python
+images and the consumer templates stop agreeing, since nothing moves them
+together. The other Python here, `tests/scripts/test_selector_lint.py`
 and the fixtures, is test code and is not measured.
 
 `make coverage` runs the shell cases under kcov and the Python tests under
