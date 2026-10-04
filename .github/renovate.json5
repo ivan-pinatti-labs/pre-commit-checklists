@@ -269,7 +269,7 @@
     // The github-actions manager extracts more than `uses: ...@<sha>` action
     // pins by default: confirmed live, with a dry-run=extract against this
     // repository, it also proposes updates for every `runs-on: ubuntu-24.04`
-    // (depType github-runner) and every `python-version: "3.12"` passed to
+    // (depType github-runner) and every `python-version: "3.14"` passed to
     // actions/setup-python's `with:` (depType uses-with). Dependabot's
     // github-actions ecosystem never watched either: it bumps `uses:` pins
     // only. docker, container and service are the manager's three other
@@ -300,7 +300,7 @@
       enabled: false,
     },
     // The two images `make coverage` runs, pinned in the Makefile, move by
-    // digest only. A tag change is not a pin bump: python 3.12 is the
+    // digest only. A tag change is not a pin bump: python 3.14 is the
     // interpreter the tests and SonarQube's python version setting assume,
     // and kcov publishes nothing but `latest`.
     {

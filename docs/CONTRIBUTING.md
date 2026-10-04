@@ -130,8 +130,8 @@ checks. Renovate bumps both. To change one by hand, edit the `.in` file and
 regenerate the lock in a container, from the `tests/` directory:
 
 ```bash
-podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.12-trixie-slim \
-  uv pip compile --generate-hashes --python-version=3.12 --exclude-newer=P7D \
+podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.14-trixie-slim \
+  uv pip compile --generate-hashes --python-version=3.14 --exclude-newer=P7D \
   --output-file=requirements.txt requirements.in
 ```
 
@@ -150,8 +150,8 @@ release (`--upgrade-package`; without it, uv keeps the version already in the
 lock, so a vulnerable dependency of a dependency would not move):
 
 ```bash
-podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.12-trixie-slim \
-  uv pip compile --generate-hashes --python-version=3.12 --exclude-newer=P7D \
+podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.14-trixie-slim \
+  uv pip compile --generate-hashes --python-version=3.14 --exclude-newer=P7D \
   --exclude-newer-package "<package>=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --upgrade-package "<package>" \
   --output-file=requirements.txt requirements.in

@@ -10,7 +10,7 @@
 # file selects rather than replacing it, so removing "S" below does not turn
 # the security rules off; it only stops them being requested twice.
 
-target-version = "py311"
+target-version = "py314"
 line-length = 100
 
 [lint]
