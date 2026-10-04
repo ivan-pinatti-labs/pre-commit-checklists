@@ -103,16 +103,17 @@ KCOV_IMAGE ?= docker.io/kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd1094
 # commit (tracked, plus new ones not ignored) that ends in .sh or .bash, or
 # whose first line is a shebang running sh, bash or dash (any interpreter
 # path, env with or without options). Anything under tests/ is the tests, not
-# the code under test, and stays out. A path deleted in the working tree is
-# dropped before awk sees it, as _sources drops it, since awk stops at the
-# first file it cannot open. Nothing else trims or extends the set:
+# the code under test, and stays out. Only regular files reach awk: mawk
+# (Debian's and Ubuntu's awk) exits at the first file it cannot open and
+# drops every file after it, so a path deleted in the working tree is
+# filtered out first, not left to awk. Nothing else trims or extends the set:
 # SHELL_EXCLUDE names vendored or third party shell, each with its reason,
 # and SHELL_EXTRA names shell files neither the extension nor a shebang
 # identifies. Both are empty today. `make print-shell-scripts` prints the set.
 # tests/tools/test_shell_discovery.py holds this rule in place.
 SHELL_EXCLUDE :=
 SHELL_EXTRA :=
-SHELL_SCRIPTS := $(sort $(filter-out $(SHELL_EXCLUDE),$(shell git ls-files -z --cached --others --exclude-standard | xargs -0 sh -c 'for f do if [ -e "$$f" ] || [ -L "$$f" ]; then printf "%s\0" "$$f"; fi; done' sh | xargs -0 awk 'FNR == 1 { if (FILENAME ~ /\.(sh|bash)$$/ || $$0 ~ /^#![[:space:]]*([^[:space:]]*\/)?(env[[:space:]]+(-[^[:space:]]+[[:space:]]+)*)?(ba|da)?sh([[:space:]]|$$)/) print FILENAME; nextfile }' 2>/dev/null | grep -v '^tests/')) $(SHELL_EXTRA))
+SHELL_SCRIPTS := $(sort $(filter-out $(SHELL_EXCLUDE),$(shell git ls-files -z --cached --others --exclude-standard | xargs -0 sh -c 'for f do if [ -f "$$f" ]; then printf "%s\0" "$$f"; fi; done' sh | xargs -0 awk 'FNR == 1 { if (FILENAME ~ /\.(sh|bash)$$/ || $$0 ~ /^#![[:space:]]*([^[:space:]]*\/)?(env[[:space:]]+(-[^[:space:]]+[[:space:]]+)*)?(ba|da)?sh([[:space:]]|$$)/) print FILENAME; nextfile }' 2>/dev/null | grep -v '^tests/')) $(SHELL_EXTRA))
 
 .PHONY: print-shell-scripts
 print-shell-scripts:

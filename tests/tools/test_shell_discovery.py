@@ -24,6 +24,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MAKEFILE = REPO_ROOT / "Makefile"
 PRE_COMMIT_CONFIG = REPO_ROOT / ".pre-commit-config.yaml"
+SONAR_PROPERTIES = REPO_ROOT / "sonar-project.properties"
 
 # The scripts this repository is known to have. Discovery has to find at
 # least these; a new one is found without being added here.
@@ -39,7 +40,7 @@ KNOWN_SCRIPTS = {
 # tree, the awk rule, the tests/ exclusion and the two explicit lists.
 DISCOVERY_PARTS = (
     "git ls-files -z --cached --others --exclude-standard",
-    """if [ -e "$$f" ] || [ -L "$$f" ]""",
+    """if [ -f "$$f" ]""",
     "xargs -0 awk 'FNR == 1 {",
     "nextfile",
     "grep -v '^tests/'",
@@ -185,4 +186,27 @@ def test_coverage_hook_runs_for_every_discovered_script():
     assert not unmatched, (
         f"the coverage hook's files: does not match {unmatched}, so a change "
         "to them would not run make coverage before a push"
+    )
+
+
+def test_sonar_knows_every_script_without_an_extension():
+    """SonarQube Cloud picks a file's language by its extension alone.
+
+    A script found by its shebang but named without .sh or .bash is not
+    analyzed as shell, and its coverage goes nowhere, unless
+    sonar.lang.patterns.shell names it.
+    """
+    bare = sorted(path for path in discovered() if "." not in Path(path).name)
+    if not bare:
+        return
+    match = re.search(
+        r"^sonar\.lang\.patterns\.shell=(?P<value>.*)$",
+        SONAR_PROPERTIES.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    listed = set(match.group("value").split(",")) if match else set()
+    missing = [path for path in bare if path not in listed]
+    assert not missing, (
+        f"{missing} have no extension, so {SONAR_PROPERTIES.name} has to list "
+        "them in sonar.lang.patterns.shell"
     )
