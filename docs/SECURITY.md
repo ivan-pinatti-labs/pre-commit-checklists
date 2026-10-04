@@ -12,7 +12,7 @@ Please report through the GitHub Report Security Issues page:
 | `.devcontainer/l2/Dockerfile` | hadolint | `checklist-dev-docker`, every commit |
 | `.github/workflows/*` | actionlint, zizmor | `checklist-github-actions`, every commit |
 | Everything | detect-secrets | `checklist-security-credentials`, every commit |
-| Everything SonarQube Cloud has an analyzer for: shell, Python, the `Dockerfile`, YAML, `.github/workflows/*`, secrets | SonarQube Cloud, Sonar way quality gate, plus 100% coverage of `scripts/*.sh` and `tools/` | `sonarqube.yml`, every pull request targeting `main` from a branch of this repository and every push to `main` |
+| Everything SonarQube Cloud has an analyzer for: shell, Python, the `Dockerfile`, YAML, `.github/workflows/*`, secrets | SonarQube Cloud, Sonar way quality gate, plus 100% coverage of every shell script the Makefile discovers and of `tools/` | `sonarqube.yml`, every pull request targeting `main` from a branch of this repository and every push to `main` |
 
 Two layers, deliberately. The pre-commit hooks fail before anything is
 pushed; SonarQube Cloud reads the whole repository at once on every pull
@@ -45,7 +45,7 @@ On a change under 20 new lines SonarQube Cloud skips the coverage and
 duplication conditions; the 100% gate below still applies.
 
 This repository holds its own code above that floor: `make coverage`, run by
-the same job, requires 100% of every `scripts/*.sh` and 100% of the lines and
+the same job, requires 100% of every shell script the Makefile discovers and 100% of the lines and
 branches under `tools/`, and fails the job otherwise. Fix what a rule asks
 for, or mark the single finding false positive or accepted in SonarQube Cloud
 with the reason; no `# NOSONAR` comments.

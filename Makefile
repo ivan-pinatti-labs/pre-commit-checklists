@@ -63,7 +63,7 @@ test:
 	@echo "Self-test suite successful"
 
 # Coverage of everything this repository writes as code, held at 100%: the
-# shell under scripts/ (lines; kcov reports no branches for bash) and the
+# shell scripts (lines; kcov reports no branches for bash) and the
 # Python under tools/ (lines and branches, .coveragerc). Writes the two
 # reports SonarQube Cloud reads, $(COVERAGE_DIR)/shell.xml and
 # $(COVERAGE_DIR)/coverage.xml, and fails if either is under 100%.
@@ -74,8 +74,8 @@ test:
 # of tests/run_tests.sh), which stubs every command the scripts call out to,
 # not by the rest of the self-test suite: that needs Docker, the network and
 # every checklist's tools, none of which this locked down container has.
-# Every scripts/*.sh is held to it, so a new script fails here until a case
-# there runs each of its lines.
+# Every shell script SHELL_SCRIPTS discovers (below) is held to it, so a new
+# script fails here until a case there runs each of its lines.
 #
 # Both tools run in containers that cannot see this checkout. The files git
 # would commit (tracked, plus new ones not ignored) go in on standard input
@@ -99,7 +99,24 @@ PODMAN ?= $(if $(CONTAINER_HOST),podman-remote,podman)
 PYTHON_IMAGE ?= docker.io/library/python:3.14-slim@sha256:c3e521df8b2b498a7a682e7e18676771cb80c6b75b8699af886b2d554ce40151
 # renovate: datasource=docker depName=docker.io/kcov/kcov
 KCOV_IMAGE ?= docker.io/kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd10948a4f76dfed381765577db909664fc603
-SHELL_SCRIPTS := $(sort $(wildcard scripts/*.sh))
+# The shell scripts measured, found rather than listed: every file git would
+# commit (tracked, plus new ones not ignored) that ends in .sh or .bash, or
+# whose first line is a shebang running sh, bash or dash (any interpreter
+# path, env with or without options). Anything under tests/ is the tests, not
+# the code under test, and stays out. A path deleted in the working tree is
+# dropped before awk sees it, as _sources drops it, since awk stops at the
+# first file it cannot open. Nothing else trims or extends the set:
+# SHELL_EXCLUDE names vendored or third party shell, each with its reason,
+# and SHELL_EXTRA names shell files neither the extension nor a shebang
+# identifies. Both are empty today. `make print-shell-scripts` prints the set.
+# tests/tools/test_shell_discovery.py holds this rule in place.
+SHELL_EXCLUDE :=
+SHELL_EXTRA :=
+SHELL_SCRIPTS := $(sort $(filter-out $(SHELL_EXCLUDE),$(shell git ls-files -z --cached --others --exclude-standard | xargs -0 sh -c 'for f do if [ -e "$$f" ] || [ -L "$$f" ]; then printf "%s\0" "$$f"; fi; done' sh | xargs -0 awk 'FNR == 1 { if (FILENAME ~ /\.(sh|bash)$$/ || $$0 ~ /^#![[:space:]]*([^[:space:]]*\/)?(env[[:space:]]+(-[^[:space:]]+[[:space:]]+)*)?(ba|da)?sh([[:space:]]|$$)/) print FILENAME; nextfile }' 2>/dev/null | grep -v '^tests/')) $(SHELL_EXTRA))
+
+.PHONY: print-shell-scripts
+print-shell-scripts:
+	@printf '%s\n' $(SHELL_SCRIPTS)
 
 _comma := ,
 _empty :=

@@ -103,10 +103,17 @@ test there, not just a passing lint.
 
 ## Coverage
 
-Every line of every `scripts/*.sh` has to run in
+Every line of every shell script has to run in
 [`tests/scripts/script_units.sh`](../tests/scripts/script_units.sh), the
 `units` phase, which replaces git, pre-commit, detect-secrets, curl and wget
-with stubs so it needs nothing installed and touches no network. The Python
+with stubs so it needs nothing installed and touches no network. Nobody
+lists the scripts: the Makefile's `SHELL_SCRIPTS` discovers every file git
+would commit that ends in `.sh` or `.bash` or starts with an `sh`, `bash` or
+`dash` shebang, outside `tests/`, and `make print-shell-scripts` prints the
+set. `SHELL_EXCLUDE` (vendored shell, each with its reason) and `SHELL_EXTRA`
+(shell no extension or shebang gives away) are the only hand edits, both
+empty today, and `tests/tools/test_shell_discovery.py` keeps the rule from
+turning back into a list. The Python
 under [`tools/`](../tools/) (this repository's own tooling, which no consumer
 gets) is held to every line and every branch by its tests under
 `tests/tools/`, which also holds `test_python_version_pin.py`: it fails when

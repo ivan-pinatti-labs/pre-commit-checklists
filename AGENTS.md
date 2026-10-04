@@ -140,8 +140,10 @@ docs/overrides.md), not a convention this repository's own history follows.
   `set -o pipefail`, `set -o nounset` trio, and a leading `#` comment block
   naming every exit status code. Not a `: '...'` block under `scripts/`:
   kcov counts the lines of that string as code no test can reach.
-- Every line of every `scripts/*.sh` runs in `tests/scripts/script_units.sh`,
-  and `make coverage` fails otherwise. kcov attributes a command split over
+- Every line of every shell script runs in `tests/scripts/script_units.sh`,
+  and `make coverage` fails otherwise. The Makefile discovers the scripts
+  (`SHELL_SCRIPTS`, by extension or shebang, outside `tests/`); never replace
+  that with a list. kcov attributes a command split over
   several lines to its first line only, so keep a pipeline or a `{ ...; }`
   group on one line, or the lines after the first read as never run.
 - `tools/` holds this repository's own tooling (today the kcov to SonarQube
