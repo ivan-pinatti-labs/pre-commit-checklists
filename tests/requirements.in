@@ -1,5 +1,5 @@
-# The environment `make coverage` runs tests/tools/ in, exact pins rather
-# than `>=` floors.
+# The environment `make test` and `make coverage` run the Python tests in,
+# exact pins rather than `>=` floors.
 #
 # A floor resolves to whatever is newest on PyPI when the environment is
 # built, which puts the seven day `minimumReleaseAge` in

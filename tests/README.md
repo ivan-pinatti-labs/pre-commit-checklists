@@ -11,6 +11,22 @@ that consume a tagged local clone the way a real user eventually will.
 ## Run everything
 
 ```shell
+make test
+```
+
+That is two targets. `make test_python` runs the Python tests, `tests/tools/`
+under pytest and the `selectors` phase, in the pinned Python image `make
+coverage` uses (`PYTHON_IMAGE` in the Makefile), so they never run on the
+Python of whatever machine runs them. It needs only podman: the source goes
+in on standard input as a tar stream, nothing is mounted, every capability is
+dropped, and the container has the network only for pip to install the hash
+locked `tests/requirements.txt`. `make test_suite` then runs every other
+phase, which needs what "What each phase needs installed" below lists. In a
+devcontainer-airlock workbench run it as `l2 --engine --net -- make test`.
+
+The suite by itself, every phase including `selectors`, is
+
+```shell
 tests/run_tests.sh
 ```
 
@@ -209,7 +225,8 @@ hook fires because local work happens on `main`.
 
 ## What each phase needs installed
 
-- `selectors`: Python 3 with PyYAML.
+- `selectors`: Python 3 with PyYAML; `make test_python` runs it in the
+  pinned Python image.
 - `hooks`: `pre-commit`, network access (hook environments are built and
   cached on first use), Docker (for `actionlint-docker` and
   `hadolint-docker`), Node/npm (for the Prettier- and Biome-based

@@ -22,9 +22,12 @@ make claude-shell    # a terminal in that workbench (or codex-shell)
 ```
 
 Inside a workbench, `make install` routes the git hooks through L2
-(`l2-hooks-install`), and `make run` and `make test` run the hooks and the
-self-test suite there. In CI and on a plain host the same targets run them
-directly, as before.
+(`l2-hooks-install`), and `make run` runs the hooks there. Run the tests as
+`l2 --engine --net -- make test` (and the coverage gate as `l2 --engine --net
+-- make coverage`): the Python tests run in the pinned Python image, started
+by the L2 engine, and the rest of the self-test suite runs in L2. In CI and on
+a plain host `make run` runs the hooks directly, and `make test` needs podman
+for the Python tests.
 
 ## What is in here
 

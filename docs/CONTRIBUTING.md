@@ -47,9 +47,13 @@ so all code changes happen through pull requests.
    you intended it to match. `types:`/`types_or:` and `files:` are ANDed by
    pre-commit, not ORed; see that doc's "Why the selector matters" section
    before writing either.
-5. Run `make test` (or `tests/run_tests.sh`) if your change touches a
-   checklist, a script, or a template; see [`tests/README.md`](../tests/README.md)
-   for what each phase needs installed and how to run just one of them.
+5. Run `make test` if your change touches a checklist, a script, or a
+   template. It runs the Python tests (`make test_python`) in the same pinned
+   Python container `make coverage` uses, never on your own Python (that
+   part needs only podman), and then the rest of the self-test suite (`make
+   test_suite`), which needs what [`tests/README.md`](../tests/README.md)
+   lists; that file also says how to run just one phase. In a
+   devcontainer-airlock workbench run it as `l2 --engine --net -- make test`.
 6. Open the pull request as a **draft**. Mark it ready once it's green.
 7. Adhere to [Conventional Commits](https://www.conventionalcommits.org/) for
    your commit messages and PR title; this repository is versioned with

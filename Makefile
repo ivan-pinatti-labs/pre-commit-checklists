@@ -56,10 +56,47 @@ run_pre_push:
 	@$(PRE_COMMIT) run --all-files --config .pre-commit-config.yaml --hook-stage pre-push --verbose
 	@echo "Pre-commit run successful"
 
+# `make test` is the Python tests and then the rest of the self-test suite.
+#
+# test_python runs every Python test here (tests/tools/ under pytest, and the
+# selectors phase of tests/run_tests.sh) in PYTHON_IMAGE, the image `make
+# coverage` uses, so they run on one Python everywhere and never on the
+# host's. The container is locked down the way the coverage one is (see
+# below): the source arrives on standard input as a tar stream, nothing from
+# the host is mounted, every capability is dropped, and it has the network
+# only because pip installs the hash locked tests/requirements.txt in it.
+#
+# test_suite runs every other phase of tests/run_tests.sh. Those run the
+# checklists themselves, so they need what tests/README.md lists (pre-commit,
+# shellcheck, Node, terraform, tofu, tflint and a container engine for the
+# image based linters), which this repository's L2 image carries and the
+# Python image does not. In CI the Tests job runs the whole suite on the
+# runner. The phase list comes from tests/run_tests.sh itself, so a new phase
+# runs here without an edit.
+#
+# In a devcontainer-airlock workbench run this as `l2 --engine --net -- make
+# test`: test_python needs the engine, and test_suite then runs in L2.
+SUITE_PHASES := $(filter-out selectors,$(shell sed -n 's/^ALL_PHASES="\(.*\)"$$/\1/p' tests/run_tests.sh))
+
 .PHONY: test
-test:
-	@echo "Running the tests/ self-test suite"
-	@$(L2_NET) tests/run_tests.sh
+test: test_python test_suite
+
+.PHONY: test_python
+test_python:
+	@echo "Running the Python tests in $(PYTHON_IMAGE)"
+	@set -u; out="$$(mktemp -d)"; trap 'rm -rf "$$out"' EXIT; \
+	$(_sources); \
+	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
+		"$(PYTHON_IMAGE)" sh -c '$(_unpack); $(_pip_lock); rc=0; \
+			python -m pytest tests/tools -q -p no:cacheprovider || rc=1; \
+			python tests/scripts/test_selector_lint.py || rc=1; \
+			exit $$rc'
+	@echo "Python tests successful"
+
+.PHONY: test_suite
+test_suite:
+	@echo "Running the tests/ self-test suite: $(SUITE_PHASES)"
+	@$(L2_NET) tests/run_tests.sh $(SUITE_PHASES)
 	@echo "Self-test suite successful"
 
 # Coverage of everything this repository writes as code, held at 100%: the
@@ -132,6 +169,8 @@ _sources := git ls-files -z --cached --others --exclude-standard --deduplicate \
 	tar --create --owner=0 --group=0 --numeric-owner --null --files-from="$$out/list" --file="$$out/src.tar" || exit 1
 _unpack := set -e; mkdir /tmp/w; tar -x --no-same-owner -C /tmp/w; cd /tmp/w
 _locked := --cap-drop=ALL --security-opt no-new-privileges
+_pip_lock := pip install --quiet --disable-pip-version-check --root-user-action=ignore \
+	--require-hashes --only-binary=:all: -r tests/requirements.txt
 
 .PHONY: coverage
 coverage:
@@ -147,8 +186,7 @@ coverage:
 				/out/shell.xml $(SHELL_SCRIPTS)' || sh=$$?; \
 	$(PODMAN) run <"$$out/src.tar" --rm --interactive $(_locked) \
 		-v "$$out/python:/out:rw,Z" "$(PYTHON_IMAGE)" sh -c '$(_unpack); \
-			pip install --quiet --disable-pip-version-check --root-user-action=ignore \
-				--require-hashes --only-binary=:all: -r tests/requirements.txt; \
+			$(_pip_lock); \
 			coverage run -m pytest tests/tools -q -p no:cacheprovider; \
 			coverage xml -q --fail-under=0 -o /out/coverage.xml; \
 			coverage report' || py=$$?; \
