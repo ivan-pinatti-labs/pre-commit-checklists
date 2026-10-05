@@ -177,10 +177,11 @@ since GitHub withholds `SONAR_TOKEN` from it; a maintainer pushes the
 contributor's commits to a branch here and opens a pull request from that.
 
 Before scanning, the job runs `make coverage`, which holds every
-`scripts/*.sh` at 100% of its lines and the Python under `tools/` at 100% of
-its lines and branches, and hands both reports to SonarQube Cloud. The shell
-goes through kcov, running `tests/scripts/script_units.sh` (the `units` phase
-of the self-test suite, which stubs every command the scripts call out to),
+shell script the Makefile discovers (outside `tests/`) at 100% of its lines
+and the Python under `tools/` at 100% of its lines and branches, and hands
+both reports to SonarQube Cloud. The shell goes through kcov, running
+`tests/scripts/script_units.sh` (the `units` phase of the self-test suite,
+which stubs every command the scripts call out to),
 and the Python through coverage.py, each in a podman container that sees the
 source only as a tar stream on its standard input. SonarQube has no importer
 for shell coverage, so `tools/kcov_to_sonar.py` rewrites kcov's report into

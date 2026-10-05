@@ -1,0 +1,4 @@
+# This repository's own ruff settings. The drift guard,
+# tests/tools/test_python_version_pin.py, keeps target-version equal to the
+# python-version CI runs.
+target-version = "py314"

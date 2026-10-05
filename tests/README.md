@@ -11,6 +11,59 @@ that consume a tagged local clone the way a real user eventually will.
 ## Run everything
 
 ```shell
+make test
+```
+
+That needs only podman, and runs nothing on the machine you run it on. It
+is two targets. `make test_python` runs the Python tests, `tests/tools/`
+under pytest and the `selectors` phase, in the pinned Python image `make
+coverage` uses (`PYTHON_IMAGE` in the Makefile), so they never run on the
+Python of whatever machine runs them. The source goes in on standard input
+as a tar stream, nothing is mounted, every capability is dropped, and the
+container has the network only for pip to install the hash locked
+`tests/requirements.txt`.
+
+`make test_suite` then runs every other phase in this repository's L2 image
+(`.devcontainer/l2/Dockerfile`, on the shared devcontainer-airlock L2 image
+pinned by digest), which carries everything "What each phase needs
+installed" below lists. `make l2_image` builds it with podman when it is
+missing, as `localhost/pre-commit-checklists-l2:<hash>`, where the hash
+covers the Dockerfile and the keyrings it copies in; the build needs the
+network. The packages apt resolves in it are not pinned, so to pick up their
+updates, `podman rmi` the image and the next run builds it again. The
+image's `docker` shim runs the container image linters (actionlint,
+hadolint, dotenv-linter) from copies baked into it, so no container engine
+socket is involved.
+
+What that container gets:
+
+- A throwaway copy of the tree, in a scratch directory: the files git would
+  commit laid over a `git clone --no-hardlinks` of the checkout, so its
+  `.git` is a repository of its own. The phases commit, tag and check out
+  in it; nothing they do reaches your checkout, which is never mounted.
+- The named volume `pre-commit-checklists-suite-cache` at
+  `/root/.cache/pre-commit`, so hook environments survive between runs.
+- uid 0 (the image's `HOME=/root`, and in rootless podman your own uid),
+  every capability dropped, `no-new-privileges`, no environment from the
+  host (proxy variables included), no home directory, no SSH agent, no
+  token and no engine socket.
+
+It runs twice on that copy. The first run has the network: it installs the
+hook environments of every checklist, then runs the `hooks` phase, whose
+terraform and tofu validate hooks fetch the fixtures' provider from their
+registries while it runs. The second runs `shell`, `units`, `links`,
+`consumer` and `commit` with `--network=none`, from the environments the
+first installed. A new phase lands in the second run, so one that needs the
+network fails rather than getting it quietly.
+
+In a devcontainer-airlock workbench run it as `l2 --engine --net -- make
+test`: the Python tests run in the pinned Python image through the L2
+engine, and `make test_suite` runs the suite directly, since it is already
+in the L2 image. A bare `make test_suite` there runs it through `l2 --net`.
+
+The suite by itself, every phase including `selectors`, is
+
+```shell
 tests/run_tests.sh
 ```
 
@@ -30,7 +83,7 @@ tests/run_tests.sh hooks shell
 | `selectors` | `tests/scripts/test_selector_lint.py` | Static: no hook definition in `.pre-commit-hooks.yaml`, `checklists/*.yaml`, or `templates/pre-commit-config/*.yaml` combines `types:`/`types_or:` with `files:` on the same entry. pre-commit ANDs those keys; combining them is exactly how defects 2 and 3 happened. |
 | `hooks` | `tests/scripts/check_hooks.sh` | Per checklist: a `should-pass` fixture set exits 0, a `should-fail` fixture set exits nonzero, and, critically, the hook is not silently skipped for matching zero files ("(no files to check)"). Also re-runs each `should-pass` set through the real dogfood `.pre-commit-config.yaml` by hook id, asserting the file-based selector wiring there still selects the fixture. |
 | `shell` | `tests/scripts/lint_shell.sh` | `shellcheck --severity=warning` over `scripts/*.sh`, plus behavioral tests of `check-branch-name.sh`, `check-commit-msg.sh` (including the opt-in `--ticket-prefixes` path for both), `run-checklist.sh`, and `install.sh` against their documented exit codes. |
-| `units` | `tests/scripts/script_units.sh` | Every line of every `scripts/*.sh`, with git, pre-commit, detect-secrets, curl and wget replaced by stubs on a PATH that holds nothing else, so it touches no network and no real repository. `install.sh` runs through a symlink in a scratch directory for its remote (piped) mode. `make coverage` runs this phase under kcov and fails below 100% of lines. |
+| `units` | `tests/scripts/script_units.sh` | Every line of every shell script the Makefile's `SHELL_SCRIPTS` discovers (today all under `scripts/`), with git, pre-commit, detect-secrets, curl and wget replaced by stubs on a PATH that holds nothing else, so it touches no network and no real repository. `install.sh` runs through a symlink in a scratch directory for its remote (piped) mode. `make coverage` runs this phase under kcov and fails below 100% of lines. |
 | `consumer` | `tests/scripts/consumer_path.sh` | The `repo: <url>` + `rev: vX.Y.Z` consumer path, offline. See below. |
 | `commit` | `tests/scripts/real_commit.sh` | A real `git commit` through installed hooks, covering the `commit-msg` stage. |
 
@@ -209,7 +262,8 @@ hook fires because local work happens on `main`.
 
 ## What each phase needs installed
 
-- `selectors`: Python 3 with PyYAML.
+- `selectors`: Python 3 with PyYAML; `make test_python` runs it in the
+  pinned Python image.
 - `hooks`: `pre-commit`, network access (hook environments are built and
   cached on first use), Docker (for `actionlint-docker` and
   `hadolint-docker`), Node/npm (for the Prettier- and Biome-based
@@ -249,8 +303,7 @@ tests/run_tests.sh
 
 Exit 0 means every phase passed; nonzero means at least one did. The
 script needs `pre-commit` and the checklist tools on PATH, which is what
-this repository's L2 image provides (`make test` in a devcontainer-airlock
-workbench runs it there, with `l2 --net`), Docker for the GitHub Actions
-checklist test (in L2, a shim runs the baked actionlint instead), and
-network access for pre-commit to build hook environments and for terraform
-and tofu to fetch providers.
+this repository's L2 image provides (`make test` runs it there), Docker for
+the GitHub Actions checklist test (in L2, a shim runs the baked actionlint
+instead), and network access for pre-commit to build hook environments and
+for terraform and tofu to fetch providers.

@@ -311,8 +311,9 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-  # This repository's own coverage gate: 100% of the lines of scripts/*.sh
-  # and of the lines and branches of tools/. `make coverage` runs the tests
+  # This repository's own coverage gate: 100% of the lines of every shell
+  # script the Makefile discovers, and of the lines and branches of tools/.
+  # tests/tools/test_shell_discovery.py fails if `files:` misses one. `make coverage` runs the tests
   # in podman containers that see the source only through a tar stream; see
   # the Makefile. pre-push, not pre-commit: it starts two containers, and the
   # SonarQube job runs the same target on every pull request anyway, so this
@@ -333,6 +334,11 @@ repos:
             tests/scripts/script_units\.sh$|
             tests/requirements\.txt$|
             \.coveragerc$|
-            Makefile$
+            Makefile$|
+            \.github/workflows/pull-request\.yml$|
+            sonar-project\.properties$|
+            templates/workflows/pull-request\.yml$|
+            templates/ruff\.toml$|
+            ruff\.toml$
           )
         stages: [pre-push]

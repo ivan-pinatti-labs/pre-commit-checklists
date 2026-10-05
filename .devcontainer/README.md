@@ -22,15 +22,21 @@ make claude-shell    # a terminal in that workbench (or codex-shell)
 ```
 
 Inside a workbench, `make install` routes the git hooks through L2
-(`l2-hooks-install`), and `make run` and `make test` run the hooks and the
-self-test suite there. In CI and on a plain host the same targets run them
-directly, as before.
+(`l2-hooks-install`), and `make run` runs the hooks there. Run the tests as
+`l2 --engine --net -- make test` (and the coverage gate as `l2 --engine --net
+-- make coverage`): the Python tests run in the pinned Python image, started
+by the L2 engine, and the rest of the self-test suite runs in L2. In CI and on
+a plain host `make run` runs the hooks directly. `make test` needs only podman
+anywhere: outside a workbench it builds this repository's L2 image itself
+(`make l2_image`) and runs the self-test suite in it, on a throwaway copy of
+the tree, never on the host ([tests/README.md](../tests/README.md) says what
+that container gets).
 
 ## What is in here
 
 | File | What |
 | --- | --- |
-| `l2/Dockerfile` | This repository's L2 image, on the shared one pinned by digest: terraform, OpenTofu, tflint and detect-secrets, which the checklists and the self-test suite call by name. `l2` builds it in the L2 engine the first time and whenever it changes. |
+| `l2/Dockerfile` | This repository's L2 image, on the shared one pinned by digest: terraform, OpenTofu, tflint and detect-secrets, which the checklists and the self-test suite call by name. `l2` builds it in the L2 engine the first time and whenever it changes; outside a workbench, `make l2_image` builds it with podman for `make test`. |
 | `keyrings/opentofu.asc` | OpenTofu's signing key, vendored and checked against its fingerprint before anything is verified with it. |
 | `egress-sets` | The network services the egress proxy allows for this repository, one per line. |
 

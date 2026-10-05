@@ -47,9 +47,15 @@ so all code changes happen through pull requests.
    you intended it to match. `types:`/`types_or:` and `files:` are ANDed by
    pre-commit, not ORed; see that doc's "Why the selector matters" section
    before writing either.
-5. Run `make test` (or `tests/run_tests.sh`) if your change touches a
-   checklist, a script, or a template; see [`tests/README.md`](../tests/README.md)
-   for what each phase needs installed and how to run just one of them.
+5. Run `make test` if your change touches a checklist, a script, or a
+   template. It needs only podman: nothing in it runs on your machine. It
+   runs the Python tests (`make test_python`) in the same pinned Python
+   container `make coverage` uses, and then the rest of the self-test suite
+   (`make test_suite`) in this repository's L2 image, which carries every
+   tool the checklists call and which `make l2_image` builds the first time.
+   [`tests/README.md`](../tests/README.md) says what that container gets and
+   how to run just one phase. In a devcontainer-airlock workbench run it as
+   `l2 --engine --net -- make test`.
 6. Open the pull request as a **draft**. Mark it ready once it's green.
 7. Adhere to [Conventional Commits](https://www.conventionalcommits.org/) for
    your commit messages and PR title; this repository is versioned with
@@ -103,13 +109,24 @@ test there, not just a passing lint.
 
 ## Coverage
 
-Every line of every `scripts/*.sh` has to run in
+Every line of every shell script has to run in
 [`tests/scripts/script_units.sh`](../tests/scripts/script_units.sh), the
 `units` phase, which replaces git, pre-commit, detect-secrets, curl and wget
-with stubs so it needs nothing installed and touches no network. The Python
+with stubs so it needs nothing installed and touches no network. Nobody
+lists the scripts: the Makefile's `SHELL_SCRIPTS` discovers every file git
+would commit that ends in `.sh` or `.bash` or starts with an `sh`, `bash` or
+`dash` shebang, outside `tests/`, and `make print-shell-scripts` prints the
+set. `SHELL_EXCLUDE` (vendored shell, each with its reason) and `SHELL_EXTRA`
+(shell no extension or shebang gives away) are the only hand edits, both
+empty today, and `tests/tools/test_shell_discovery.py` keeps the rule from
+turning back into a list. The Python
 under [`tools/`](../tools/) (this repository's own tooling, which no consumer
 gets) is held to every line and every branch by its tests under
-`tests/tools/`. The other Python here, `tests/scripts/test_selector_lint.py`
+`tests/tools/`, which also holds `test_python_version_pin.py`: it fails when
+the Python version in CI, `sonar.python.version`, the Makefile's python
+images, the `target-version` of the root `ruff.toml` and the consumer
+templates stop agreeing, since nothing moves them
+together. The other Python here, `tests/scripts/test_selector_lint.py`
 and the fixtures, is test code and is not measured.
 
 `make coverage` runs the shell cases under kcov and the Python tests under
@@ -130,8 +147,8 @@ checks. Renovate bumps both. To change one by hand, edit the `.in` file and
 regenerate the lock in a container, from the `tests/` directory:
 
 ```bash
-podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.12-trixie-slim \
-  uv pip compile --generate-hashes --python-version=3.12 --exclude-newer=P7D \
+podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.14-trixie-slim \
+  uv pip compile --generate-hashes --python-version=3.14 --exclude-newer=P7D \
   --output-file=requirements.txt requirements.in
 ```
 
@@ -150,8 +167,8 @@ release (`--upgrade-package`; without it, uv keeps the version already in the
 lock, so a vulnerable dependency of a dependency would not move):
 
 ```bash
-podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.12-trixie-slim \
-  uv pip compile --generate-hashes --python-version=3.12 --exclude-newer=P7D \
+podman run --rm -v "$PWD:/w:rw,Z" -w /w ghcr.io/astral-sh/uv:python3.14-trixie-slim \
+  uv pip compile --generate-hashes --python-version=3.14 --exclude-newer=P7D \
   --exclude-newer-package "<package>=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --upgrade-package "<package>" \
   --output-file=requirements.txt requirements.in
