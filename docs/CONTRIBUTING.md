@@ -48,12 +48,14 @@ so all code changes happen through pull requests.
    pre-commit, not ORed; see that doc's "Why the selector matters" section
    before writing either.
 5. Run `make test` if your change touches a checklist, a script, or a
-   template. It runs the Python tests (`make test_python`) in the same pinned
-   Python container `make coverage` uses, never on your own Python (that
-   part needs only podman), and then the rest of the self-test suite (`make
-   test_suite`), which needs what [`tests/README.md`](../tests/README.md)
-   lists; that file also says how to run just one phase. In a
-   devcontainer-airlock workbench run it as `l2 --engine --net -- make test`.
+   template. It needs only podman: nothing in it runs on your machine. It
+   runs the Python tests (`make test_python`) in the same pinned Python
+   container `make coverage` uses, and then the rest of the self-test suite
+   (`make test_suite`) in this repository's L2 image, which carries every
+   tool the checklists call and which `make l2_image` builds the first time.
+   [`tests/README.md`](../tests/README.md) says what that container gets and
+   how to run just one phase. In a devcontainer-airlock workbench run it as
+   `l2 --engine --net -- make test`.
 6. Open the pull request as a **draft**. Mark it ready once it's green.
 7. Adhere to [Conventional Commits](https://www.conventionalcommits.org/) for
    your commit messages and PR title; this repository is versioned with

@@ -47,6 +47,7 @@
     "gpgsig",
     "gsub",
     "hadolint",
+    "hardlinks",
     "hotspot",
     "isort",
     "kcov",

@@ -14,15 +14,52 @@ that consume a tagged local clone the way a real user eventually will.
 make test
 ```
 
-That is two targets. `make test_python` runs the Python tests, `tests/tools/`
+That needs only podman, and runs nothing on the machine you run it on. It
+is two targets. `make test_python` runs the Python tests, `tests/tools/`
 under pytest and the `selectors` phase, in the pinned Python image `make
 coverage` uses (`PYTHON_IMAGE` in the Makefile), so they never run on the
-Python of whatever machine runs them. It needs only podman: the source goes
-in on standard input as a tar stream, nothing is mounted, every capability is
-dropped, and the container has the network only for pip to install the hash
-locked `tests/requirements.txt`. `make test_suite` then runs every other
-phase, which needs what "What each phase needs installed" below lists. In a
-devcontainer-airlock workbench run it as `l2 --engine --net -- make test`.
+Python of whatever machine runs them. The source goes in on standard input
+as a tar stream, nothing is mounted, every capability is dropped, and the
+container has the network only for pip to install the hash locked
+`tests/requirements.txt`.
+
+`make test_suite` then runs every other phase in this repository's L2 image
+(`.devcontainer/l2/Dockerfile`, on the shared devcontainer-airlock L2 image
+pinned by digest), which carries everything "What each phase needs
+installed" below lists. `make l2_image` builds it with podman when it is
+missing, as `localhost/pre-commit-checklists-l2:<hash>`, where the hash
+covers the Dockerfile and the keyrings it copies in; the build needs the
+network. The packages apt resolves in it are not pinned, so to pick up their
+updates, `podman rmi` the image and the next run builds it again. The
+image's `docker` shim runs the container image linters (actionlint,
+hadolint, dotenv-linter) from copies baked into it, so no container engine
+socket is involved.
+
+What that container gets:
+
+- A throwaway copy of the tree, in a scratch directory: the files git would
+  commit laid over a `git clone --no-hardlinks` of the checkout, so its
+  `.git` is a repository of its own. The phases commit, tag and check out
+  in it; nothing they do reaches your checkout, which is never mounted.
+- The named volume `pre-commit-checklists-suite-cache` at
+  `/root/.cache/pre-commit`, so hook environments survive between runs.
+- uid 0 (the image's `HOME=/root`, and in rootless podman your own uid),
+  every capability dropped, `no-new-privileges`, no environment from the
+  host (proxy variables included), no home directory, no SSH agent, no
+  token and no engine socket.
+
+It runs twice on that copy. The first run has the network: it installs the
+hook environments of every checklist, then runs the `hooks` phase, whose
+terraform and tofu validate hooks fetch the fixtures' provider from their
+registries while it runs. The second runs `shell`, `units`, `links`,
+`consumer` and `commit` with `--network=none`, from the environments the
+first installed. A new phase lands in the second run, so one that needs the
+network fails rather than getting it quietly.
+
+In a devcontainer-airlock workbench run it as `l2 --engine --net -- make
+test`: the Python tests run in the pinned Python image through the L2
+engine, and `make test_suite` runs the suite directly, since it is already
+in the L2 image. A bare `make test_suite` there runs it through `l2 --net`.
 
 The suite by itself, every phase including `selectors`, is
 
@@ -266,8 +303,7 @@ tests/run_tests.sh
 
 Exit 0 means every phase passed; nonzero means at least one did. The
 script needs `pre-commit` and the checklist tools on PATH, which is what
-this repository's L2 image provides (`make test` in a devcontainer-airlock
-workbench runs it there, with `l2 --net`), Docker for the GitHub Actions
-checklist test (in L2, a shim runs the baked actionlint instead), and
-network access for pre-commit to build hook environments and for terraform
-and tofu to fetch providers.
+this repository's L2 image provides (`make test` runs it there), Docker for
+the GitHub Actions checklist test (in L2, a shim runs the baked actionlint
+instead), and network access for pre-commit to build hook environments and
+for terraform and tofu to fetch providers.

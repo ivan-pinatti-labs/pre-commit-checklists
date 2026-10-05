@@ -147,5 +147,10 @@ RUN set -eu; \
     /tmp/checksums.txt.pem /tmp/tflint_linux_amd64.zip; \
   tflint --version
 
+# `make test_suite` runs the suite directly when it finds this, because it is
+# already in this image (`l2 --engine --net -- make test`), rather than
+# starting this image again from inside it.
+ENV PRE_COMMIT_CHECKLISTS_L2=1
+
 USER 1000:1000
 WORKDIR /workspace

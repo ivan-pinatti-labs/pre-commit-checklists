@@ -68,11 +68,18 @@ run_pre_push:
 #
 # test_suite runs every other phase of tests/run_tests.sh. Those run the
 # checklists themselves, so they need what tests/README.md lists (pre-commit,
-# shellcheck, Node, terraform, tofu, tflint and a container engine for the
-# image based linters), which this repository's L2 image carries and the
-# Python image does not. In CI the Tests job runs the whole suite on the
-# runner. The phase list comes from tests/run_tests.sh itself, so a new phase
-# runs here without an edit.
+# shellcheck, Node, terraform, tofu, tflint and the container image linters),
+# which this repository's L2 image (.devcontainer/l2/Dockerfile) carries and
+# the Python image does not. They run in that image and never on the host:
+#
+#   - in a devcontainer-airlock workbench (where `l2` exists), through
+#     `l2 --net`, as every hook there does;
+#   - already inside that image (it sets PRE_COMMIT_CHECKLISTS_L2, so this is
+#     `l2 --engine --net -- make test` in a workbench), directly;
+#   - anywhere else, in SUITE_IMAGE, started with podman (see below).
+#
+# In CI the Tests job runs the whole suite on the runner. The phase list comes
+# from tests/run_tests.sh itself, so a new phase runs here without an edit.
 #
 # In a devcontainer-airlock workbench run this as `l2 --engine --net -- make
 # test`: test_python needs the engine, and test_suite then runs in L2.
@@ -93,10 +100,71 @@ test_python:
 			exit $$rc'
 	@echo "Python tests successful"
 
+# Outside a workbench, test_suite runs in SUITE_IMAGE, this repository's L2
+# image built locally by `make l2_image` the first time and whenever its
+# inputs change: the tag is a hash of .devcontainer/l2/Dockerfile and the
+# keyrings it copies in, and the Dockerfile names the shared airlock L2 image
+# it builds on by digest, so a new base is a new tag too. The packages apt
+# resolves are not pinned (.devcontainer/README.md says why); to pick up
+# their updates, `podman rmi` the image and the next run builds it again.
+# Its `docker` shim runs the container image linters (actionlint, hadolint,
+# dotenv-linter) from copies baked into the image, so the suite needs no
+# container engine socket.
+#
+# The container gets a throwaway copy of the tree and nothing else from this
+# machine: the files git would commit (tracked, plus new ones not ignored, as
+# `make coverage` takes them) laid over a `git clone --no-hardlinks` of this
+# checkout, so its .git is a repository of its own that the phases may
+# commit, tag and check out in without reaching this one. No home directory,
+# no SSH agent, no token, no host environment (--http-proxy=false keeps even
+# the proxy variables out) and no engine socket. It runs as uid 0, which is
+# the image's HOME=/root and, in rootless podman, the invoking user, with
+# every capability dropped. SUITE_CACHE, a named volume, keeps the pre-commit
+# hook environments between runs.
+#
+# It runs twice, on the same copy. The first has the network: it installs the
+# hook environments of every checklist, then runs SUITE_NET_PHASES, which is
+# `hooks` alone because terraform-validate and tofu_validate fetch the
+# fixtures' provider from their registries while the phase runs. The second
+# runs every other phase with --network=none, from the environments the first
+# installed; a new phase lands there, so one that needs the network fails
+# loudly rather than getting it quietly.
+SUITE_NET_PHASES := hooks
+SUITE_OFFLINE_PHASES := $(filter-out $(SUITE_NET_PHASES),$(SUITE_PHASES))
+SUITE_IMAGE ?= localhost/pre-commit-checklists-l2:$(shell cat .devcontainer/l2/Dockerfile .devcontainer/keyrings/* | sha256sum | cut -c1-16)
+SUITE_CACHE ?= pre-commit-checklists-suite-cache
+_suite_run = $(PODMAN) run --rm --user 0:0 $(_locked) --http-proxy=false \
+	-v "$$out/tree:/work:rw,Z" -w /work -v "$(SUITE_CACHE):/root/.cache/pre-commit"
+
+.PHONY: l2_image
+l2_image:
+	@set -u; if $(PODMAN) image exists "$(SUITE_IMAGE)"; then exit 0; fi; \
+	echo "Building $(SUITE_IMAGE) from .devcontainer/l2/Dockerfile"; \
+	ctx="$$(mktemp -d)"; trap 'rm -rf "$$ctx"' EXIT; \
+	mkdir "$$ctx/.devcontainer" && cp -R .devcontainer/keyrings "$$ctx/.devcontainer/" || exit 1; \
+	$(PODMAN) build -f .devcontainer/l2/Dockerfile -t "$(SUITE_IMAGE)" "$$ctx"
+
+# The copy, both runs and the verdict, for the podman case.
+_suite_in_podman = set -u; out="$$(mktemp -d)"; trap 'rm -rf "$$out"' EXIT; \
+	$(_sources); \
+	git clone --quiet --no-checkout --no-hardlinks . "$$out/tree" || exit 1; \
+	git -C "$$out/tree" remote remove origin || exit 1; \
+	tar -x -C "$$out/tree" -f "$$out/src.tar" || exit 1; \
+	git -C "$$out/tree" reset --quiet || exit 1; \
+	net=0; off=0; \
+	$(_suite_run) "$(SUITE_IMAGE)" sh -c 'set -e; \
+		for c in checklists/*.yaml; do pre-commit install-hooks --config "$$c"; done; \
+		tests/run_tests.sh $(SUITE_NET_PHASES)' || net=$$?; \
+	$(_suite_run) --network=none "$(SUITE_IMAGE)" \
+		tests/run_tests.sh $(SUITE_OFFLINE_PHASES) || off=$$?; \
+	test "$$net" -eq 0 && test "$$off" -eq 0
+_suite_in_l2 := $(if $(IN_WORKBENCH)$(PRE_COMMIT_CHECKLISTS_L2),yes)
+_suite_where := $(if $(IN_WORKBENCH),L2 (l2 --net),$(if $(PRE_COMMIT_CHECKLISTS_L2),this L2 container,$(SUITE_IMAGE)))
+
 .PHONY: test_suite
-test_suite:
-	@echo "Running the tests/ self-test suite: $(SUITE_PHASES)"
-	@$(L2_NET) tests/run_tests.sh $(SUITE_PHASES)
+test_suite: $(if $(_suite_in_l2),,l2_image)
+	@echo "Running the tests/ self-test suite in $(_suite_where): $(SUITE_PHASES)"
+	@$(if $(_suite_in_l2),$(if $(IN_WORKBENCH),l2 --net --) tests/run_tests.sh $(SUITE_PHASES),$(_suite_in_podman))
 	@echo "Self-test suite successful"
 
 # Coverage of everything this repository writes as code, held at 100%: the
