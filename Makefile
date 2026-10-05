@@ -84,6 +84,9 @@ run_pre_push:
 # In a devcontainer-airlock workbench run this as `l2 --engine --net -- make
 # test`: test_python needs the engine, and test_suite then runs in L2.
 SUITE_PHASES := $(filter-out selectors,$(shell sed -n 's/^ALL_PHASES="\(.*\)"$$/\1/p' tests/run_tests.sh))
+# An empty list would make run_tests.sh fall back to every phase, selectors
+# included and all offline, so a changed ALL_PHASES line stops make instead.
+$(if $(SUITE_PHASES),,$(error no phases read from ALL_PHASES in tests/run_tests.sh; update SUITE_PHASES))
 
 .PHONY: test
 test: test_python test_suite
