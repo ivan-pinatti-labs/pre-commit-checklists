@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.json
 #
-# CodeRabbit picks up AGENTS.md automatically as review guidelines, so its
-# rules (no hyphens/dashes as punctuation, no AI attribution, etc.) don't
-# need restating here.
+# CodeRabbit reads AGENTS.md as review guidelines (listed explicitly under
+# knowledge_base below, next to the docs it points to), so its rules are
+# not restated here beyond the organization's shared review rules.
 
 language: en-US
 
@@ -54,7 +54,47 @@ reviews:
       enabled: false
     markdownlint:
       enabled: false
+  # How hard to look. assertive raises more than chill does; every consumer
+  # repository runs what this library ships, so a hook that silently matches
+  # nothing or a script that leaks a secret costs more than an extra
+  # comment.
+  profile: assertive
+
+  # Review guidance. The first two entries are the organization's rules,
+  # kept the same in every ivan-pinatti-labs repository; the rest are
+  # specific to pre-commit-checklists. Pre-commit already runs the linters,
+  # so these ask for judgment the hooks cannot make.
   path_instructions:
+    - path: "**"
+      instructions: |
+        This repository is public. Flag, as a blocking issue, anything in the
+        diff that should not be published:
+        - secrets, tokens, keys, passwords, session cookies, connection
+          strings, or anything that looks like one, even in tests or docs;
+        - personal data: names other than the maintainer's public handle,
+          email addresses other than a users.noreply.github.com one, phone
+          numbers, physical addresses;
+        - machine specific details: absolute home paths (/home/<user>,
+          /Users/<user>), host names, LAN or private IP addresses, internal
+          domains, cloud account IDs, ARNs, AWS profile names, cluster
+          contexts, and details of anyone's own deployment;
+        - AI attribution in any file, commit message or the pull request
+          text: a Co-Authored-By trailer naming an AI agent, a "Generated
+          with" line, an agent session link, or any other line that names
+          or links the agent that wrote the change.
+        Also check that every behavior change comes with tests that would
+        fail without it, and that the docs describe the new behavior. The
+        organization's rule is 100% test coverage of the code it ships:
+        flag, as a blocking issue, any new or changed line or branch of code
+        (not docs or configuration) that no test exercises, and name the
+        test that would cover it. Do not comment on formatting the
+        pre-commit hooks already enforce.
+    - path: "**/*.md"
+      instructions: |
+        Prose does not use a hyphen, em dash or en dash as punctuation; use
+        commas, parentheses or separate sentences (hyphens inside compound
+        words, code, paths and flags are fine). Point out claims the code in
+        this pull request does not back up.
     - path: "checklists/checklist-*.yaml"
       instructions: >
         Each file is a standalone pre-commit config, not a fragment: it is
@@ -71,10 +111,59 @@ reviews:
         renamed hook id here needs a matching entry in
         docs/hook-catalogue.md, and a removed or renamed one is a major
         version change per docs/versioning.md.
+    - path: "scripts/**"
+      instructions: |
+        These scripts run as hook entries inside every consumer repository,
+        and install.sh is piped into bash. Flag any change that prints the
+        environment or another value that could carry a secret into hook
+        or CI output, a new or changed exit status missing from the
+        script's leading comment block, and any new line no case in
+        tests/scripts/script_units.sh runs (docs/CONTRIBUTING.md,
+        "Coverage"). A change to what install.sh copies or pins must stay
+        in sync with docs/getting-started.md.
 
+  # Pull request checks shown in the walkthrough. Warnings, not errors: the
+  # merge pipeline already gates on CodeRabbit's review through Review
+  # Verified (docs/MERGE_PIPELINE.md).
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: type(optional scope): imperative subject,
+        lowercase, no trailing period, at most 72 characters.
+    description:
+      mode: warning
+    custom_checks:
+      - name: Public repository hygiene
+        mode: warning
+        instructions: >-
+          Fail if the diff, commit messages or pull request text add a
+          secret or something that looks like one, an email address other
+          than a users.noreply.github.com one, an absolute home path, a host
+          name, a private IP address, a cloud account ID or ARN, or details
+          of a personal deployment. Pass otherwise.
+      - name: No AI attribution
+        mode: warning
+        instructions: >-
+          Fail if any commit message, the pull request title or description,
+          or any file in the diff contains a Co-Authored-By trailer naming an
+          AI agent, a "Generated with" line, an agent session link, or any
+          other line that names or links the AI agent that made the change.
+          Pass otherwise.
+
+# Tone of review comments and chat.
+tone_instructions: >-
+  Direct and specific: lead with the defect and a concrete fix, in plain
+  words. No praise, no emoji, no hype. Skip style points a linter already
+  reports.
+
+# The repository's own rules, read as coding guidelines for every review.
 knowledge_base:
   code_guidelines:
+    enabled: true
     filePatterns:
-      # Not auto-detected the way AGENTS.md is, so listed explicitly.
-      - "docs/hook-catalogue.md"
-      - "docs/versioning.md"
+      - AGENTS.md
+      - docs/CONTRIBUTING.md
+      - docs/hook-catalogue.md
+      - docs/versioning.md
+      - docs/overrides.md
