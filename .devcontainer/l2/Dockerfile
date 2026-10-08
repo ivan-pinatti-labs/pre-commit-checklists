@@ -72,7 +72,7 @@ RUN printf '%s\n' \
 # redirects included (`--proto '=https' --tlsv1.2`). GitHub's release links
 # redirect to its asset host over HTTPS, so nothing they fetch changes.
 # renovate: datasource=github-releases depName=opentofu/opentofu
-ARG TOFU_VERSION=1.12.6
+ARG TOFU_VERSION=1.13.0
 COPY .devcontainer/keyrings/opentofu.asc /tmp/keyrings/opentofu.asc
 WORKDIR /tmp
 # hadolint ignore=DL4006
