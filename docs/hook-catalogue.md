@@ -526,10 +526,11 @@ request for one against its GitHub repository returns 404), so this is a
 `rev:` entry. See [`docs/versioning.md`](versioning.md) for what that
 means for how this pin moves.
 
-**zizmor needs Python 3.10 or newer; neither hook definition sets
-`language_version`, on purpose.** PyPI reports `requires_python: >=3.10`
-for this pin, but that floor is a fact about zizmor, not something a
-`language: python` hook enforces on its own, so it is documented here,
+**zizmor needs Python 3.11 or newer; neither hook definition sets
+`language_version`, on purpose.** PyPI reports `requires_python: >=3.11`
+for this pin (it was `>=3.10` up to zizmor 1.30.1), but that floor is a
+fact about zizmor, not something a `language: python` hook enforces on
+its own, so it is documented here,
 in `README.md`, and in `tests/README.md` instead. Setting
 `language_version: python3.10` looks like the obvious way to encode that
 floor and was tried directly: confirmed on a machine whose only
