@@ -40,12 +40,17 @@ name: CodeRabbit Gate
 #
 #   pull_request_target  the normal path, firing on the events that change
 #                         what the verdict should be.
-#   status                the fast path. CodeRabbit posts through the legacy
-#                         status API, which fires no pull request event at
-#                         all, so without this trigger a review landing after
-#                         the pull_request_target run already published
-#                         `pending` would sit there until something else woke
-#                         this workflow.
+#   status                the fast path, for a review CodeRabbit reports
+#                         through the legacy status API, which fires no pull
+#                         request event at all, so without this trigger a
+#                         review landing after the pull_request_target run
+#                         already published `pending` would sit there until
+#                         something else woke this workflow.
+#   check_run             the same fast path for the way CodeRabbit reports
+#                         by default since late October 2026: a `CodeRabbit`
+#                         check run, with no status. The shared gate keeps
+#                         only CodeRabbit's own run and needs no permission
+#                         beyond the others to read it.
 #   schedule              the self-healing path: an hourly re-grade recovers a
 #                         missed or failed run without a person noticing
 #                         first. GitHub deprioritises scheduled runs on public
@@ -73,9 +78,8 @@ on:
   # shared workflow asks the API which open pull requests point at the SHA and
   # exits cleanly with nothing to grade when there are none.
   status:
-  # CodeRabbit reports a review as a check run, with no status, since late
-  # October 2026, so a finished review re-grades from here rather than at the
-  # next event or sweep. The shared gate reads it with no extra permission.
+  # A completed CodeRabbit check run re-grades `Review Verified` at once (see
+  # the trigger list above).
   check_run:
     types: [completed]
   schedule:

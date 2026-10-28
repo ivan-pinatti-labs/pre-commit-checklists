@@ -226,6 +226,13 @@ like one.
 
 ## Recovering a stuck `Review Verified`
 
+A finished review normally needs no recovery. CodeRabbit reports a review as
+a `CodeRabbit` check run by default since late October 2026, with no commit
+status, and `coderabbit-gate.yml` re-grades `Review Verified` when that check
+run completes (its `check_run` trigger), as it does on a CodeRabbit status.
+The shared gate reads the newer of the two reports, counting only
+CodeRabbit's own (ivan-pinatti-labs/gh-actions#96).
+
 `coderabbit-gate.yml`'s hourly schedule (`41 * * * *`, offset from
 rsync-crypt's `47 * * * *` so this organization's hourly CodeRabbit jobs do
 not pile onto the same Actions minute) is a real
