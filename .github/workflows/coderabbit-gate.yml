@@ -73,6 +73,11 @@ on:
   # shared workflow asks the API which open pull requests point at the SHA and
   # exits cleanly with nothing to grade when there are none.
   status:
+  # CodeRabbit reports a review as a check run, with no status, since late
+  # October 2026, so a finished review re-grades from here rather than at the
+  # next event or sweep. The shared gate reads it with no extra permission.
+  check_run:
+    types: [completed]
   schedule:
     # :41, staggered against the organization's other hourly sweeps so they do
     # not all contend for the same Actions minute.
