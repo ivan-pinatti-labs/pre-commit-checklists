@@ -212,8 +212,9 @@ docker-torrent-box-with-vpn ahead of that repository's own #114): a green
 `CodeRabbit` check does not mean a review happened, because CodeRabbit posts
 through the legacy commit status API, which has no state for "green, but not
 for the reason you think." The shared review verdict, published
-as `Review Verified` by `coderabbit-gate.yml`, reads the actual description
-behind the `CodeRabbit` status rather than its color, and grades in three
+as `Review Verified` by `coderabbit-gate.yml`, reads the actual words behind
+CodeRabbit's newer report, its status description or its check run's
+result, rather than its color, and grades in three
 lanes: a draft is `pending`; a dependency bot pull request is graded on
 `Pin Only` first (a clean verdict is `success` with no review at all, a diff
 that fails it falls through to lane three); everything else is `success`
