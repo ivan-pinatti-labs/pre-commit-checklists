@@ -212,8 +212,9 @@ docker-torrent-box-with-vpn ahead of that repository's own #114): a green
 `CodeRabbit` check does not mean a review happened, because CodeRabbit posts
 through the legacy commit status API, which has no state for "green, but not
 for the reason you think." The shared review verdict, published
-as `Review Verified` by `coderabbit-gate.yml`, reads the actual description
-behind the `CodeRabbit` status rather than its color, and grades in three
+as `Review Verified` by `coderabbit-gate.yml`, reads the actual words behind
+CodeRabbit's newer report, its status description or its check run's
+result, rather than its color, and grades in three
 lanes: a draft is `pending`; a dependency bot pull request is graded on
 `Pin Only` first (a clean verdict is `success` with no review at all, a diff
 that fails it falls through to lane three); everything else is `success`
@@ -224,7 +225,23 @@ rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
 
+That was the legacy commit status. Since late October 2026 (measured in
+ivan-pinatti-labs/gh-actions#96) CodeRabbit
+reports by default as a `CodeRabbit` check run instead, with no status, and a
+rate limited review there concludes `neutral`, which branch protection passes
+just the same, so the problem is unchanged. The shared verdict reads the
+words of whichever report is newer: a status's description, or a check run's
+result line, which counts as `Review completed` only on a run that concluded
+`success`. No report yet is `pending`, not `failure`.
+
 ## Recovering a stuck `Review Verified`
+
+A finished review normally needs no recovery. CodeRabbit reports a review as
+a `CodeRabbit` check run by default since late October 2026, with no commit
+status, and `coderabbit-gate.yml` re-grades `Review Verified` when that check
+run completes (its `check_run` trigger), as it does on a CodeRabbit status.
+The shared gate reads the newer of the two reports, counting only
+CodeRabbit's own (ivan-pinatti-labs/gh-actions#96).
 
 `coderabbit-gate.yml`'s hourly schedule (`41 * * * *`, offset from
 rsync-crypt's `47 * * * *` so this organization's hourly CodeRabbit jobs do
