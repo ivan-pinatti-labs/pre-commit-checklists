@@ -224,6 +224,14 @@ rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
 
+That was the legacy commit status. Since late October 2026 CodeRabbit
+reports by default as a `CodeRabbit` check run instead, with no status, and a
+rate limited review there concludes `neutral`, which branch protection passes
+just the same, so the problem is unchanged. The shared verdict reads the
+words of whichever report is newer: a status's description, or a check run's
+result line, which counts as `Review completed` only on a run that concluded
+`success`. No report yet is `pending`, not `failure`.
+
 ## Recovering a stuck `Review Verified`
 
 A finished review normally needs no recovery. CodeRabbit reports a review as
