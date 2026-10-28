@@ -224,7 +224,8 @@ rsync-crypt's `AGENTS.md`, "Knowing whether CodeRabbit has actually reviewed
 a branch," for how to tell a genuine review from a status that merely looks
 like one.
 
-That was the legacy commit status. Since late October 2026 CodeRabbit
+That was the legacy commit status. Since late October 2026 (measured in
+ivan-pinatti-labs/gh-actions#96) CodeRabbit
 reports by default as a `CodeRabbit` check run instead, with no status, and a
 rate limited review there concludes `neutral`, which branch protection passes
 just the same, so the problem is unchanged. The shared verdict reads the
