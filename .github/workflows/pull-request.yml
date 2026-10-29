@@ -216,22 +216,41 @@ jobs:
         with:
           terraform_wrapper: false
 
+      # The tflint and OpenTofu versions are declared once, on the annotated
+      # ARG lines of .devcontainer/l2/Dockerfile, which Renovate bumps; CI
+      # reads them from there so it runs exactly what the L2 image runs.
+      # Both setup actions install `latest` when given no version, so pinning
+      # their SHAs would pin the installer and not the CLI it fetches.
+      # Terraform is left at the action's default on purpose: the L2 image
+      # installs it unpinned from HashiCorp's signed apt repository.
+      - name: Read the tool versions the L2 image pins
+        id: l2-versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          dockerfile=.devcontainer/l2/Dockerfile
+          tofu=$(sed -n 's/^ARG TOFU_VERSION=\([0-9][0-9.]*\)$/\1/p' "$dockerfile")
+          tflint=$(sed -n 's/^ARG TFLINT_VERSION=\([0-9][0-9.]*\)$/\1/p' "$dockerfile")
+          if [ -z "$tofu" ] || [ -z "$tflint" ]; then
+            echo "::error file=$dockerfile::TOFU_VERSION or TFLINT_VERSION not found"
+            exit 1
+          fi
+          echo "tofu=$tofu" >> "$GITHUB_OUTPUT"
+          echo "tflint=$tflint" >> "$GITHUB_OUTPUT"
+
       - name: Set up tflint
         uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v${{ steps.l2-versions.outputs.tflint }}
 
       # checklist-dev-tofu runs the `tofu` binary, the same way
       # checklist-dev-terraform runs `terraform`. Both checklists ship, so
       # both binaries have to be here; see checklists/checklist-dev-tofu.yaml
       # for why a consumer adopts one and not both.
-      # tofu_version is explicit because the action installs `latest` without
-      # it, so pinning the action SHA would pin the installer and not the CLI
-      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/l2/Dockerfile so
-      # CI and the L2 image run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
-          # renovate: datasource=github-releases depName=opentofu/opentofu
-          tofu_version: 1.12.6
+          tofu_version: ${{ steps.l2-versions.outputs.tofu }}
           tofu_wrapper: false
 
       # Wheels only, so no package's build script runs at install time.
@@ -390,22 +409,41 @@ jobs:
         with:
           terraform_wrapper: false
 
+      # The tflint and OpenTofu versions are declared once, on the annotated
+      # ARG lines of .devcontainer/l2/Dockerfile, which Renovate bumps; CI
+      # reads them from there so it runs exactly what the L2 image runs.
+      # Both setup actions install `latest` when given no version, so pinning
+      # their SHAs would pin the installer and not the CLI it fetches.
+      # Terraform is left at the action's default on purpose: the L2 image
+      # installs it unpinned from HashiCorp's signed apt repository.
+      - name: Read the tool versions the L2 image pins
+        id: l2-versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          dockerfile=.devcontainer/l2/Dockerfile
+          tofu=$(sed -n 's/^ARG TOFU_VERSION=\([0-9][0-9.]*\)$/\1/p' "$dockerfile")
+          tflint=$(sed -n 's/^ARG TFLINT_VERSION=\([0-9][0-9.]*\)$/\1/p' "$dockerfile")
+          if [ -z "$tofu" ] || [ -z "$tflint" ]; then
+            echo "::error file=$dockerfile::TOFU_VERSION or TFLINT_VERSION not found"
+            exit 1
+          fi
+          echo "tofu=$tofu" >> "$GITHUB_OUTPUT"
+          echo "tflint=$tflint" >> "$GITHUB_OUTPUT"
+
       - name: Set up tflint
         uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v${{ steps.l2-versions.outputs.tflint }}
 
       # checklist-dev-tofu runs the `tofu` binary, the same way
       # checklist-dev-terraform runs `terraform`. Both checklists ship, so
       # both binaries have to be here; see checklists/checklist-dev-tofu.yaml
       # for why a consumer adopts one and not both.
-      # tofu_version is explicit because the action installs `latest` without
-      # it, so pinning the action SHA would pin the installer and not the CLI
-      # it fetches. Kept equal to TOFU_VERSION in .devcontainer/l2/Dockerfile so
-      # CI and the L2 image run the same OpenTofu.
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
-          # renovate: datasource=github-releases depName=opentofu/opentofu
-          tofu_version: 1.12.6
+          tofu_version: ${{ steps.l2-versions.outputs.tofu }}
           tofu_wrapper: false
 
       # Docker, Node/npm and shellcheck ship on the ubuntu-24.04 runner
