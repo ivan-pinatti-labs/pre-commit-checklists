@@ -126,7 +126,7 @@ RUN set -eu; \
 #
 # HOME=/root for the same reason as the OpenTofu step above.
 # renovate: datasource=github-releases depName=terraform-linters/tflint
-ARG TFLINT_VERSION=0.64.0
+ARG TFLINT_VERSION=0.65.0
 # hadolint ignore=DL4006
 RUN set -eu; \
   export HOME=/root; \
