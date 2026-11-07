@@ -3,7 +3,7 @@
 # what the terraform and tofu checklists call by name to the shared L2 image.
 #
 # Build context is the repository root, for the vendored OpenTofu key.
-ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:8777d028824d454d4c3e683180d2ede8fe0c96e8b499d1a1987e3af119af8d53
+ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:6ff4d58031e9626838d375513e19c7251ea63b7d59170f7f9feedfec356842f2
 # hadolint ignore=DL3006
 FROM ${L2_IMAGE}
 USER 0:0
