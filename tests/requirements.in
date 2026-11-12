@@ -14,7 +14,7 @@
 #
 # pytest runs the tests of tools/kcov_to_sonar.py, and coverage measures
 # them for SonarQube Cloud.
-coverage==7.17.1
+coverage==7.17.2
 pytest==9.2.0
 # The self-test suite: pre-commit runs every phase that installs hooks,
 # pyyaml reads the hook definitions in the selectors phase, and
