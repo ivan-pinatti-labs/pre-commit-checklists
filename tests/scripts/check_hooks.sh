@@ -359,20 +359,21 @@ restore_c_headers_marker() {
 # out in the subshell: what is under test here is the cleanup, not cppcheck.
 test_cpp_c_headers_interrupted() {
   section "checklist-dev-cpp: .cppcheck-c-headers survives an interrupted test"
-  # This test writes and removes the root marker itself, so keep a real one.
-  __had_marker=0
-  if [[ -e .cppcheck-c-headers ]]; then
-    __had_marker=1
-    __saved_marker=$(cat .cppcheck-c-headers)
-  fi
+  # Runs in a scratch directory standing in for the repository root, never
+  # in the real one, so interrupting the suite itself cannot touch a real
+  # marker. run_hook is stubbed, so nothing here needs the checklists.
+  __sandbox=$(mktemp -d /tmp/pcc-c-headers.XXXXXX)
   for __orig in yes no; do
     for __at in before-move hook-1 hook-2; do
       # With no marker there is nothing to move, so no before-move window.
       if [[ "${__orig}" = no ]] && [[ "${__at}" = before-move ]]; then continue; fi
-      rm -f .cppcheck-c-headers
-      if [[ "${__orig}" = yes ]]; then echo "developer marker" >.cppcheck-c-headers; fi
+      rm -rf "${__sandbox:?}/root"
+      mkdir -p "${__sandbox}/root/tests"
+      if [[ "${__orig}" = yes ]]; then echo "developer marker" >"${__sandbox}/root/.cppcheck-c-headers"; fi
       set +o errexit
       (
+        cd "${__sandbox}/root" || exit 1
+        REPO_ROOT="${__sandbox}/root"
         __calls=0
         run_hook() {
           __calls=$((__calls + 1))
@@ -396,22 +397,20 @@ test_cpp_c_headers_interrupted() {
       __status=$?
       set -o errexit
       __name="c-headers/interrupted (marker before: ${__orig}, at: ${__at})"
-      __left=$(find tests -maxdepth 1 -name '.cpp-c-headers.*' | head -n 1)
+      __left=$(find "${__sandbox}/root/tests" -maxdepth 1 -name '.cpp-c-headers.*' | head -n 1)
       if [[ "${__orig}" = yes ]]; then
-        __marker_ok=$([[ "$(cat .cppcheck-c-headers 2>/dev/null)" = "developer marker" ]] && echo 1 || echo 0)
+        __marker_ok=$([[ "$(cat "${__sandbox}/root/.cppcheck-c-headers" 2>/dev/null)" = "developer marker" ]] && echo 1 || echo 0)
       else
-        __marker_ok=$([[ ! -e .cppcheck-c-headers ]] && echo 1 || echo 0)
+        __marker_ok=$([[ ! -e "${__sandbox}/root/.cppcheck-c-headers" ]] && echo 1 || echo 0)
       fi
       if [[ "${__status}" -eq 143 ]] && [[ "${__marker_ok}" = 1 ]] && [[ -z "${__left}" ]]; then
         pass "${__name}: stopped with 143, marker as before, nothing left behind"
       else
         fail "${__name}: status ${__status}, marker ok ${__marker_ok}, leftover '${__left}'"
       fi
-      rm -rf tests/.cpp-c-headers.*
     done
   done
-  rm -f .cppcheck-c-headers
-  if [[ "${__had_marker}" = 1 ]]; then printf '%s\n' "${__saved_marker}" >.cppcheck-c-headers; fi
+  rm -rf "${__sandbox}"
 }
 
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
