@@ -4,7 +4,7 @@
 # image.
 #
 # Build context is the repository root, for the vendored OpenTofu key.
-ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:50a191999992c0ae67d80edcf36fd6abf1cd510255a27b0dd5f942e6d73545ee
+ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:3c5556b7da436184d165f12942b961ff5797204b240bce6b0fc3a1764a98f9aa
 # hadolint ignore=DL3006
 FROM ${L2_IMAGE}
 USER 0:0
