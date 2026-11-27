@@ -541,9 +541,12 @@ cppcheck, which does not parse it; clang-format still formats it.
 The cost falls on C only repositories, whose `.h` headers are now parsed as
 C++. cppcheck is lenient about that (C that uses `new` as a variable name
 parses), but C that is not valid C++ fails there: a header declaring
-`struct namespace { int x; };` reports `syntaxError` (cppcheck 2.19.1). Code in
-a header behind `#ifndef __cplusplus` is also never analyzed, since cppcheck
-sees it as C++. There is no per repository switch to check `.h` as C; a C only
+`struct namespace { int x; };` reports `syntaxError` (cppcheck 2.19.1). When
+the header itself is the file checked, code behind `#ifndef __cplusplus` is
+skipped, since cppcheck sees it as C++; it is analyzed only when a `.c` file
+that includes the header is checked too, which `cppcheck-c` does as C. A commit
+that changes only the header therefore leaves that code unchecked. There is no
+per repository switch to check `.h` as C; a C only
 repository is better served by its own cppcheck hook than by this id.
 `tests/fixtures/checklist-dev-cpp/should-pass/greeter.h` is a C++ class in a
 `.h`, so dropping `--language=c++` fails the test suite.
