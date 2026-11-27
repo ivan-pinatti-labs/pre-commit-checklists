@@ -1,6 +1,6 @@
 # Hook catalogue
 
-<!-- cspell:words zizmor zizmorcore artipacked exitcode suppr textproto -->
+<!-- cspell:words zizmor zizmorcore artipacked exitcode suppr textproto ifndef cplusplus -->
 
 Source data for every hook id exposed in
 [`.pre-commit-hooks.yaml`](../.pre-commit-hooks.yaml). Each id dispatches
@@ -540,7 +540,11 @@ cppcheck, which does not parse it; clang-format still formats it.
 
 The cost falls on C only repositories, whose `.h` headers are now parsed as
 C++. cppcheck is lenient about that (C that uses `new` as a variable name
-parses), but C syntax C++ rejects may still produce a `syntaxError` there.
+parses), but C that is not valid C++ fails there: a header declaring
+`struct namespace { int x; };` reports `syntaxError` (cppcheck 2.19.1). Code in
+a header behind `#ifndef __cplusplus` is also never analyzed, since cppcheck
+sees it as C++. There is no per repository switch to check `.h` as C; a C only
+repository is better served by its own cppcheck hook than by this id.
 `tests/fixtures/checklist-dev-cpp/should-pass/greeter.h` is a C++ class in a
 `.h`, so dropping `--language=c++` fails the test suite.
 
