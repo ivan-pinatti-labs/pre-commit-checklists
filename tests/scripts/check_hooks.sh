@@ -339,8 +339,11 @@ test_cpp_c_headers() {
 restore_c_headers_marker() {
   [[ -n "${__c_headers_dir:-}" ]] || return 0
   if [[ -e "${__c_headers_dir}/marker.orig" ]]; then
+    # Cleared before the move: a signal landing right after it re-enters
+    # this function, which must then see no marker of its own to delete.
+    __c_headers_ours=0
     rm -f "${REPO_ROOT}/.cppcheck-c-headers"
-    command mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"
+    mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"
   elif [[ "${__c_headers_ours:-0}" = 1 ]]; then
     rm -f "${REPO_ROOT}/.cppcheck-c-headers"
   fi
@@ -349,11 +352,11 @@ restore_c_headers_marker() {
   __c_headers_ours=0
 }
 
-# Interrupts test_cpp_c_headers with SIGTERM at three points, in a subshell,
+# Interrupts test_cpp_c_headers with SIGTERM at four points, in a subshell,
 # with and without a marker of the developer's own already at the root:
 # before the marker is moved aside (by wrapping mv; only when there is one
-# to move), after it is, and after
-# the test has written its own. Every time, the original has to be back (or
+# to move), after it is, after the test has written its own, and just after
+# the restore moves the original back. Every time, the original has to be back (or
 # no marker left if there was none), no temporary directory left behind, and
 # the subshell has to stop with 143 rather than carry on. run_hook is stubbed
 # out in the subshell: what is under test here is the cleanup, not cppcheck.
@@ -364,9 +367,9 @@ test_cpp_c_headers_interrupted() {
   # marker. run_hook is stubbed, so nothing here needs the checklists.
   __sandbox=$(mktemp -d /tmp/pcc-c-headers.XXXXXX)
   for __orig in yes no; do
-    for __at in before-move hook-1 hook-2; do
-      # With no marker there is nothing to move, so no before-move window.
-      if [[ "${__orig}" = no ]] && [[ "${__at}" = before-move ]]; then continue; fi
+    for __at in before-move hook-1 hook-2 after-restore-move; do
+      # With no marker there is nothing to move aside or back.
+      if [[ "${__orig}" = no ]] && [[ "${__at}" = before-move || "${__at}" = after-restore-move ]]; then continue; fi
       rm -rf "${__sandbox:?}/root"
       mkdir -p "${__sandbox}/root/tests"
       if [[ "${__orig}" = yes ]]; then echo "developer marker" >"${__sandbox}/root/.cppcheck-c-headers"; fi
@@ -381,16 +384,16 @@ test_cpp_c_headers_interrupted() {
           if [[ "${__at}" = "hook-${__calls}" ]]; then kill -TERM "${BASHPID}"; fi
           return 0
         }
-        if [[ "${__at}" = before-move ]]; then
-          __killed=0
-          mv() {
-            if [[ "${__killed}" = 0 ]]; then
-              __killed=1
-              kill -TERM "${BASHPID}"
-            fi
-            command mv "$@"
-          }
-        fi
+        # mv is wrapped to signal before the move aside (the first mv) or
+        # just after the move back during the restore (the second), which
+        # is when bash would run a trap for a signal that arrived mid-move.
+        __mvs=0
+        mv() {
+          __mvs=$((__mvs + 1))
+          if [[ "${__at}" = before-move && "${__mvs}" = 1 ]]; then kill -TERM "${BASHPID}"; fi
+          command mv "$@"
+          if [[ "${__at}" = after-restore-move && "${__mvs}" = 2 ]]; then kill -TERM "${BASHPID}"; fi
+        }
         test_cpp_c_headers
         exit 0
       ) >/dev/null 2>&1
