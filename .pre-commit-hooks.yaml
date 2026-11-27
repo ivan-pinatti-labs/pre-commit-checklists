@@ -193,3 +193,12 @@
     - checklist-dev-make
   require_serial: true
   verbose: true
+
+- id: checklist-dev-cpp
+  name: Development - C and C++ Checklist
+  language: script
+  entry: ./scripts/run-checklist.sh
+  args:
+    - checklist-dev-cpp
+  require_serial: true
+  verbose: true

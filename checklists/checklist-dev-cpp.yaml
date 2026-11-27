@@ -1,0 +1,97 @@
+---
+# cspell:words exitcode suppr textproto
+# C and C++: clang-format formats, cppcheck finds bugs. Both C and C++ are
+# covered; the id is named for C++ because that is where the traps below
+# live. See docs/hook-catalogue.md ("C and C++") before adopting.
+#
+# clang-format comes from pre-commit/mirrors-clang-format, which installs
+# the clang-format wheel from PyPI into its own environment, so the
+# consumer needs nothing on PATH. Its own manifest selects C#, CUDA, Java,
+# JavaScript, JSON, Metal, Objective-C, proto and textproto as well as C
+# and C++, so without the types_or: below it would reformat the JSON that
+# checklist-json formats with Prettier and the JavaScript that
+# checklist-dev-javascript formats with Biome, and the two would rewrite
+# each other's output on every run. It reads the nearest .clang-format
+# above each file; with none, it formats to LLVM style.
+#
+# cppcheck has no pre-commit manifest of its own, and the one prebuilt
+# package of it on PyPI is a single maintainer repackaging with no
+# provenance attestation. So this is a repo: local, language: system hook
+# that runs the cppcheck your operating system's package manager installed
+# (dnf install cppcheck, apt-get install cppcheck, brew install cppcheck).
+# Its version is therefore the consumer's, not pinned here, the same as
+# terraform in checklist-dev-terraform.
+#
+# Two cppcheck hooks rather than one, because cppcheck decides the language
+# from the extension and parses every .h as C. A C++ header named .h (most
+# C++ code) then fails with syntaxError on its first namespace or class,
+# which is a false finding, not a style opinion. The C++ hook forces
+# --language=c++ on everything identify tags c++, and identify tags .h as
+# both c and c++, so .h goes there. The C hook takes what is left, which is
+# .c. Objective-C++ (.mm, also tagged c++) is excluded, because cppcheck
+# does not parse it. tests/fixtures/checklist-dev-cpp/should-pass/ holds a
+# C++ class in a .h, so dropping --language=c++ fails the suite.
+#
+# --error-exitcode=1 is what makes a finding fail the hook: cppcheck exits
+# 0 on findings by default. --enable adds the warning, performance and
+# portability checks to the error checks it always runs. style is left off
+# as too noisy for a commit gate, and unusedFunction cannot work here at
+# all, since pre-commit hands cppcheck a few files at a time rather than
+# the whole program.
+#
+# --check-level=exhaustive, passed only to a cppcheck that has the flag
+# (2.11 and later). At the default level cppcheck stops following branches
+# in a long function, and 2.17.1 says so with a normalCheckLevelMaxBranches
+# note that alone sets --error-exitcode, so the hook would fail on most
+# real files for having analyzed them less. Measured on a 63 file C++
+# codebase: 1.0 s normal, 1.6 s exhaustive, the same findings, and 14 notes
+# gone. 2.19.0 and 2.19.1 no longer print the note by default, so no
+# fixture can guard this in the test suite, whose image carries 2.19.
+# Releases before 2.11 never print it and reject the flag, hence the check.
+#
+# args: on checklist-dev-cpp cannot reach cppcheck (see docs/overrides.md),
+# so the escape hatches are files. A finding is suppressed on its line with
+# a `// cppcheck-suppress <id>` comment above it (--inline-suppr), and
+# repository wide through .cppcheck-suppressions at the repo root, one
+# `<id>[:<path glob>]` per line, passed as --suppressions-list when the file
+# exists. Vendored code is better left out with exclude: on the
+# checklist-dev-cpp id itself.
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v23.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c, c++]
+
+  - repo: local
+    hooks:
+      - id: cppcheck-cpp
+        name: cppcheck (C++, headers included)
+        language: system
+        types: [c++]
+        exclude_types: [objective-c++]
+        args: [--language=c++]
+        entry: &cppcheck >-
+          bash -c '
+          command -v cppcheck >/dev/null || {
+          echo "cppcheck is not on PATH. Install it with your package manager,
+          see docs/hook-catalogue.md (C and C++)." >&2;
+          exit 1;
+          };
+          if [ -f .cppcheck-suppressions ]; then
+          set -- --suppressions-list=.cppcheck-suppressions "$@";
+          fi;
+          if cppcheck --help 2>/dev/null | grep -q -- --check-level; then
+          set -- --check-level=exhaustive "$@";
+          fi;
+          exec cppcheck --quiet --error-exitcode=1 --inline-suppr
+          --enable=warning,performance,portability "$@"
+          ' --
+
+      - id: cppcheck-c
+        name: cppcheck (C)
+        language: system
+        types: [c]
+        exclude_types: [c++]
+        args: [--language=c]
+        entry: *cppcheck

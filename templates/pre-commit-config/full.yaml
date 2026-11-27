@@ -1,5 +1,5 @@
 ---
-# Full starter: every hook id this library ships, including all seven
+# Full starter: every hook id this library ships, including the
 # language checklists. Delete the language sections you don't need, or
 # start from one of the per-language starters in this directory instead.
 #
@@ -109,4 +109,11 @@ repos:
       # copies one in. See docs/hook-catalogue.md for the .PHONY
       # continuation constraint before you turn this on.
       - id: checklist-dev-make
+        stages: [pre-commit]
+      # clang-format and cppcheck. cppcheck has to be on PATH, from your
+      # package manager. Add a .clang-format first in an existing codebase,
+      # or the first commit to touch each file reformats it to LLVM style.
+      # See docs/hook-catalogue.md ("C and C++") before you turn this on.
+      - id: checklist-dev-cpp
+        types_or: [c, c++]
         stages: [pre-commit]

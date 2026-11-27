@@ -30,7 +30,8 @@ you undoing one or the other.
   here).
 - `git`, obviously, and for the per-language checklists, whatever
   toolchain that language needs (Node for JavaScript/TypeScript,
-  Terraform for the Terraform checklist, and so on). See
+  Terraform for the Terraform checklist, cppcheck for the C and C++
+  checklist, and so on). See
   [`docs/hook-catalogue.md`](hook-catalogue.md) for exactly what each
   hook shells out to.
 

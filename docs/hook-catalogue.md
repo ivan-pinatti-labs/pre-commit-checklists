@@ -1,6 +1,6 @@
 # Hook catalogue
 
-<!-- cspell:words zizmor zizmorcore artipacked -->
+<!-- cspell:words zizmor zizmorcore artipacked exitcode suppr textproto -->
 
 Source data for every hook id exposed in
 [`.pre-commit-hooks.yaml`](../.pre-commit-hooks.yaml). Each id dispatches
@@ -43,6 +43,7 @@ build your own selection from scratch.
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
 | `checklist-dev-make` | checkmake | `types: [makefile]`, baked into checkmake's own hook manifest: `Makefile`, `makefile`, `GNUmakefile`, `*.mk`, `*.make` | `checkmake.ini` at repo root, `scripts/install.sh` copies one in; see [Makefile linting](#makefile-linting) before adopting |
+| `checklist-dev-cpp` | clang-format (narrowed to C and C++), cppcheck (`--enable=warning,performance,portability`, every `.h` checked as C++) | `types_or: [c, c++]` | cppcheck on PATH, from your package manager; optional `.clang-format` and `.cppcheck-suppressions` at repo root; see [C and C++](#c-and-c) before adopting |
 
 ## JSON5
 
@@ -501,6 +502,112 @@ strict config and none under the scoped one. This only helps consumers going
 through pre-commit; anyone running `checkmake` from a Makefile target or CI
 step directly gets nothing from it, and one logical configuration now lives
 in two files that have to be kept in step.
+
+## C and C++
+
+`checklist-dev-cpp` runs [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
+to format and [cppcheck](https://cppcheck.sourceforge.io/) to find bugs. It
+covers C as well as C++.
+
+### What you need installed
+
+clang-format needs nothing: `pre-commit/mirrors-clang-format` installs the
+clang-format wheel from PyPI into its own hook environment, pinned in
+[`checklists/checklist-dev-cpp.yaml`](../checklists/checklist-dev-cpp.yaml).
+
+cppcheck has to be on PATH, installed by your package manager
+(`dnf install cppcheck`, `apt-get install cppcheck`, `brew install cppcheck`).
+It has no pre-commit manifest of its own, and the one prebuilt package of it
+on PyPI is a single maintainer repackaging with no provenance attestation, so
+this library runs the distribution's signed build rather than ship that. The
+cost is the same as for terraform in `checklist-dev-terraform`: the version is
+yours, not pinned here, and two machines with different cppcheck releases can
+disagree about a finding. Without cppcheck the hook fails with a message
+saying so, rather than passing without having looked.
+
+### Every `.h` is checked as C++
+
+cppcheck picks the language from the extension and parses `.h` as C. A C++
+header named `.h`, which is most C++ code, then fails on its first `namespace`
+or `class` with `syntaxError: Code 'namespace demo {' is invalid C code`. That
+is a false finding, and on a real codebase it is most of the findings.
+
+So cppcheck runs as two hooks. `cppcheck-cpp` takes every file `identify`
+tags `c++`, which includes `.h` (tagged both `c` and `c++`), and passes
+`--language=c++`. `cppcheck-c` takes what is left, which is `.c`, with
+`--language=c`. Objective-C++ (`.mm`, also tagged `c++`) is excluded from
+cppcheck, which does not parse it; clang-format still formats it.
+
+The cost falls on C only repositories, whose `.h` headers are now parsed as
+C++. cppcheck is lenient about that (C that uses `new` as a variable name
+parses), but C syntax C++ rejects may still produce a `syntaxError` there.
+`tests/fixtures/checklist-dev-cpp/should-pass/greeter.h` is a C++ class in a
+`.h`, so dropping `--language=c++` fails the test suite.
+
+### What cppcheck reports
+
+`--error-exitcode=1` is what makes a finding fail the hook; cppcheck exits 0
+on findings by default. On top of the error checks it always runs,
+`--enable=warning,performance,portability` adds those three groups. `style`
+is left off as too noisy for a commit gate. `unusedFunction` cannot work
+under pre-commit at all, which hands cppcheck a few files at a time rather
+than the whole program.
+
+`--check-level=exhaustive` is passed whenever the installed cppcheck has the
+flag (2.11 and later). At the default level cppcheck stops following branches
+in a long function, and cppcheck 2.17.1 says so with a
+`normalCheckLevelMaxBranches` note that alone sets `--error-exitcode`, so the
+hook would fail on most real files for having analyzed them less. On a 63
+file C++ codebase the default level took 1.0 s and printed 14 such notes;
+exhaustive took 1.6 s with the same findings and none. Releases before 2.11
+never print the note and reject the flag, so the hook checks
+`cppcheck --help` first.
+
+2.19.0 and 2.19.1 no longer print the note by default, on that codebase or on
+any synthetic file tried, so nothing in the test suite guards this flag: the
+suite runs in this repository's L2 image, which carries 2.19. It was verified
+by hand on 2.17.1 (Debian 13) and 2.10 (Debian 12), and the flag stays for
+the 2.11 to 2.18 releases that distributions still ship.
+
+cppcheck sees only the files it is given and whatever they include by a
+relative path it can resolve. There are no include paths, no `-D` defines and
+no compile commands. Most of the time that only makes it quieter, but a macro
+it cannot see that changes the shape of the code (a framework's
+`BEGIN_NAMESPACE` or `DECLARE_PLUGIN` style macro) is reported as
+`unknownMacro`, an **error**, which fails the hook. It is the false positive
+a framework based codebase meets first, and it means cppcheck could not
+analyze that file at all, so suppressing it by path (below) is honest only
+for code you accept going unchecked. For whole program analysis, and for
+clang-tidy, which needs `compile_commands.json`, use a build target or a CI
+job, not a commit hook.
+
+### Escape hatches
+
+`args:` on `checklist-dev-cpp` cannot reach either tool (see
+[`docs/overrides.md`](overrides.md)), so every adjustment is a file:
+
+- **Formatting style:** `.clang-format`, the nearest one above each file.
+  With none, clang-format formats to LLVM style, so add one before turning
+  this id on in an existing codebase, or the first commit to touch each file
+  reformats all of it.
+- **One finding:** a `// cppcheck-suppress <id>` comment on the line above it
+  (the hook passes `--inline-suppr`).
+- **A finding across the repository:** `.cppcheck-suppressions` at the repo
+  root, one `<id>` or `<id>:<path glob>` per line, for example
+  `unknownMacro:src/plugin/*`. The hook passes it as `--suppressions-list`
+  when the file exists and ignores it otherwise. An entry that matches
+  nothing in a given run is not an error.
+- **Vendored or generated code:** `exclude:` on the `checklist-dev-cpp` id in
+  your own `.pre-commit-config.yaml`, which keeps those files away from both
+  tools.
+
+### Why clang-format is narrowed
+
+The mirror's own manifest selects C#, CUDA, Java, JavaScript, JSON, Metal,
+Objective-C, proto and textproto as well as C and C++. Left that way it would
+reformat the JSON `checklist-json` formats with Prettier and the JavaScript
+`checklist-dev-javascript` formats with Biome, and each would rewrite the
+other's output on every run. The checklist sets `types_or: [c, c++]` on it.
 
 ## Zizmor: offline by default
 
