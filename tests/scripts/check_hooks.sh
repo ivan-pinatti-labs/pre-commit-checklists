@@ -273,6 +273,51 @@ STUB
   rm -rf "${__stub}"
 }
 
+# checklist-dev-cpp checks every .h as C++ unless .cppcheck-c-headers exists
+# at the repo root, which routes them to the C hook instead. Real cppcheck,
+# three cases: a header that is valid C but not C++ fails without the marker
+# and passes with it (with the C hook actually running), and with the marker
+# a real bug in a C header is still reported. The headers are written at run
+# time, outside tests/fixtures/, because the C only one has to fail the
+# default configuration that the dogfood config runs on committed files.
+test_cpp_c_headers() {
+  section "checklist-dev-cpp: .cppcheck-c-headers checks .h as C"
+  __dir=$(mktemp -d "${REPO_ROOT}/tests/.cpp-c-headers.XXXXXX")
+  printf 'struct namespace {\n  int x;\n};\n' >"${__dir}/c_only.h"
+  printf 'static int last(void) {\n  int v[4] = {1, 2, 3, 4};\n  return v[4];\n}\n' >"${__dir}/c_bug.h"
+  __cfg="checklists/checklist-dev-cpp.yaml"
+
+  rm -f .cppcheck-c-headers
+  run_hook "${PC}" "${__cfg}" cppcheck-cpp "${__dir}/c_only.h"
+  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q syntaxError; then
+    pass "c-headers/no marker: a C only .h fails as C++ (syntaxError), the documented default"
+  else
+    fail "c-headers/no marker: expected syntaxError from cppcheck-cpp (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  : >.cppcheck-c-headers
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_only.h"
+  if [[ "${HOOK_EXIT}" -eq 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Passed$'; then
+    pass "c-headers/marker: the C only .h passes, checked by cppcheck-c"
+  else
+    fail "c-headers/marker: expected exit 0 with cppcheck (C) Passed (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_bug.h"
+  # The C++ hook would report this bug too, so the C hook has to be the one
+  # that failed and the C++ hook the one that dropped the file and passed.
+  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q arrayIndexOutOfBounds &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Failed$' &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\+\+\)\.+Passed$'; then
+    pass "c-headers/marker: a bug in a C .h is reported by cppcheck-c, not cppcheck-cpp"
+  else
+    fail "c-headers/marker: expected arrayIndexOutOfBounds from cppcheck-c only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  rm -f .cppcheck-c-headers
+  rm -rf "${__dir}"
+}
+
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
   test_checklist "${id}"
 done
@@ -284,6 +329,8 @@ test_github_actions_dogfood_wiring
 test_python_security_floor
 
 test_cpp_check_level
+
+test_cpp_c_headers
 
 test_protected_branches
 

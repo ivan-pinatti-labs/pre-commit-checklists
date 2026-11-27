@@ -43,7 +43,7 @@ build your own selection from scratch.
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
 | `checklist-dev-make` | checkmake | `types: [makefile]`, baked into checkmake's own hook manifest: `Makefile`, `makefile`, `GNUmakefile`, `*.mk`, `*.make` | `checkmake.ini` at repo root, `scripts/install.sh` copies one in; see [Makefile linting](#makefile-linting) before adopting |
-| `checklist-dev-cpp` | clang-format (narrowed to C and C++), cppcheck (`--enable=warning,performance,portability`, every `.h` checked as C++) | `types_or: [c, c++]` | cppcheck on PATH, from your package manager; optional `.clang-format` and `.cppcheck-suppressions` at repo root; see [C and C++](#c-and-c) before adopting |
+| `checklist-dev-cpp` | clang-format (narrowed to C and C++), cppcheck (`--enable=warning,performance,portability`, every `.h` checked as C++ unless `.cppcheck-c-headers` exists) | `types_or: [c, c++]` | cppcheck on PATH, from your package manager; optional `.clang-format`, `.cppcheck-suppressions` and `.cppcheck-c-headers` at repo root; see [C and C++](#c-and-c) before adopting |
 
 ## JSON5
 
@@ -525,7 +525,7 @@ yours, not pinned here, and two machines with different cppcheck releases can
 disagree about a finding. Without cppcheck the hook fails with a message
 saying so, rather than passing without having looked.
 
-### Every `.h` is checked as C++
+### Every `.h` is checked as C++, unless you say otherwise
 
 cppcheck picks the language from the extension and parses `.h` as C. A C++
 header named `.h`, which is most C++ code, then fails on its first `namespace`
@@ -533,23 +533,23 @@ or `class` with `syntaxError: Code 'namespace demo {' is invalid C code`. That
 is a false finding, and on a real codebase it is most of the findings.
 
 So cppcheck runs as two hooks. `cppcheck-cpp` takes every file `identify`
-tags `c++`, which includes `.h` (tagged both `c` and `c++`), and passes
-`--language=c++`. `cppcheck-c` takes what is left, which is `.c`, with
-`--language=c`. Objective-C++ (`.mm`, also tagged `c++`) is excluded from
-cppcheck, which does not parse it; clang-format still formats it.
-
-The cost falls on C only repositories, whose `.h` headers are now parsed as
-C++. cppcheck is lenient about that (C that uses `new` as a variable name
-parses), but C that is not valid C++ fails there: a header declaring
-`struct namespace { int x; };` reports `syntaxError` (cppcheck 2.19.1). When
-the header itself is the file checked, code behind `#ifndef __cplusplus` is
-skipped, since cppcheck sees it as C++; it is analyzed only when a `.c` file
-that includes the header is checked too, which `cppcheck-c` does as C. A commit
-that changes only the header therefore leaves that code unchecked. There is no
-per repository switch to check `.h` as C; a C only
-repository is better served by its own cppcheck hook than by this id.
+tags `c++` and passes `--language=c++`; `cppcheck-c` takes every file tagged
+`c` and passes `--language=c`. `identify` tags `.h` as both, so both hooks are
+handed every `.h`, and the shared entry decides which one checks it: by
+default the C++ hook. Objective-C++ (`.mm`, also tagged `c++`) is excluded
+from cppcheck, which does not parse it; clang-format still formats it.
 `tests/fixtures/checklist-dev-cpp/should-pass/greeter.h` is a C++ class in a
 `.h`, so dropping `--language=c++` fails the test suite.
+
+**A C codebase** adds an empty `.cppcheck-c-headers` at the repo root. Every
+`.h` then goes to the C hook instead, with `--language=c`. Without it, C that
+is not valid C++ fails: a header declaring `struct namespace { int x; };`
+reports `syntaxError` (cppcheck 2.19.1), and when the header itself is the
+file checked, code behind `#ifndef __cplusplus` is skipped. The switch is per
+repository because a `.h` cannot say which language it is; a codebase that
+mixes C headers and C++ headers under `.h` has to pick one, and suppress
+(below) what the other produces. `tests/scripts/check_hooks.sh` checks a C
+only header both ways.
 
 ### What cppcheck reports
 
@@ -600,6 +600,8 @@ job, not a commit hook.
   With none, clang-format formats to LLVM style, so add one before turning
   this id on in an existing codebase, or the first commit to touch each file
   reformats all of it.
+- **Headers are C:** an empty `.cppcheck-c-headers` at the repo root checks
+  every `.h` as C instead of C++ (see above).
 - **One finding:** a `// cppcheck-suppress <id>` comment on the line above it
   (the hook passes `--inline-suppr`).
 - **A finding across the repository:** `.cppcheck-suppressions` at the repo

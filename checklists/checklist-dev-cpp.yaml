@@ -27,10 +27,15 @@
 # C++ code) then fails with syntaxError on its first namespace or class,
 # which is a false finding, not a style opinion. The C++ hook forces
 # --language=c++ on everything identify tags c++, and identify tags .h as
-# both c and c++, so .h goes there. The C hook takes what is left, which is
-# .c. Objective-C++ (.mm, also tagged c++) is excluded, because cppcheck
-# does not parse it. tests/fixtures/checklist-dev-cpp/should-pass/ holds a
-# C++ class in a .h, so dropping --language=c++ fails the suite.
+# both c and c++, so .h goes there. The C hook takes .c. Objective-C++
+# (.mm, also tagged c++) is excluded, because cppcheck does not parse it.
+# tests/fixtures/checklist-dev-cpp/should-pass/ holds a C++ class in a .h,
+# so dropping --language=c++ fails the suite.
+#
+# A C codebase whose headers are C flips that with an empty
+# .cppcheck-c-headers at the repo root: every .h then goes to the C hook
+# with --language=c instead. It is per repository because a .h cannot say
+# which language it is; tests/scripts/check_hooks.sh covers both ways.
 #
 # --error-exitcode=1 is what makes a finding fail the hook: cppcheck exits
 # 0 on findings by default. --enable adds the warning, performance and
@@ -68,8 +73,11 @@ repos:
 
   - repo: local
     hooks:
+      # Both hooks are handed every .h (identify tags it c and c++), and the
+      # shared entry keeps or drops each one: with no .cppcheck-c-headers at
+      # the repo root the C++ hook checks them, with it the C hook does.
       - id: cppcheck-cpp
-        name: cppcheck (C++, headers included)
+        name: cppcheck (C++)
         language: system
         types: [c++]
         exclude_types: [objective-c++]
@@ -81,6 +89,15 @@ repos:
           see docs/hook-catalogue.md (C and C++)." >&2;
           exit 1;
           };
+          lang=$1; shift;
+          if [ -f .cppcheck-c-headers ]; then h=--language=c; else h=--language=c++; fi;
+          files=();
+          for f in "$@"; do
+          case "$f" in *.h) [ "$lang" = "$h" ] || continue;; esac;
+          files+=("$f");
+          done;
+          [ "${#files[@]}" -gt 0 ] || exit 0;
+          set -- "$lang" "${files[@]}";
           if [ -f .cppcheck-suppressions ]; then
           set -- --suppressions-list=.cppcheck-suppressions "$@";
           fi;
@@ -95,6 +112,5 @@ repos:
         name: cppcheck (C)
         language: system
         types: [c]
-        exclude_types: [c++]
         args: [--language=c]
         entry: *cppcheck

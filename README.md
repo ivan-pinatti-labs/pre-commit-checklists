@@ -133,7 +133,7 @@ before writing your own.
 | `checklist-dev-typescript` | biome-check (`--indent-style=space --indent-width=2`) | `files: \.ts$` | Node (biome-check runs via `language: node`) |
 | `checklist-dev-docker` | hadolint-docker | `types: [dockerfile]` | Docker (hadolint-docker runs in a container) |
 | `checklist-dev-make` | checkmake | `types: [makefile]`, baked into checkmake's own hook manifest: `Makefile`, `makefile`, `GNUmakefile`, `*.mk`, `*.make` | `checkmake.ini` at repo root, `scripts/install.sh` copies one in; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#makefile-linting) before adopting |
-| `checklist-dev-cpp` | clang-format (narrowed to C and C++), cppcheck (`--enable=warning,performance,portability`, every `.h` checked as C++) | `types_or: [c, c++]` | cppcheck on PATH, from your package manager; optional `.clang-format` and `.cppcheck-suppressions` at repo root; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#c-and-c) before adopting |
+| `checklist-dev-cpp` | clang-format (narrowed to C and C++), cppcheck (`--enable=warning,performance,portability`, every `.h` checked as C++ unless `.cppcheck-c-headers` exists) | `types_or: [c, c++]` | cppcheck on PATH, from your package manager; optional `.clang-format`, `.cppcheck-suppressions` and `.cppcheck-c-headers` at repo root; see [`docs/hook-catalogue.md`](docs/hook-catalogue.md#c-and-c) before adopting |
 
 See [`docs/hook-catalogue.md`](docs/hook-catalogue.md) for the exact upstream
 `rev:` pins and the two defects an earlier selector mistake produced, so they
