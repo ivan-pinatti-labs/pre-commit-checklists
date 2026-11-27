@@ -288,10 +288,16 @@ test_cpp_c_headers() {
   __cfg="checklists/checklist-dev-cpp.yaml"
 
   # A checkout of a consumer, or a developer trying the switch, may already
-  # have its own marker: set it aside, and put it back however this exits
-  # (an interrupt included), not only at the end of the function.
+  # have its own marker: set it aside, and put it back however this exits.
+  # INT and TERM restore and then exit, so the test cannot carry on and write
+  # a marker again; restore_c_headers_marker only removes a root marker this
+  # test moved aside or created, so a signal before the move loses nothing.
+  # test_cpp_c_headers_interrupted below checks all of it.
   __c_headers_dir="${__dir}"
-  trap 'restore_c_headers_marker' EXIT INT TERM
+  __c_headers_ours=0
+  trap 'restore_c_headers_marker' EXIT
+  trap 'restore_c_headers_marker; exit 130' INT
+  trap 'restore_c_headers_marker; exit 143' TERM
   if [[ -e .cppcheck-c-headers ]]; then mv .cppcheck-c-headers "${__dir}/marker.orig"; fi
   # Routing, not parser behaviour: whether C++ mode rejects c_only.h depends
   # on the cppcheck release (2.19 does, 2.13 does not), but an out of bounds
@@ -305,6 +311,7 @@ test_cpp_c_headers() {
     fail "c-headers/no marker: expected arrayIndexOutOfBounds from cppcheck-cpp only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
   fi
 
+  __c_headers_ours=1
   : >.cppcheck-c-headers
   run_hook "${PC}" "${__cfg}" "" "${__dir}/c_only.h"
   if [[ "${HOOK_EXIT}" -eq 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Passed$'; then
@@ -331,10 +338,80 @@ test_cpp_c_headers() {
 # Used by test_cpp_c_headers, directly and from its trap. Idempotent.
 restore_c_headers_marker() {
   [[ -n "${__c_headers_dir:-}" ]] || return 0
-  rm -f "${REPO_ROOT}/.cppcheck-c-headers"
-  if [[ -e "${__c_headers_dir}/marker.orig" ]]; then mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"; fi
+  if [[ -e "${__c_headers_dir}/marker.orig" ]]; then
+    rm -f "${REPO_ROOT}/.cppcheck-c-headers"
+    command mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"
+  elif [[ "${__c_headers_ours:-0}" = 1 ]]; then
+    rm -f "${REPO_ROOT}/.cppcheck-c-headers"
+  fi
   rm -rf "${__c_headers_dir}"
   __c_headers_dir=""
+  __c_headers_ours=0
+}
+
+# Interrupts test_cpp_c_headers with SIGTERM at three points, in a subshell,
+# with and without a marker of the developer's own already at the root:
+# before the marker is moved aside (by wrapping mv; only when there is one
+# to move), after it is, and after
+# the test has written its own. Every time, the original has to be back (or
+# no marker left if there was none), no temporary directory left behind, and
+# the subshell has to stop with 143 rather than carry on. run_hook is stubbed
+# out in the subshell: what is under test here is the cleanup, not cppcheck.
+test_cpp_c_headers_interrupted() {
+  section "checklist-dev-cpp: .cppcheck-c-headers survives an interrupted test"
+  # This test writes and removes the root marker itself, so keep a real one.
+  __had_marker=0
+  if [[ -e .cppcheck-c-headers ]]; then
+    __had_marker=1
+    __saved_marker=$(cat .cppcheck-c-headers)
+  fi
+  for __orig in yes no; do
+    for __at in before-move hook-1 hook-2; do
+      # With no marker there is nothing to move, so no before-move window.
+      if [[ "${__orig}" = no ]] && [[ "${__at}" = before-move ]]; then continue; fi
+      rm -f .cppcheck-c-headers
+      if [[ "${__orig}" = yes ]]; then echo "developer marker" >.cppcheck-c-headers; fi
+      set +o errexit
+      (
+        __calls=0
+        run_hook() {
+          __calls=$((__calls + 1))
+          HOOK_EXIT=0 HOOK_OUTPUT=""
+          if [[ "${__at}" = "hook-${__calls}" ]]; then kill -TERM "${BASHPID}"; fi
+          return 0
+        }
+        if [[ "${__at}" = before-move ]]; then
+          __killed=0
+          mv() {
+            if [[ "${__killed}" = 0 ]]; then
+              __killed=1
+              kill -TERM "${BASHPID}"
+            fi
+            command mv "$@"
+          }
+        fi
+        test_cpp_c_headers
+        exit 0
+      ) >/dev/null 2>&1
+      __status=$?
+      set -o errexit
+      __name="c-headers/interrupted (marker before: ${__orig}, at: ${__at})"
+      __left=$(find tests -maxdepth 1 -name '.cpp-c-headers.*' | head -n 1)
+      if [[ "${__orig}" = yes ]]; then
+        __marker_ok=$([[ "$(cat .cppcheck-c-headers 2>/dev/null)" = "developer marker" ]] && echo 1 || echo 0)
+      else
+        __marker_ok=$([[ ! -e .cppcheck-c-headers ]] && echo 1 || echo 0)
+      fi
+      if [[ "${__status}" -eq 143 ]] && [[ "${__marker_ok}" = 1 ]] && [[ -z "${__left}" ]]; then
+        pass "${__name}: stopped with 143, marker as before, nothing left behind"
+      else
+        fail "${__name}: status ${__status}, marker ok ${__marker_ok}, leftover '${__left}'"
+      fi
+      rm -rf tests/.cpp-c-headers.*
+    done
+  done
+  rm -f .cppcheck-c-headers
+  if [[ "${__had_marker}" = 1 ]]; then printf '%s\n' "${__saved_marker}" >.cppcheck-c-headers; fi
 }
 
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
@@ -350,6 +427,8 @@ test_python_security_floor
 test_cpp_check_level
 
 test_cpp_c_headers
+
+test_cpp_c_headers_interrupted
 
 test_protected_branches
 
