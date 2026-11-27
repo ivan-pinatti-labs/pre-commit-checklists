@@ -564,10 +564,13 @@ never print the note and reject the flag, so the hook checks
 `cppcheck --help` first.
 
 2.19.0 and 2.19.1 no longer print the note by default, on that codebase or on
-any synthetic file tried, so nothing in the test suite guards this flag: the
-suite runs in this repository's L2 image, which carries 2.19. It was verified
-by hand on 2.17.1 (Debian 13) and 2.10 (Debian 12), and the flag stays for
-the 2.11 to 2.18 releases that distributions still ship.
+any synthetic file tried, so no fixture can guard this flag against the real
+cppcheck in the test suite's image, which carries 2.19. Instead
+`tests/scripts/check_hooks.sh` puts a stub `cppcheck` on PATH that plays a
+release with the flag and one without, and checks the hook passes
+`--check-level=exhaustive` to the first only. It was also verified by hand on
+2.17.1 (Debian 13) and 2.10 (Debian 12), and the flag stays for the 2.11 to
+2.18 releases that distributions still ship.
 
 cppcheck sees only the files it is given and whatever they include by a
 relative path it can resolve. There are no include paths, no `-D` defines and

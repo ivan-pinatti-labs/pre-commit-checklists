@@ -234,6 +234,45 @@ test_python_security_floor() {
   fi
 }
 
+# checklist-dev-cpp passes --check-level=exhaustive only to a cppcheck whose
+# --help lists the flag (2.11 and later; 2.10 rejects it). No fixture can
+# guard this against the real cppcheck in this suite's image: 2.19 takes the
+# flag but no longer prints the note that makes it matter. So a stub on PATH
+# plays both kinds of cppcheck and records the arguments the hook's entry
+# hands it, through the real checklist file and the real pre-commit.
+test_cpp_check_level() {
+  section "checklist-dev-cpp: --check-level only where cppcheck has it"
+  __stub=$(mktemp -d /tmp/pcc-cppcheck.XXXXXX)
+  cat >"${__stub}/cppcheck" <<'STUB'
+#!/usr/bin/env bash
+if [[ "${1:-}" = --help ]]; then
+  if [[ "${STUB_HAS_CHECK_LEVEL}" = 1 ]]; then echo "    --check-level=<level>"; fi
+  exit 0
+fi
+printf '%s\n' "$@" >"${STUB_ARGS}"
+STUB
+  chmod +x "${__stub}/cppcheck"
+
+  for __has in 1 0; do
+    rm -f "${__stub}/args"
+    set +o errexit
+    __out=$(PATH="${__stub}:${PATH}" STUB_HAS_CHECK_LEVEL="${__has}" STUB_ARGS="${__stub}/args" "${PC}" run --config checklists/checklist-dev-cpp.yaml cppcheck-cpp --files tests/fixtures/checklist-dev-cpp/should-pass/greeter.cpp 2>&1)
+    set -o errexit
+    __name="checklist-dev-cpp/check-level (cppcheck --help lists it: ${__has})"
+    if [[ ! -f "${__stub}/args" ]]; then
+      fail "${__name}: the stub cppcheck was never called" "${__out}"
+      continue
+    fi
+    if grep -qx -- '--check-level=exhaustive' "${__stub}/args"; then __got=1; else __got=0; fi
+    if [[ "${__got}" = "${__has}" ]]; then
+      pass "${__name}: --check-level=exhaustive passed: ${__got}"
+    else
+      fail "${__name}: --check-level=exhaustive passed: ${__got}, expected ${__has}" "$(cat "${__stub}/args")"
+    fi
+  done
+  rm -rf "${__stub}"
+}
+
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
   test_checklist "${id}"
 done
@@ -243,6 +282,8 @@ test_checklist "checklist-github-actions" "tests/config/checklist-github-actions
 test_github_actions_dogfood_wiring
 
 test_python_security_floor
+
+test_cpp_check_level
 
 test_protected_branches
 

@@ -46,7 +46,8 @@
 # real files for having analyzed them less. Measured on a 63 file C++
 # codebase: 1.0 s normal, 1.6 s exhaustive, the same findings, and 14 notes
 # gone. 2.19.0 and 2.19.1 no longer print the note by default, so no
-# fixture can guard this in the test suite, whose image carries 2.19.
+# fixture can guard this against the suite image's 2.19; a stub cppcheck in
+# tests/scripts/check_hooks.sh checks the switch both ways instead.
 # Releases before 2.11 never print it and reject the flag, hence the check.
 #
 # args: on checklist-dev-cpp cannot reach cppcheck (see docs/overrides.md),
