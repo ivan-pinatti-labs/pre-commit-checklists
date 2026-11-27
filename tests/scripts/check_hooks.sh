@@ -287,7 +287,9 @@ test_cpp_c_headers() {
   printf 'static int last(void) {\n  int v[4] = {1, 2, 3, 4};\n  return v[4];\n}\n' >"${__dir}/c_bug.h"
   __cfg="checklists/checklist-dev-cpp.yaml"
 
-  rm -f .cppcheck-c-headers
+  # A checkout of a consumer, or a developer trying the switch, may already
+  # have its own marker: set it aside and put it back at the end.
+  if [[ -e .cppcheck-c-headers ]]; then mv .cppcheck-c-headers "${__dir}/marker.orig"; fi
   run_hook "${PC}" "${__cfg}" cppcheck-cpp "${__dir}/c_only.h"
   if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q syntaxError; then
     pass "c-headers/no marker: a C only .h fails as C++ (syntaxError), the documented default"
@@ -315,6 +317,7 @@ test_cpp_c_headers() {
   fi
 
   rm -f .cppcheck-c-headers
+  if [[ -e "${__dir}/marker.orig" ]]; then mv "${__dir}/marker.orig" .cppcheck-c-headers; fi
   rm -rf "${__dir}"
 }
 
