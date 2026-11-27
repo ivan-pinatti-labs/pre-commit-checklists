@@ -288,7 +288,10 @@ test_cpp_c_headers() {
   __cfg="checklists/checklist-dev-cpp.yaml"
 
   # A checkout of a consumer, or a developer trying the switch, may already
-  # have its own marker: set it aside and put it back at the end.
+  # have its own marker: set it aside, and put it back however this exits
+  # (an interrupt included), not only at the end of the function.
+  __c_headers_dir="${__dir}"
+  trap 'restore_c_headers_marker' EXIT INT TERM
   if [[ -e .cppcheck-c-headers ]]; then mv .cppcheck-c-headers "${__dir}/marker.orig"; fi
   # Routing, not parser behaviour: whether C++ mode rejects c_only.h depends
   # on the cppcheck release (2.19 does, 2.13 does not), but an out of bounds
@@ -321,9 +324,17 @@ test_cpp_c_headers() {
     fail "c-headers/marker: expected arrayIndexOutOfBounds from cppcheck-c only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
   fi
 
-  rm -f .cppcheck-c-headers
-  if [[ -e "${__dir}/marker.orig" ]]; then mv "${__dir}/marker.orig" .cppcheck-c-headers; fi
-  rm -rf "${__dir}"
+  restore_c_headers_marker
+  trap - EXIT INT TERM
+}
+
+# Used by test_cpp_c_headers, directly and from its trap. Idempotent.
+restore_c_headers_marker() {
+  [[ -n "${__c_headers_dir:-}" ]] || return 0
+  rm -f "${REPO_ROOT}/.cppcheck-c-headers"
+  if [[ -e "${__c_headers_dir}/marker.orig" ]]; then mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"; fi
+  rm -rf "${__c_headers_dir}"
+  __c_headers_dir=""
 }
 
 for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
