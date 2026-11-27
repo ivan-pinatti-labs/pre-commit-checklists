@@ -253,6 +253,16 @@ jobs:
           tofu_version: ${{ steps.l2-versions.outputs.tofu }}
           tofu_wrapper: false
 
+      # checklist-dev-cpp runs the `cppcheck` the operating system installed
+      # (a language: system hook; see checklists/checklist-dev-cpp.yaml). The
+      # runner image does not carry it, so it comes from Ubuntu's signed
+      # archive, as it does from apt in .devcontainer/l2/Dockerfile.
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck
+          cppcheck --version
+
       # Wheels only, so no package's build script runs at install time.
       - name: Install pre-commit
         run: pip install "--only-binary=:all:" "pre-commit==4.5.1"
@@ -445,6 +455,16 @@ jobs:
         with:
           tofu_version: ${{ steps.l2-versions.outputs.tofu }}
           tofu_wrapper: false
+
+      # checklist-dev-cpp runs the `cppcheck` the operating system installed
+      # (a language: system hook; see checklists/checklist-dev-cpp.yaml). The
+      # runner image does not carry it, so it comes from Ubuntu's signed
+      # archive, as it does from apt in .devcontainer/l2/Dockerfile.
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck
+          cppcheck --version
 
       # Docker, Node/npm and shellcheck ship on the ubuntu-24.04 runner
       # image already; see tests/README.md's "What each phase needs

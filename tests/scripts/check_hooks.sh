@@ -63,7 +63,7 @@ PC=$(resolve_pre_commit)
 # file-based selector (i.e. not always_run / not commit-msg-stage-only).
 # Kept in sync by hand with .pre-commit-config.yaml; if you add a checklist
 # to that file, add its id here too so Phase 2 covers it.
-DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make"
+DOGFOOD_WIRED="checklist-basic checklist-spell checklist-json checklist-markdown checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp"
 
 is_dogfood_wired() {
   case " ${DOGFOOD_WIRED} " in
@@ -234,7 +234,189 @@ test_python_security_floor() {
   fi
 }
 
-for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make; do
+# checklist-dev-cpp passes --check-level=exhaustive only to a cppcheck whose
+# --help lists the flag (2.11 and later; 2.10 rejects it). No fixture can
+# guard this against the real cppcheck in this suite's image: 2.19 takes the
+# flag but no longer prints the note that makes it matter. So a stub on PATH
+# plays both kinds of cppcheck and records the arguments the hook's entry
+# hands it, through the real checklist file and the real pre-commit.
+test_cpp_check_level() {
+  section "checklist-dev-cpp: --check-level only where cppcheck has it"
+  __stub=$(mktemp -d /tmp/pcc-cppcheck.XXXXXX)
+  cat >"${__stub}/cppcheck" <<'STUB'
+#!/usr/bin/env bash
+if [[ "${1:-}" = --help ]]; then
+  if [[ "${STUB_HAS_CHECK_LEVEL}" = 1 ]]; then echo "    --check-level=<level>"; fi
+  exit 0
+fi
+printf '%s\n' "$@" >"${STUB_ARGS}"
+STUB
+  chmod +x "${__stub}/cppcheck"
+
+  for __has in 1 0; do
+    rm -f "${__stub}/args"
+    set +o errexit
+    __out=$(PATH="${__stub}:${PATH}" STUB_HAS_CHECK_LEVEL="${__has}" STUB_ARGS="${__stub}/args" "${PC}" run --config checklists/checklist-dev-cpp.yaml cppcheck-cpp --files tests/fixtures/checklist-dev-cpp/should-pass/greeter.cpp 2>&1)
+    set -o errexit
+    __name="checklist-dev-cpp/check-level (cppcheck --help lists it: ${__has})"
+    if [[ ! -f "${__stub}/args" ]]; then
+      fail "${__name}: the stub cppcheck was never called" "${__out}"
+      continue
+    fi
+    if grep -qx -- '--check-level=exhaustive' "${__stub}/args"; then __got=1; else __got=0; fi
+    if [[ "${__got}" = "${__has}" ]]; then
+      pass "${__name}: --check-level=exhaustive passed: ${__got}"
+    else
+      fail "${__name}: --check-level=exhaustive passed: ${__got}, expected ${__has}" "$(cat "${__stub}/args")"
+    fi
+  done
+  rm -rf "${__stub}"
+}
+
+# checklist-dev-cpp checks every .h as C++ unless .cppcheck-c-headers exists
+# at the repo root, which routes them to the C hook instead. Real cppcheck,
+# three cases: without the marker a bug in a .h is reported by the C++ hook
+# alone; with it, a header that is valid C but not C++ passes with the C hook
+# running, and the same bug is reported by the C hook alone. The headers are
+# written at run time, outside tests/fixtures/, because the dogfood config
+# runs the default configuration over committed files.
+test_cpp_c_headers() {
+  section "checklist-dev-cpp: .cppcheck-c-headers checks .h as C"
+  __dir=$(mktemp -d "${REPO_ROOT}/tests/.cpp-c-headers.XXXXXX")
+  printf 'struct namespace {\n  int x;\n};\n' >"${__dir}/c_only.h"
+  printf 'static int last(void) {\n  int v[4] = {1, 2, 3, 4};\n  return v[4];\n}\n' >"${__dir}/c_bug.h"
+  __cfg="checklists/checklist-dev-cpp.yaml"
+
+  # A checkout of a consumer, or a developer trying the switch, may already
+  # have its own marker: set it aside, and put it back however this exits.
+  # INT and TERM restore and then exit, so the test cannot carry on and write
+  # a marker again; restore_c_headers_marker only removes a root marker this
+  # test moved aside or created, so a signal before the move loses nothing.
+  # test_cpp_c_headers_interrupted below checks all of it.
+  __c_headers_dir="${__dir}"
+  __c_headers_ours=0
+  trap 'restore_c_headers_marker' EXIT
+  trap 'restore_c_headers_marker; exit 130' INT
+  trap 'restore_c_headers_marker; exit 143' TERM
+  if [[ -e .cppcheck-c-headers ]]; then mv .cppcheck-c-headers "${__dir}/marker.orig"; fi
+  # Routing, not parser behaviour: whether C++ mode rejects c_only.h depends
+  # on the cppcheck release (2.19 does, 2.13 does not), but an out of bounds
+  # read is reported by all of them, so which hook fails says where the .h went.
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_bug.h"
+  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q arrayIndexOutOfBounds &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\+\+\)\.+Failed$' &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Passed$'; then
+    pass "c-headers/no marker: a .h is checked by cppcheck-cpp, not cppcheck-c (the default)"
+  else
+    fail "c-headers/no marker: expected arrayIndexOutOfBounds from cppcheck-cpp only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  __c_headers_ours=1
+  : >.cppcheck-c-headers
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_only.h"
+  if [[ "${HOOK_EXIT}" -eq 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Passed$'; then
+    pass "c-headers/marker: the C only .h passes, checked by cppcheck-c"
+  else
+    fail "c-headers/marker: expected exit 0 with cppcheck (C) Passed (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_bug.h"
+  # The C++ hook would report this bug too, so the C hook has to be the one
+  # that failed and the C++ hook the one that dropped the file and passed.
+  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q arrayIndexOutOfBounds &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Failed$' &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\+\+\)\.+Passed$'; then
+    pass "c-headers/marker: a bug in a C .h is reported by cppcheck-c, not cppcheck-cpp"
+  else
+    fail "c-headers/marker: expected arrayIndexOutOfBounds from cppcheck-c only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+  fi
+
+  restore_c_headers_marker
+  trap - EXIT INT TERM
+}
+
+# Used by test_cpp_c_headers, directly and from its trap. Idempotent.
+restore_c_headers_marker() {
+  [[ -n "${__c_headers_dir:-}" ]] || return 0
+  if [[ -e "${__c_headers_dir}/marker.orig" ]]; then
+    # Cleared before the move: a signal landing right after it re-enters
+    # this function, which must then see no marker of its own to delete.
+    __c_headers_ours=0
+    rm -f "${REPO_ROOT}/.cppcheck-c-headers"
+    mv "${__c_headers_dir}/marker.orig" "${REPO_ROOT}/.cppcheck-c-headers"
+  elif [[ "${__c_headers_ours:-0}" = 1 ]]; then
+    rm -f "${REPO_ROOT}/.cppcheck-c-headers"
+  fi
+  rm -rf "${__c_headers_dir}"
+  __c_headers_dir=""
+  __c_headers_ours=0
+}
+
+# Interrupts test_cpp_c_headers with SIGTERM at four points, in a subshell,
+# with and without a marker of the developer's own already at the root:
+# before the marker is moved aside (by wrapping mv; only when there is one
+# to move), after it is, after the test has written its own, and just after
+# the restore moves the original back. Every time, the original has to be back (or
+# no marker left if there was none), no temporary directory left behind, and
+# the subshell has to stop with 143 rather than carry on. run_hook is stubbed
+# out in the subshell: what is under test here is the cleanup, not cppcheck.
+test_cpp_c_headers_interrupted() {
+  section "checklist-dev-cpp: .cppcheck-c-headers survives an interrupted test"
+  # Runs in a scratch directory standing in for the repository root, never
+  # in the real one, so interrupting the suite itself cannot touch a real
+  # marker. run_hook is stubbed, so nothing here needs the checklists.
+  __sandbox=$(mktemp -d /tmp/pcc-c-headers.XXXXXX)
+  for __orig in yes no; do
+    for __at in before-move hook-1 hook-2 after-restore-move; do
+      # With no marker there is nothing to move aside or back.
+      if [[ "${__orig}" = no ]] && [[ "${__at}" = before-move || "${__at}" = after-restore-move ]]; then continue; fi
+      rm -rf "${__sandbox:?}/root"
+      mkdir -p "${__sandbox}/root/tests"
+      if [[ "${__orig}" = yes ]]; then echo "developer marker" >"${__sandbox}/root/.cppcheck-c-headers"; fi
+      set +o errexit
+      (
+        cd "${__sandbox}/root" || exit 1
+        REPO_ROOT="${__sandbox}/root"
+        __calls=0
+        run_hook() {
+          __calls=$((__calls + 1))
+          HOOK_EXIT=0 HOOK_OUTPUT=""
+          if [[ "${__at}" = "hook-${__calls}" ]]; then kill -TERM "${BASHPID}"; fi
+          return 0
+        }
+        # mv is wrapped to signal before the move aside (the first mv) or
+        # just after the move back during the restore (the second), which
+        # is when bash would run a trap for a signal that arrived mid-move.
+        __mvs=0
+        mv() {
+          __mvs=$((__mvs + 1))
+          if [[ "${__at}" = before-move && "${__mvs}" = 1 ]]; then kill -TERM "${BASHPID}"; fi
+          command mv "$@"
+          if [[ "${__at}" = after-restore-move && "${__mvs}" = 2 ]]; then kill -TERM "${BASHPID}"; fi
+        }
+        test_cpp_c_headers
+        exit 0
+      ) >/dev/null 2>&1
+      __status=$?
+      set -o errexit
+      __name="c-headers/interrupted (marker before: ${__orig}, at: ${__at})"
+      __left=$(find "${__sandbox}/root/tests" -maxdepth 1 -name '.cpp-c-headers.*' | head -n 1)
+      if [[ "${__orig}" = yes ]]; then
+        __marker_ok=$([[ "$(cat "${__sandbox}/root/.cppcheck-c-headers" 2>/dev/null)" = "developer marker" ]] && echo 1 || echo 0)
+      else
+        __marker_ok=$([[ ! -e "${__sandbox}/root/.cppcheck-c-headers" ]] && echo 1 || echo 0)
+      fi
+      if [[ "${__status}" -eq 143 ]] && [[ "${__marker_ok}" = 1 ]] && [[ -z "${__left}" ]]; then
+        pass "${__name}: stopped with 143, marker as before, nothing left behind"
+      else
+        fail "${__name}: status ${__status}, marker ok ${__marker_ok}, leftover '${__left}'"
+      fi
+    done
+  done
+  rm -rf "${__sandbox}"
+}
+
+for id in checklist-basic checklist-spell checklist-markdown checklist-json checklist-toml checklist-xml checklist-yaml checklist-security-credentials checklist-dev-dotenv checklist-dev-editorconfig checklist-dev-shell checklist-dev-python checklist-dev-terraform checklist-dev-tofu checklist-dev-javascript checklist-dev-typescript checklist-dev-docker checklist-dev-make checklist-dev-cpp; do
   test_checklist "${id}"
 done
 
@@ -243,6 +425,12 @@ test_checklist "checklist-github-actions" "tests/config/checklist-github-actions
 test_github_actions_dogfood_wiring
 
 test_python_security_floor
+
+test_cpp_check_level
+
+test_cpp_c_headers
+
+test_cpp_c_headers_interrupted
 
 test_protected_branches
 

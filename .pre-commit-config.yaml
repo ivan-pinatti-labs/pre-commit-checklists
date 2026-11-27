@@ -257,6 +257,19 @@ repos:
         require_serial: true
         verbose: true
 
+      # The same selector a consumer uses. The pinned hooks inside narrow it
+      # further: clang-format to c and c++, cppcheck-cpp to c++ (which
+      # includes .h) and cppcheck-c to what is left, so .c only.
+      - id: checklist-dev-cpp
+        name: Development - C and C++ Checklist
+        language: script
+        entry: ./scripts/run-checklist.sh
+        args: [checklist-dev-cpp]
+        stages: [pre-commit]
+        types_or: [c, c++]
+        require_serial: true
+        verbose: true
+
   # CITATION.cff is the one file here that `checklist-yaml` above cannot
   # reach. It is YAML, but `identify` tags it only `text`, since the tag comes
   # from the extension and `.cff` is not one it knows. Widening that id's

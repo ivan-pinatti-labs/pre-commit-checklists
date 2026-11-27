@@ -274,10 +274,14 @@ hook fires because local work happens on `main`.
   and `tflint`, both provided by this repository's L2 image (for
   `checklist-dev-terraform`, which runs them against the fixtures under
   `tests/fixtures/checklist-dev-terraform/`), `tofu` (for
-  `checklist-dev-tofu`, against `tests/fixtures/checklist-dev-tofu/`), and a Go
+  `checklist-dev-tofu`, against `tests/fixtures/checklist-dev-tofu/`), a Go
   toolchain (for `checkmake` in `checklist-dev-make`, which pre-commit
   builds from source through `language: golang`; recent pre-commit
-  provisions Go itself if one is not already on PATH).
+  provisions Go itself if one is not already on PATH), and `cppcheck`,
+  provided by this repository's L2 image and installed from apt in CI
+  (for `checklist-dev-cpp`, a
+  `language: system` hook; its clang-format comes from PyPI through
+  pre-commit).
 - `links`: `pre-commit`, Node/npm (markdownlint-cli2 and
   markdown-link-check), and Python 3 for the throwaway local HTTP server
   that serves the phase's 404 fixture. No outbound network access: the

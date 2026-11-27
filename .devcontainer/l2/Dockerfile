@@ -1,6 +1,7 @@
 # This repository's L2 image: where its hooks and its self-test suite run,
 # with no credentials (see docs/LAYERS.md in devcontainer-airlock). It adds
-# what the terraform and tofu checklists call by name to the shared L2 image.
+# what the terraform, tofu and C/C++ checklists call by name to the shared L2
+# image.
 #
 # Build context is the repository root, for the vendored OpenTofu key.
 ARG L2_IMAGE=ghcr.io/ivan-pinatti-labs/airlock-l2@sha256:50a191999992c0ae67d80edcf36fd6abf1cd510255a27b0dd5f942e6d73545ee
@@ -13,6 +14,14 @@ USER 0:0
 # hadolint ignore=DL3008
 RUN apt-get update \
   && apt-get install -y --no-install-recommends cosign pipx \
+  && rm -rf /var/lib/apt/lists/*
+
+# cppcheck, which checklist-dev-cpp calls by name (a language: system hook,
+# see checklists/checklist-dev-cpp.yaml for why). The distribution's signed
+# package, so it is a dpkg entry and shows in this image's SBOM.
+# hadolint ignore=DL3008
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends cppcheck \
   && rm -rf /var/lib/apt/lists/*
 
 # DL3064 is a false positive here: it flags "SECRETS" in the argument name,

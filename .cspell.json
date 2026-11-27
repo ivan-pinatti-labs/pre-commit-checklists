@@ -24,6 +24,7 @@
     "codex",
     "conftest",
     "coveragerc",
+    "cppcheck",
     "cspell",
     "curdir",
     "dearmor",
