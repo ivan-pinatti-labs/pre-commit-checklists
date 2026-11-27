@@ -275,11 +275,11 @@ STUB
 
 # checklist-dev-cpp checks every .h as C++ unless .cppcheck-c-headers exists
 # at the repo root, which routes them to the C hook instead. Real cppcheck,
-# three cases: a header that is valid C but not C++ fails without the marker
-# and passes with it (with the C hook actually running), and with the marker
-# a real bug in a C header is still reported. The headers are written at run
-# time, outside tests/fixtures/, because the C only one has to fail the
-# default configuration that the dogfood config runs on committed files.
+# three cases: without the marker a bug in a .h is reported by the C++ hook
+# alone; with it, a header that is valid C but not C++ passes with the C hook
+# running, and the same bug is reported by the C hook alone. The headers are
+# written at run time, outside tests/fixtures/, because the dogfood config
+# runs the default configuration over committed files.
 test_cpp_c_headers() {
   section "checklist-dev-cpp: .cppcheck-c-headers checks .h as C"
   __dir=$(mktemp -d "${REPO_ROOT}/tests/.cpp-c-headers.XXXXXX")
@@ -290,11 +290,16 @@ test_cpp_c_headers() {
   # A checkout of a consumer, or a developer trying the switch, may already
   # have its own marker: set it aside and put it back at the end.
   if [[ -e .cppcheck-c-headers ]]; then mv .cppcheck-c-headers "${__dir}/marker.orig"; fi
-  run_hook "${PC}" "${__cfg}" cppcheck-cpp "${__dir}/c_only.h"
-  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q syntaxError; then
-    pass "c-headers/no marker: a C only .h fails as C++ (syntaxError), the documented default"
+  # Routing, not parser behaviour: whether C++ mode rejects c_only.h depends
+  # on the cppcheck release (2.19 does, 2.13 does not), but an out of bounds
+  # read is reported by all of them, so which hook fails says where the .h went.
+  run_hook "${PC}" "${__cfg}" "" "${__dir}/c_bug.h"
+  if [[ "${HOOK_EXIT}" -ne 0 ]] && printf '%s' "${HOOK_OUTPUT}" | grep -q arrayIndexOutOfBounds &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\+\+\)\.+Failed$' &&
+    printf '%s' "${HOOK_OUTPUT}" | grep -qE '^cppcheck \(C\)\.+Passed$'; then
+    pass "c-headers/no marker: a .h is checked by cppcheck-cpp, not cppcheck-c (the default)"
   else
-    fail "c-headers/no marker: expected syntaxError from cppcheck-cpp (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
+    fail "c-headers/no marker: expected arrayIndexOutOfBounds from cppcheck-cpp only (exit ${HOOK_EXIT})" "${HOOK_OUTPUT}"
   fi
 
   : >.cppcheck-c-headers

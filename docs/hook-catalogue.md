@@ -544,12 +544,13 @@ from cppcheck, which does not parse it; clang-format still formats it.
 **A C codebase** adds an empty `.cppcheck-c-headers` at the repo root. Every
 `.h` then goes to the C hook instead, with `--language=c`. Without it, C that
 is not valid C++ fails: a header declaring `struct namespace { int x; };`
-reports `syntaxError` (cppcheck 2.19.1), and when the header itself is the
+reports `syntaxError` on cppcheck 2.19.1 (2.13 accepts it; how lenient C++
+mode is varies by release), and when the header itself is the
 file checked, code behind `#ifndef __cplusplus` is skipped. The switch is per
 repository because a `.h` cannot say which language it is; a codebase that
 mixes C headers and C++ headers under `.h` has to pick one, and suppress
-(below) what the other produces. `tests/scripts/check_hooks.sh` checks a C
-only header both ways.
+(below) what the other produces. `tests/scripts/check_hooks.sh` checks which
+hook a `.h` reaches, with and without the marker.
 
 ### What cppcheck reports
 
