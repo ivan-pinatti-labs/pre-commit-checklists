@@ -600,9 +600,13 @@ job, not a commit hook.
   `unknownMacro:src/plugin/*`. The hook passes it as `--suppressions-list`
   when the file exists and ignores it otherwise. An entry that matches
   nothing in a given run is not an error.
-- **Vendored or generated code:** `exclude:` on the `checklist-dev-cpp` id in
-  your own `.pre-commit-config.yaml`, which keeps those files away from both
-  tools.
+- **Vendored or generated code:** two steps. `exclude:` on the
+  `checklist-dev-cpp` id in your own `.pre-commit-config.yaml` keeps those
+  files from being handed to either tool. It does not stop cppcheck reporting
+  inside them: cppcheck follows the `#include`s of the files it is given, so a
+  finding in an excluded `vendor/lib.h` still fails a commit that touches only
+  a `src/main.cpp` including it. Add `*:vendor/*` (every check, that path) to
+  `.cppcheck-suppressions` as well.
 
 ### Why clang-format is narrowed
 

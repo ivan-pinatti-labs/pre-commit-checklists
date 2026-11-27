@@ -55,8 +55,10 @@
 # a `// cppcheck-suppress <id>` comment above it (--inline-suppr), and
 # repository wide through .cppcheck-suppressions at the repo root, one
 # `<id>[:<path glob>]` per line, passed as --suppressions-list when the file
-# exists. Vendored code is better left out with exclude: on the
-# checklist-dev-cpp id itself.
+# exists. Vendored code takes both: exclude: on the checklist-dev-cpp id
+# stops it being handed in, and a `*:vendor/*` suppression covers its
+# headers, which cppcheck still reaches through the #includes of your own
+# files.
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v23.1.5
