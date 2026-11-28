@@ -22,4 +22,4 @@ pytest==9.2.0
 # pre-commit stays at the version the Pre-commit job installs.
 detect-secrets==1.5.0
 pre-commit==4.7.0
-pyyaml==6.0.3
+pyyaml==6.0.4
