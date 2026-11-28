@@ -725,8 +725,9 @@ Subjects git writes on its own are accepted as they are, since nobody
 types them, but only with proof that git wrote them:
 
 - a merge (`Merge branch 'x'`, `Merge remote-tracking branch 'origin/main'`,
-  `Merge tag 'v1.2.0'`, or `Merge <url>` from pulling a repository's HEAD)
-  while a merge is in progress, that is while `MERGE_HEAD` exists;
+  `Merge tag 'v1.2.0'`, always with the quoted name git writes, or
+  `Merge <url>` from pulling a repository's HEAD) while a merge is in
+  progress, that is while `MERGE_HEAD` exists;
 - a revert, or a revert of a revert (`Revert "feat: add login page"`,
   `Reapply "..."`, a merge revert too), whose body has git's
   `This reverts commit <sha>` line naming a commit that exists and whose
@@ -736,9 +737,9 @@ The same subject typed by hand on an ordinary commit is checked like any
 other, and fails. A `fixup!` or `squash!` prefix from `git commit --fixup`
 is set aside, and the subject after it is checked as usual. An `amend!`
 commit carries a replacement message after a blank line, which is what
-`git rebase -i` keeps, so that replacement is what gets checked. Only the
-first line counts as the subject, and the whole message is checked for AI
-attribution either way.
+`git rebase -i` keeps, so that replacement is what gets checked, and an
+`amend!` with none fails. Only the first line counts as the subject, and
+the whole message is checked for AI attribution either way.
 
 `checklist-git-valid-branches` reads the current branch. On a detached
 HEAD in the middle of a rebase it checks the branch being rebased, which

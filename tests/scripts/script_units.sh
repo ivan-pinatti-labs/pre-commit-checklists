@@ -347,7 +347,8 @@ mkdir -p "${MERGING}"
 touch "${MERGING}/MERGE_HEAD"
 for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
   "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge tags 'v1' and 'v2'" \
-  "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git"; do
+  "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git into dev" \
+  "Merge branch 'x' of https://example.invalid/o/r into dev"; do
   echo "${subject}" >"${MSG}"
   STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
   check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
@@ -357,9 +358,11 @@ echo "Merge branch cleanup into docs" >"${MSG}"
 STUB_GIT_DIR="${SCRATCH}" run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "a merge-like subject with no merge in progress fails" 1 out "does not follow Conventional Commits"
 
-echo "Merge stuff" >"${MSG}"
-STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
-check "a free form subject starting with Merge fails even mid-merge" 1 out "does not follow Conventional Commits"
+for subject in "Merge stuff" "Merge branch arbitrary garbage"; do
+  echo "${subject}" >"${MSG}"
+  STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
+  check "a hand-typed merge-like subject fails even mid-merge: ${subject}" 1 out "does not follow Conventional Commits"
+done
 
 SHA=0123456789abcdef0123456789abcdef01234567
 printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
@@ -410,6 +413,10 @@ check "the subject after fixup! is still checked" 1 out "does not follow Convent
 printf '%s\n' "amend! feat: add login" "" "# a comment" "did some stuff" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "amend! checks the replacement message, not the old subject" 1 out "does not follow Conventional Commits"
+
+echo "amend! feat: add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with no replacement message fails" 1 out "does not follow Conventional Commits"
 
 printf '%s\n' "amend! feat: add login" "" "# only a comment" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"

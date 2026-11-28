@@ -101,7 +101,7 @@ readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|rev
 # git's own merge and revert subjects (see the header).
 # A merge names what it merges; pulling a repository's HEAD with no branch
 # named gives "Merge <url>", hence the bare URL or path form.
-readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) |[^ ]*[/:][^ ]*$)"
+readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) '[^']+'|[^ ]*[/:][^ ]*( into [^ ]+)?$)"
 readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
 # "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
 readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'
@@ -111,9 +111,14 @@ __subject_msg="${COMMIT_MSG}"
 # `git commit --fixup=amend:<commit>` (or reword:) writes "amend! <old
 # subject>", a blank line, then the replacement message, which is what
 # `git rebase -i` keeps. Check the replacement: its first line that is neither
-# blank nor a comment.
-if [[ ${__subject_msg} == "amend! "* ]] && [[ ${__subject_msg} == *$'\n\n'* ]]; then
-  __subject_msg="${__subject_msg#*$'\n\n'}"
+# blank nor a comment. With no replacement at all, the squash would leave
+# the target with an empty message, so that fails.
+if [[ ${__subject_msg} == "amend! "* ]]; then
+  if [[ ${__subject_msg} == *$'\n\n'* ]]; then
+    __subject_msg="${__subject_msg#*$'\n\n'}"
+  else
+    __subject_msg=""
+  fi
   while [[ ${__subject_msg} == $'\n'* || ${__subject_msg} == "#"* ]]; do
     if [[ ${__subject_msg} == *$'\n'* ]]; then
       __subject_msg="${__subject_msg#*$'\n'}"
