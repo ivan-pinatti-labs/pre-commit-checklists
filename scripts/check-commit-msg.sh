@@ -10,11 +10,15 @@
 # scope to be a ticket id from one of the given prefixes, e.g.
 # --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
 #
-# Subjects git writes on its own pass as they are: a merge ("Merge branch
-# 'x'", "Merge remote-tracking branch ...", "Merge pull request #1 ...") and
-# a revert ('Revert "feat: add login page"'). A "fixup! ", "squash! " or
-# "amend! " prefix from `git commit --fixup` is set aside and the subject
-# after it is checked as usual.
+# Subjects git writes on its own pass as they are, when there is proof git
+# wrote them: a merge ("Merge branch 'x'", "Merge remote-tracking branch
+# ...") while a merge is in progress (MERGE_HEAD exists), and a revert or a
+# revert of a revert ('Revert "..."', 'Reapply "..."') whose body carries
+# git's "This reverts commit <sha>" line. A "fixup! " or "squash! " prefix
+# from `git commit --fixup` is set aside and the subject after it is
+# checked as usual; for "amend! ", the replacement message after the
+# blank line is what lands, so that is what gets checked. Only the first
+# line is matched as the subject.
 #
 # AI attribution is refused only when asked for. Pass --no-ai-attribution
 # to reject a message with a line crediting or linking an AI agent: a
@@ -94,18 +98,43 @@ COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
 # git's own merge and revert subjects (see the header).
-readonly GIT_MERGE_SUBJECT="^Merge (branch(es)?|remote-tracking branch(es)?|tag|commit|pull request #[0-9]+) "
-readonly GIT_REVERT_SUBJECT='^Revert ".+"'
+readonly GIT_MERGE_SUBJECT="^Merge (branch(es)?|remote-tracking branch(es)?|tag|commit) "
+readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) ".+"$'
+readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit [0-9a-f]{7,}'
+
+__subject_msg="${COMMIT_MSG}"
+
+# `git commit --fixup=amend:<commit>` (or reword:) writes "amend! <old
+# subject>", a blank line, then the replacement message, which is what
+# `git rebase -i` keeps. Check the replacement: its first line that is neither
+# blank nor a comment.
+if [[ ${__subject_msg} == "amend! "* ]] && [[ ${__subject_msg} == *$'\n\n'* ]]; then
+  __subject_msg="${__subject_msg#*$'\n\n'}"
+  while [[ ${__subject_msg} == $'\n'* || ${__subject_msg} == "#"* ]]; do
+    if [[ ${__subject_msg} == *$'\n'* ]]; then
+      __subject_msg="${__subject_msg#*$'\n'}"
+    else
+      __subject_msg=""
+    fi
+  done
+fi
 
 # Set aside any fixup!, squash! or amend! prefixes; what follows is the
 # subject of the commit they target.
-__subject_msg="${COMMIT_MSG}"
 while [[ ${__subject_msg} == "fixup! "* || ${__subject_msg} == "squash! "* || ${__subject_msg} == "amend! "* ]]; do
   __subject_msg="${__subject_msg#*! }"
 done
 
+# The subject is the first line; in bash's regex `.` matches a newline too.
+__subject_msg="${__subject_msg%%$'\n'*}"
+
 __git_subject=false
-if [[ ${__subject_msg} =~ ${GIT_MERGE_SUBJECT} ]] || [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]]; then
+if [[ ${__subject_msg} =~ ${GIT_MERGE_SUBJECT} ]]; then
+  __git_dir=$(git rev-parse --git-dir 2>/dev/null || true)
+  if [[ -n "${__git_dir}" ]] && [[ -f "${__git_dir}/MERGE_HEAD" ]]; then
+    __git_subject=true
+  fi
+elif [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]] && [[ ${COMMIT_MSG} =~ ${GIT_REVERT_BODY} ]]; then
   __git_subject=true
 fi
 

@@ -17,12 +17,14 @@
 #
 # Mid-rebase, HEAD is detached and the branch being rebased is checked
 # instead. Any other detached HEAD (a bisect, a checked-out tag or commit)
-# has no branch to check, and passes.
+# has no branch to check, and passes locally. In CI (CI set), where a
+# missing branch means the checkout lost it, it still fails.
 #
 # Exit status codes:
-#   0 - branch name is valid, or HEAD is detached outside a rebase
+#   0 - branch name is valid, or HEAD is detached outside a rebase, locally
 #   1 - branch name is invalid
-#   2 - not in a git repository, so there is no branch to read
+#   2 - branch name could not be determined: outside a git repository, or
+#       a detached HEAD in CI
 #   3 - invalid arguments
 
 if [[ "${DEBUG:-false}" = true ]]; then
@@ -98,6 +100,10 @@ if [[ -z "${__branch_name}" ]]; then
     fi
   done
   if [[ -z "${__branch_name}" ]]; then
+    if [[ -n "${CI:-}" ]]; then
+      echo "Error: branch name could not be determined (detached HEAD in CI; set GITHUB_HEAD_REF or check out a branch)." >&2
+      exit 2
+    fi
     echo "HEAD is detached and no rebase is in progress: no branch name to check. OK."
     exit 0
   fi

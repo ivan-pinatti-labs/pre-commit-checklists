@@ -714,31 +714,37 @@ that works.
 ## Git messages and branches
 
 `checklist-git-commit-msg` takes no `files:` filter. At the commit-msg
-stage pre-commit hands the hook exactly one file, the message, and its
-name depends on how the commit was made: `COMMIT_EDITMSG` for a plain
-commit, `MERGE_MSG` for a merge, and a path under `.git/worktrees/` in a
-linked worktree. A `files: COMMIT_EDITMSG$` selector skipped merges
-entirely, so a merge could carry any subject, and any AI attribution line
+stage pre-commit hands the hook exactly one file, the message, which git
+names `MERGE_MSG` for a merge rather than `COMMIT_EDITMSG`. A
+`files: COMMIT_EDITMSG$` selector therefore skipped merges entirely, so a
+merge could carry any subject, and any AI attribution line
 `--no-ai-attribution` is there to refuse. An existing config with that
 line should drop it.
 
 Subjects git writes on its own are accepted as they are, since nobody
-types them and rewording each one is busywork:
+types them, but only with proof that git wrote them:
 
-- a merge: `Merge branch 'x'`, `Merge remote-tracking branch 'origin/main'`,
-  `Merge tag 'v1.2.0'`, `Merge pull request #12 from ...`;
-- a revert: `Revert "feat: add login page"`.
+- a merge (`Merge branch 'x'`, `Merge remote-tracking branch 'origin/main'`,
+  `Merge tag 'v1.2.0'`) while a merge is in progress, that is while
+  `MERGE_HEAD` exists;
+- a revert, or a revert of a revert (`Revert "feat: add login page"`,
+  `Reapply "..."`), whose body has git's `This reverts commit <sha>` line.
 
-A `fixup!`, `squash!` or `amend!` prefix from `git commit --fixup` is
-set aside, and the subject after it is checked as usual. The rest of the
-message is checked for AI attribution either way. A subject that only
-starts with the word, such as `Merge stuff`, is still rejected.
+The same subject typed by hand on an ordinary commit is checked like any
+other, and fails. A `fixup!` or `squash!` prefix from `git commit --fixup`
+is set aside, and the subject after it is checked as usual. An `amend!`
+commit carries a replacement message after a blank line, which is what
+`git rebase -i` keeps, so that replacement is what gets checked. Only the
+first line counts as the subject, and the whole message is checked for AI
+attribution either way.
 
 `checklist-git-valid-branches` reads the current branch. On a detached
 HEAD in the middle of a rebase it checks the branch being rebased, which
 git records in `rebase-merge/head-name` (or `rebase-apply/head-name`).
 Any other detached HEAD, a bisect or a checked-out tag, has no branch to
-check and passes. Outside a git repository it exits 2.
+check and passes locally. In CI (`CI` set) a detached HEAD without
+`GITHUB_HEAD_REF` still exits 2, since there it means the checkout lost
+the branch. Outside a git repository it exits 2 as well.
 
 ## `stages:` depends on why you installed more than the pre-commit stage
 

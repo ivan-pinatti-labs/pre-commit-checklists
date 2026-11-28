@@ -277,8 +277,11 @@ check "outside a repository exits 2" 2 err "not a git repository"
 
 GIT_DIR_STUB="${SCRATCH}/git-dir"
 mkdir -p "${GIT_DIR_STUB}"
-STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
-check "a detached HEAD outside a rebase passes" 0 out "HEAD is detached" log "git rev-parse --git-dir"
+CI= STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a detached HEAD outside a rebase passes locally" 0 out "HEAD is detached" log "git rev-parse --git-dir"
+
+CI=true STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a detached HEAD outside a rebase still fails in CI" 2 err "detached HEAD in CI"
 
 mkdir -p "${GIT_DIR_STUB}/rebase-merge"
 echo "refs/heads/fix/flaky-test" >"${GIT_DIR_STUB}/rebase-merge/head-name"
@@ -292,7 +295,7 @@ check "mid-rebase, a bad branch name still fails" 1 out "'BadName'"
 rm -r "${GIT_DIR_STUB}/rebase-merge"
 mkdir -p "${GIT_DIR_STUB}/rebase-apply"
 echo "detached HEAD" >"${GIT_DIR_STUB}/rebase-apply/head-name"
-STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+CI= STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
 check "a rebase that started detached passes" 0 out "HEAD is detached"
 
 STUB_BRANCH=trunk run "${STUBS}" check-branch-name.sh --protected-branches "trunk release"
@@ -332,32 +335,60 @@ echo "feat: add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "no ticket scope fails with --ticket-prefixes" 1 out "type(TICKET-ID): description"
 
+MERGING="${SCRATCH}/merging-git-dir"
+mkdir -p "${MERGING}"
+touch "${MERGING}/MERGE_HEAD"
 for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
-  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge pull request #12 from o/fix-x" \
-  'Revert "feat: add login"'; do
+  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'"; do
   echo "${subject}" >"${MSG}"
-  run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
-  check "git's own subject passes, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
+  STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+  check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
 done
 
+echo "Merge branch cleanup into docs" >"${MSG}"
+STUB_GIT_DIR="${SCRATCH}" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a merge-like subject with no merge in progress fails" 1 out "does not follow Conventional Commits"
+
 echo "Merge stuff" >"${MSG}"
+STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a free form subject starting with Merge fails even mid-merge" 1 out "does not follow Conventional Commits"
+
+for subject in 'Revert "feat: add login"' 'Reapply "feat: add login"'; do
+  printf '%s\n' "${subject}" "" "This reverts commit 0123456789abcdef0123456789abcdef01234567." >"${MSG}"
+  run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+  check "git's revert subject passes with its body: ${subject}" 0 out "Commit message is valid."
+done
+
+echo 'Revert "whatever"' >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
-check "a free form subject starting with Merge still fails" 1 out "does not follow Conventional Commits"
+check "a revert subject without git's body line fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' 'Revert "half' "" 'see "notes"' "This reverts commit 0123456." >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "only the first line is the subject" 1 out "does not follow Conventional Commits"
 
 echo "fixup! squash! feat(auth): add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "fixup! and squash! prefixes are set aside" 0 out "Commit message is valid."
 
-echo "amend! added stuff" >"${MSG}"
+echo "fixup! added stuff" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
-check "the subject after amend! is still checked" 1 out "does not follow Conventional Commits"
+check "the subject after fixup! is still checked" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! feat: add login" "" "# a comment" "did some stuff" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! checks the replacement message, not the old subject" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! added stuff" "" "feat: add login, reworded" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with a conventional replacement passes" 0 out "Commit message is valid."
 
 echo "fixup! feat: add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "the subject after fixup! is checked against --ticket-prefixes" 1 out "type(TICKET-ID): description"
 
 printf '%s\n' "Merge branch 'main'" "" "Co-Authored-By: Claude <someone@example.com>" >"${MSG}"
-run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
+STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
 check "a merge message is still checked for AI attribution" 1 out "3:Co-Authored-By: Claude"
 
 run "${STUBS}" check-commit-msg.sh --help
