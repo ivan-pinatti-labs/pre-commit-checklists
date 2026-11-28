@@ -101,14 +101,17 @@ readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|rev
 # git's own merge and revert subjects (see the header).
 # A merge names what it merges; pulling a repository's HEAD with no branch
 # named gives "Merge <url>", hence the bare URL or path form.
-# The quoted name is matched as '[^']*[^'[:space:]]' rather than the
-# plainer '[^']+': kcov reads bash's trace of the match, and an odd number
-# of quote characters in it throws its line attribution off for the rest
-# of the file. Both match what git writes. The whole subject is anchored:
-# one or more quoted names ('a', 'b' and 'c'), then only git's own
-# suffixes, " of <url>" and " into <branch>".
-readonly GIT_MERGE_NAME="'[^']*[^'[:space:]]'"
-readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*( of [^ ]+)?|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
+# A quoted name is '<no whitespace>': a ref name can't hold whitespace but
+# can hold an apostrophe (fix/o'clock), which git writes as it is. Keep an
+# even number of quote characters in these patterns: kcov reads bash's
+# trace of the match, and an odd count throws its line attribution off for
+# the rest of the file. The whole subject is anchored: one or more groups
+# of a kind and its names ("branch 'a', remote-tracking branch 'b'",
+# "branches 'a', 'b' and 'c'"), then only git's own suffixes, " of <url>"
+# and " into <branch>".
+readonly GIT_MERGE_NAME="'[^[:space:]]+'"
+readonly GIT_MERGE_GROUP="(branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*"
+readonly GIT_MERGE_SUBJECT="^Merge (${GIT_MERGE_GROUP}((, |; | and )${GIT_MERGE_GROUP})*( of [^ ]+)?|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
 readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
 # "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
 readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'

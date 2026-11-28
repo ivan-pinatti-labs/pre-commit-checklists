@@ -349,7 +349,8 @@ for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'o
   "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge tags 'v1' and 'v2'" \
   "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git into dev" \
   "Merge branch 'x' of https://example.invalid/o/r into dev" \
-  "Merge branches 'a', 'b' and 'c' into dev"; do
+  "Merge branches 'a', 'b' and 'c' into dev" "Merge branch 'fix/o'clock'" \
+  "Merge branch 'topic', remote-tracking branch 'origin/other'"; do
   echo "${subject}" >"${MSG}"
   STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
   check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
@@ -371,6 +372,16 @@ printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}." >"${MS
 STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "git's revert passes when the named commit has the quoted subject" 0 \
   out "Commit message is valid." log "git log -1 --format=%B ${SHA}"
+
+SHA256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA256}." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming a SHA-256 commit id passes" 0 \
+  out "Commit message is valid." log "git log -1 --format=%B ${SHA256}"
+
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}0123." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming an id of neither length fails" 1 out "does not follow Conventional Commits"
 
 printf '%s\n' 'Reapply "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
 STUB_SUBJECT='Revert "feat: add login"' run "${STUBS}" check-commit-msg.sh "${MSG}"
@@ -432,7 +443,7 @@ echo "fixup! feat: add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "the subject after fixup! is checked against --ticket-prefixes" 1 out "type(TICKET-ID): description"
 
-printf '%s\n' "Merge branch 'main'" "" "Co-Authored-By: Claude <someone@example.com>" >"${MSG}"
+printf '%s\n' "Merge branch 'main'" "" "Co-Authored-By: Claude <someone@users.noreply.github.com>" >"${MSG}"
 STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
 check "a merge message is still checked for AI attribution" 1 out "3:Co-Authored-By: Claude"
 
@@ -448,12 +459,12 @@ check "no message file exits 3" 3 err "missing commit message file"
 # A person who shares an agent's name passes, and so does a comment line
 # git strips; the last line has no newline, as an editor may leave it.
 printf '%s\n' "feat: add login" "" "# Claude-Session: https://example.invalid/x" >"${MSG}"
-printf '%s' "Co-Authored-By: Devin Smith <devin@example.com>" >>"${MSG}"
+printf '%s' "Co-Authored-By: Devin Smith <devin-smith@users.noreply.github.com>" >>"${MSG}"
 run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
 check "a human co-author passes --no-ai-attribution" 0 out "Commit message is valid."
 
 printf '%s\n' "feat: add login" "" \
-  "Co-Authored-By: Claude <someone@example.com>" \
+  "Co-Authored-By: Claude <someone@users.noreply.github.com>" \
   "Co-Authored-By: Someone <bot@anthropic.com>" \
   "Generated with Claude Code" \
   "Claude-Session: https://example.invalid/x" >"${MSG}"
