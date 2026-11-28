@@ -15,10 +15,14 @@
 # number, e.g. --ticket-prefixes "PROJ" accepts "proj-123-add-login" and
 # rejects an unprefixed "add-login-page".
 #
+# Mid-rebase, HEAD is detached and the branch being rebased is checked
+# instead. Any other detached HEAD (a bisect, a checked-out tag or commit)
+# has no branch to check, and passes.
+#
 # Exit status codes:
-#   0 - branch name is valid
+#   0 - branch name is valid, or HEAD is detached outside a rebase
 #   1 - branch name is invalid
-#   2 - branch name could not be determined
+#   2 - not in a git repository, so there is no branch to read
 #   3 - invalid arguments
 
 if [[ "${DEBUG:-false}" = true ]]; then
@@ -79,8 +83,24 @@ done
 __branch_name=${GITHUB_HEAD_REF:-$(git symbolic-ref --short HEAD 2>/dev/null || true)}
 
 if [[ -z "${__branch_name}" ]]; then
-  echo "Error: branch name could not be determined." >&2
-  exit 2
+  if ! __git_dir=$(git rev-parse --git-dir 2>/dev/null); then
+    echo "Error: branch name could not be determined (not a git repository)." >&2
+    exit 2
+  fi
+  # Detached HEAD. A rebase records the branch it is rewriting; "detached
+  # HEAD" there means the rebase itself started from a detached HEAD.
+  for __head_name in "${__git_dir}/rebase-merge/head-name" "${__git_dir}/rebase-apply/head-name"; do
+    if [[ -f "${__head_name}" ]]; then
+      __branch_name=$(<"${__head_name}")
+      __branch_name="${__branch_name#refs/heads/}"
+      [[ "${__branch_name}" != "detached HEAD" ]] || __branch_name=""
+      break
+    fi
+  done
+  if [[ -z "${__branch_name}" ]]; then
+    echo "HEAD is detached and no rebase is in progress: no branch name to check. OK."
+    exit 0
+  fi
 fi
 
 __protected_pattern="${__protected_branches// /|}"

@@ -10,6 +10,12 @@
 # scope to be a ticket id from one of the given prefixes, e.g.
 # --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
 #
+# Subjects git writes on its own pass as they are: a merge ("Merge branch
+# 'x'", "Merge remote-tracking branch ...", "Merge pull request #1 ...") and
+# a revert ('Revert "feat: add login page"'). A "fixup! ", "squash! " or
+# "amend! " prefix from `git commit --fixup` is set aside and the subject
+# after it is checked as usual.
+#
 # AI attribution is refused only when asked for. Pass --no-ai-attribution
 # to reject a message with a line crediting or linking an AI agent: a
 # Co-Authored-By trailer naming one, a "Generated with" line, or an agent
@@ -87,14 +93,32 @@ COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 
 readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
-if [[ -n "${__ticket_prefixes}" ]]; then
+# git's own merge and revert subjects (see the header).
+readonly GIT_MERGE_SUBJECT="^Merge (branch(es)?|remote-tracking branch(es)?|tag|commit|pull request #[0-9]+) "
+readonly GIT_REVERT_SUBJECT='^Revert ".+"'
+
+# Set aside any fixup!, squash! or amend! prefixes; what follows is the
+# subject of the commit they target.
+__subject_msg="${COMMIT_MSG}"
+while [[ ${__subject_msg} == "fixup! "* || ${__subject_msg} == "squash! "* || ${__subject_msg} == "amend! "* ]]; do
+  __subject_msg="${__subject_msg#*! }"
+done
+
+__git_subject=false
+if [[ ${__subject_msg} =~ ${GIT_MERGE_SUBJECT} ]] || [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]]; then
+  __git_subject=true
+fi
+
+if [[ "${__git_subject}" = true ]]; then
+  : # written by git itself, accepted as it is
+elif [[ -n "${__ticket_prefixes}" ]]; then
   IFS=' ' read -r -a __prefix_array <<<"${__ticket_prefixes}"
   IFS='|'
   __prefix_pattern="${__prefix_array[*]}"
   unset IFS
   readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})\((${__prefix_pattern})-[0-9]+\)!?: .+"
 
-  if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
+  if [[ ! ${__subject_msg} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
 Error: commit message does not follow the required format.
 Expected format: 'type(TICKET-ID): description'
@@ -107,7 +131,7 @@ else
   # An optional "!" before the colon marks a breaking change.
   readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})(\([a-zA-Z0-9_.-]+\))?!?: .+"
 
-  if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
+  if [[ ! ${__subject_msg} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
 Error: commit message does not follow Conventional Commits.
 Expected format: 'type(optional-scope): description', with '!' before the

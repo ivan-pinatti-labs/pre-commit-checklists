@@ -64,11 +64,18 @@ mkdir -p "${STUBS}" "${CURL_DIR}" "${WGET_DIR}" "${NO_SECRETS}" "${NO_PRE_COMMIT
 STUB_LOG="${SCRATCH}/stub.log"
 export STUB_LOG
 
-# git: only `git symbolic-ref --short HEAD` is ever called. STUB_BRANCH is
-# the answer; unset, it fails the way git does outside a branch.
+# git: `git symbolic-ref --short HEAD` answers STUB_BRANCH and, unset,
+# fails the way git does on a detached HEAD; `git rev-parse --git-dir`
+# answers STUB_GIT_DIR and, unset, fails the way git does outside a
+# repository.
 cat >"${STUBS}/git" <<'EOF'
 #!/usr/bin/env bash
 echo "git $*" >>"${STUB_LOG}"
+if [[ "${1}" = rev-parse ]]; then
+  [[ -n "${STUB_GIT_DIR:-}" ]] || exit 128
+  echo "${STUB_GIT_DIR}"
+  exit 0
+fi
 [[ -n "${STUB_BRANCH:-}" ]] || exit 128
 echo "${STUB_BRANCH}"
 EOF
@@ -266,7 +273,27 @@ GITHUB_HEAD_REF=BadName STUB_BRANCH=main run "${STUBS}" check-branch-name.sh
 check "GITHUB_HEAD_REF wins over git and a bad name fails" 1 out "must be lowercase"
 
 run "${STUBS}" check-branch-name.sh
-check "no branch at all exits 2" 2 err "could not be determined"
+check "outside a repository exits 2" 2 err "not a git repository"
+
+GIT_DIR_STUB="${SCRATCH}/git-dir"
+mkdir -p "${GIT_DIR_STUB}"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a detached HEAD outside a rebase passes" 0 out "HEAD is detached" log "git rev-parse --git-dir"
+
+mkdir -p "${GIT_DIR_STUB}/rebase-merge"
+echo "refs/heads/fix/flaky-test" >"${GIT_DIR_STUB}/rebase-merge/head-name"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "mid-rebase, the branch being rebased is checked" 0 out "'fix/flaky-test' is valid"
+
+echo "refs/heads/BadName" >"${GIT_DIR_STUB}/rebase-merge/head-name"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "mid-rebase, a bad branch name still fails" 1 out "'BadName'"
+
+rm -r "${GIT_DIR_STUB}/rebase-merge"
+mkdir -p "${GIT_DIR_STUB}/rebase-apply"
+echo "detached HEAD" >"${GIT_DIR_STUB}/rebase-apply/head-name"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a rebase that started detached passes" 0 out "HEAD is detached"
 
 STUB_BRANCH=trunk run "${STUBS}" check-branch-name.sh --protected-branches "trunk release"
 check "--protected-branches replaces the list" 0 out "'trunk' is a protected branch name"
@@ -304,6 +331,34 @@ check "a ticket scope passes with --ticket-prefixes" 0 out "Commit message is va
 echo "feat: add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "no ticket scope fails with --ticket-prefixes" 1 out "type(TICKET-ID): description"
+
+for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
+  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge pull request #12 from o/fix-x" \
+  'Revert "feat: add login"'; do
+  echo "${subject}" >"${MSG}"
+  run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+  check "git's own subject passes, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
+done
+
+echo "Merge stuff" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a free form subject starting with Merge still fails" 1 out "does not follow Conventional Commits"
+
+echo "fixup! squash! feat(auth): add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "fixup! and squash! prefixes are set aside" 0 out "Commit message is valid."
+
+echo "amend! added stuff" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "the subject after amend! is still checked" 1 out "does not follow Conventional Commits"
+
+echo "fixup! feat: add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+check "the subject after fixup! is checked against --ticket-prefixes" 1 out "type(TICKET-ID): description"
+
+printf '%s\n' "Merge branch 'main'" "" "Co-Authored-By: Claude <someone@example.com>" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
+check "a merge message is still checked for AI attribution" 1 out "3:Co-Authored-By: Claude"
 
 run "${STUBS}" check-commit-msg.sh --help
 check "--help prints usage and exits 0" 0 out "Usage: check-commit-msg.sh"
