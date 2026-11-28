@@ -733,8 +733,11 @@ types them, but only with proof that git wrote them:
   `This reverts commit <sha>` line naming a commit that exists and whose
   subject is the one quoted.
 
-The same subject typed by hand on an ordinary commit is checked like any
-other, and fails. A `fixup!` or `squash!` prefix from `git commit --fixup`
+A merge-like subject typed during a merge, or a revert-like one whose body
+names no real commit with that subject, is checked like any other, and
+fails. These checks prove the message has git's exact shape, not that git
+typed it: a revert message written out by hand, word for word as git would
+for a real commit, passes too. A `fixup!` or `squash!` prefix from `git commit --fixup`
 is set aside, and the subject after it is checked as usual. An `amend!`
 commit carries a replacement message after a blank line, which is what
 `git rebase -i` keeps, so that replacement is what gets checked, and an

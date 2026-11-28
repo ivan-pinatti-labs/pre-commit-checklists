@@ -348,7 +348,8 @@ touch "${MERGING}/MERGE_HEAD"
 for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
   "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge tags 'v1' and 'v2'" \
   "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git into dev" \
-  "Merge branch 'x' of https://example.invalid/o/r into dev"; do
+  "Merge branch 'x' of https://example.invalid/o/r into dev" \
+  "Merge branches 'a', 'b' and 'c' into dev"; do
   echo "${subject}" >"${MSG}"
   STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
   check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
@@ -358,7 +359,8 @@ echo "Merge branch cleanup into docs" >"${MSG}"
 STUB_GIT_DIR="${SCRATCH}" run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "a merge-like subject with no merge in progress fails" 1 out "does not follow Conventional Commits"
 
-for subject in "Merge stuff" "Merge branch arbitrary garbage"; do
+for subject in "Merge stuff" "Merge branch arbitrary garbage" \
+  "Merge branch 'topic' arbitrary hand-written garbage"; do
   echo "${subject}" >"${MSG}"
   STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
   check "a hand-typed merge-like subject fails even mid-merge: ${subject}" 1 out "does not follow Conventional Commits"

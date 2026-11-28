@@ -104,8 +104,11 @@ readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|rev
 # The quoted name is matched as '[^']*[^'[:space:]]' rather than the
 # plainer '[^']+': kcov reads bash's trace of the match, and an odd number
 # of quote characters in it throws its line attribution off for the rest
-# of the file. Both match what git writes.
-readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) '[^']*[^'[:space:]]'|[^ ]*[/:][^ ]*( into [^ ]+)?$)"
+# of the file. Both match what git writes. The whole subject is anchored:
+# one or more quoted names ('a', 'b' and 'c'), then only git's own
+# suffixes, " of <url>" and " into <branch>".
+readonly GIT_MERGE_NAME="'[^']*[^'[:space:]]'"
+readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*( of [^ ]+)?|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
 readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
 # "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
 readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'
