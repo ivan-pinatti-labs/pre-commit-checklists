@@ -64,11 +64,25 @@ mkdir -p "${STUBS}" "${CURL_DIR}" "${WGET_DIR}" "${NO_SECRETS}" "${NO_PRE_COMMIT
 STUB_LOG="${SCRATCH}/stub.log"
 export STUB_LOG
 
-# git: only `git symbolic-ref --short HEAD` is ever called. STUB_BRANCH is
-# the answer; unset, it fails the way git does outside a branch.
+# git: `git symbolic-ref --short HEAD` answers STUB_BRANCH and, unset,
+# fails the way git does on a detached HEAD; `git rev-parse --git-dir`
+# answers STUB_GIT_DIR and, unset, fails the way git does outside a
+# repository.
 cat >"${STUBS}/git" <<'EOF'
 #!/usr/bin/env bash
 echo "git $*" >>"${STUB_LOG}"
+if [[ "${1}" = rev-parse ]]; then
+  [[ -n "${STUB_GIT_DIR:-}" ]] || exit 128
+  echo "${STUB_GIT_DIR}"
+  exit 0
+fi
+# `git log -1 --format=%B <sha>` answers STUB_SUBJECT, the message of the
+# commit a revert names; unset, the commit does not exist.
+if [[ "${1}" = log ]]; then
+  [[ -n "${STUB_SUBJECT:-}" ]] || exit 128
+  echo "${STUB_SUBJECT}"
+  exit 0
+fi
 [[ -n "${STUB_BRANCH:-}" ]] || exit 128
 echo "${STUB_BRANCH}"
 EOF
@@ -266,7 +280,30 @@ GITHUB_HEAD_REF=BadName STUB_BRANCH=main run "${STUBS}" check-branch-name.sh
 check "GITHUB_HEAD_REF wins over git and a bad name fails" 1 out "must be lowercase"
 
 run "${STUBS}" check-branch-name.sh
-check "no branch at all exits 2" 2 err "could not be determined"
+check "outside a repository exits 2" 2 err "not a git repository"
+
+GIT_DIR_STUB="${SCRATCH}/git-dir"
+mkdir -p "${GIT_DIR_STUB}"
+CI= STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a detached HEAD outside a rebase passes locally" 0 out "HEAD is detached" log "git rev-parse --git-dir"
+
+CI=true STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a detached HEAD outside a rebase still fails in CI" 2 err "detached HEAD in CI"
+
+mkdir -p "${GIT_DIR_STUB}/rebase-merge"
+echo "refs/heads/fix/flaky-test" >"${GIT_DIR_STUB}/rebase-merge/head-name"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "mid-rebase, the branch being rebased is checked" 0 out "'fix/flaky-test' is valid"
+
+echo "refs/heads/BadName" >"${GIT_DIR_STUB}/rebase-merge/head-name"
+STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "mid-rebase, a bad branch name still fails" 1 out "'BadName'"
+
+rm -r "${GIT_DIR_STUB}/rebase-merge"
+mkdir -p "${GIT_DIR_STUB}/rebase-apply"
+echo "detached HEAD" >"${GIT_DIR_STUB}/rebase-apply/head-name"
+CI= STUB_GIT_DIR="${GIT_DIR_STUB}" run "${STUBS}" check-branch-name.sh
+check "a rebase that started detached passes" 0 out "HEAD is detached"
 
 STUB_BRANCH=trunk run "${STUBS}" check-branch-name.sh --protected-branches "trunk release"
 check "--protected-branches replaces the list" 0 out "'trunk' is a protected branch name"
@@ -305,6 +342,113 @@ echo "feat: add login" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "no ticket scope fails with --ticket-prefixes" 1 out "type(TICKET-ID): description"
 
+MERGING="${SCRATCH}/merging-git-dir"
+mkdir -p "${MERGING}"
+touch "${MERGING}/MERGE_HEAD"
+for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
+  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge tags 'v1' and 'v2'" \
+  "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git into dev" \
+  "Merge branch 'x' of https://example.invalid/o/r into dev" \
+  "Merge branches 'a', 'b' and 'c' into dev" "Merge branch 'fix/o'clock'" \
+  "Merge branch 'topic', remote-tracking branch 'origin/other'" \
+  "Merge HEAD, branch 'topic' of ../remote" "Merge branch 'a' of ../one; branch 'b' of ../two" \
+  "Merge branch 'topic' of /tmp/other repo into dev"; do
+  echo "${subject}" >"${MSG}"
+  STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+  check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
+done
+
+echo "Merge branch cleanup into docs" >"${MSG}"
+STUB_GIT_DIR="${SCRATCH}" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a merge-like subject with no merge in progress fails" 1 out "does not follow Conventional Commits"
+
+for subject in "Merge stuff" "Merge branch arbitrary garbage" \
+  "Merge branch 'topic' arbitrary hand-written garbage" "Merge HEAD and some notes"; do
+  echo "${subject}" >"${MSG}"
+  STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
+  check "a hand-typed merge-like subject fails even mid-merge: ${subject}" 1 out "does not follow Conventional Commits"
+done
+
+SHA=0123456789abcdef0123456789abcdef01234567
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+check "git's revert passes when the named commit has the quoted subject" 0 \
+  out "Commit message is valid." log "git log -1 --format=%B ${SHA}"
+
+SHA256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA256}." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming a SHA-256 commit id passes" 0 \
+  out "Commit message is valid." log "git log -1 --format=%B ${SHA256}"
+
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}0123." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming an id of neither length fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' 'Reapply "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT='Revert "feat: add login"' run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "git's reapply passes when the named commit is the revert" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "Merge branch '"'topic'"'"' "" "This reverts commit ${SHA}, reversing" \
+  "changes made to ${SHA}." >"${MSG}"
+STUB_SUBJECT="Merge branch 'topic'" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "git's merge revert passes" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "feat: add file"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT=$'feat: add file\nwith more detail\n\nbody' run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert of a wrapped subject compares its first line" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "made up"' "" "This reverts commit ${SHA}." >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming a commit that does not exist fails" 1 out "does not follow Conventional Commits"
+
+STUB_SUBJECT="feat: something else" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert quoting another subject than the named commit's fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' 'Revert "made up"' "" "This reverts commit 0123abc nonsense" >"${MSG}"
+STUB_SUBJECT="made up" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a body line that is not git's exact form fails" 1 out "does not follow Conventional Commits"
+
+echo 'Revert "whatever"' >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert subject without git's body line fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' 'Revert "half' "" 'see "notes"' "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT="half" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "only the first line is the subject" 1 out "does not follow Conventional Commits"
+
+echo "fixup! squash! feat(auth): add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "fixup! and squash! prefixes are set aside" 0 out "Commit message is valid."
+
+echo "fixup! added stuff" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "the subject after fixup! is still checked" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! feat: add login" "" "# a comment" "did some stuff" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! checks the replacement message, not the old subject" 1 out "does not follow Conventional Commits"
+
+echo "amend! feat: add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with no replacement message fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! feat: add login" "" "# only a comment" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with no replacement subject fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! added stuff" "" "feat: add login, reworded" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with a conventional replacement passes" 0 out "Commit message is valid."
+
+echo "fixup! feat: add login" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+check "the subject after fixup! is checked against --ticket-prefixes" 1 out "type(TICKET-ID): description"
+
+printf '%s\n' "Merge branch 'main'" "" "Co-Authored-By: Claude <someone@users.noreply.github.com>" >"${MSG}"
+STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
+check "a merge message is still checked for AI attribution" 1 out "3:Co-Authored-By: Claude"
+
 run "${STUBS}" check-commit-msg.sh --help
 check "--help prints usage and exits 0" 0 out "Usage: check-commit-msg.sh"
 
@@ -317,12 +461,12 @@ check "no message file exits 3" 3 err "missing commit message file"
 # A person who shares an agent's name passes, and so does a comment line
 # git strips; the last line has no newline, as an editor may leave it.
 printf '%s\n' "feat: add login" "" "# Claude-Session: https://example.invalid/x" >"${MSG}"
-printf '%s' "Co-Authored-By: Devin Smith <devin@example.com>" >>"${MSG}"
+printf '%s' "Co-Authored-By: Devin Smith <devin-smith@users.noreply.github.com>" >>"${MSG}"
 run "${STUBS}" check-commit-msg.sh --no-ai-attribution "${MSG}"
 check "a human co-author passes --no-ai-attribution" 0 out "Commit message is valid."
 
 printf '%s\n' "feat: add login" "" \
-  "Co-Authored-By: Claude <someone@example.com>" \
+  "Co-Authored-By: Claude <someone@users.noreply.github.com>" \
   "Co-Authored-By: Someone <bot@anthropic.com>" \
   "Generated with Claude Code" \
   "Claude-Session: https://example.invalid/x" >"${MSG}"

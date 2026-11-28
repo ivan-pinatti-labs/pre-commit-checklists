@@ -72,7 +72,6 @@ repos:
         stages: [pre-commit]
       - id: checklist-git-commit-msg
         stages: [commit-msg]
-        files: COMMIT_EDITMSG\$
 EOF
 
 (cd "${__consumer}" && "${PC}" install --install-hooks >/dev/null 2>&1)
@@ -135,6 +134,66 @@ if [[ "${EXIT3}" -ne 0 ]] && echo "${OUT3}" | grep -qi "conventional"; then
 else
   fail "real commit: a non-conventional message from a worktree should have been blocked" "exit=${EXIT3}
 ${OUT3}"
+fi
+
+# A merge commit: git hands the commit-msg hook .git/MERGE_MSG, which a
+# files: COMMIT_EDITMSG$ filter skipped, letting any merge message through.
+# A non-conventional -m message is blocked; git's own default passes.
+rm -f "${__consumer}/second.toml"
+git -C "${__consumer}" reset -q
+git -C "${__consumer}" checkout -q -b topic
+printf 'title = "topic"\n' >"${__consumer}/topic.toml"
+git -C "${__consumer}" add -A
+git -C "${__consumer}" commit -q -m "feat: add a topic file"
+git -C "${__consumer}" checkout -q main
+printf 'title = "main"\n' >"${__consumer}/main.toml"
+git -C "${__consumer}" add -A
+git -C "${__consumer}" commit -q -m "feat: add a main file"
+
+set +o errexit
+OUT4=$(cd "${__consumer}" && git merge --no-ff -m "merged some things" topic 2>&1)
+EXIT4=$?
+set -o errexit
+git -C "${__consumer}" merge --abort 2>/dev/null || true
+
+if [[ "${EXIT4}" -ne 0 ]] && echo "${OUT4}" | grep -qi "conventional"; then
+  pass "real merge: a non-conventional merge message is blocked at the commit-msg stage"
+else
+  fail "real merge: a non-conventional merge message should have been blocked" "exit=${EXIT4}
+${OUT4}"
+fi
+
+set +o errexit
+OUT5=$(cd "${__consumer}" && git merge --no-ff --no-edit topic 2>&1)
+EXIT5=$?
+set -o errexit
+
+if [[ "${EXIT5}" -eq 0 ]] && git -C "${__consumer}" log -1 --format=%s | grep -q "^Merge branch 'topic'"; then
+  pass "real merge: git's own merge message passes"
+else
+  fail "real merge: git's default merge message should have passed" "exit=${EXIT5}
+${OUT5}"
+fi
+
+# A real revert, then a revert of that revert: git writes 'Revert "..."'
+# and, from git 2.43, 'Reapply "..."', both naming the commit they undo.
+set +o errexit
+OUT6=$(cd "${__consumer}" && git revert --no-edit HEAD~1 2>&1)
+EXIT6=$?
+OUT7=$(cd "${__consumer}" && git revert --no-edit HEAD 2>&1)
+EXIT7=$?
+# The merge is now HEAD~2; reverting it writes "..., reversing" instead.
+OUT8=$(cd "${__consumer}" && git revert --no-edit -m 1 HEAD~2 2>&1)
+EXIT8=$?
+set -o errexit
+
+if [[ "${EXIT6}" -eq 0 ]] && [[ "${EXIT7}" -eq 0 ]] && [[ "${EXIT8}" -eq 0 ]]; then
+  pass "real revert: git's own revert, revert-of-revert and merge-revert messages pass"
+else
+  fail "real revert: git's revert messages should have passed" "exit=${EXIT6}/${EXIT7}/${EXIT8}
+${OUT6}
+${OUT7}
+${OUT8}"
 fi
 
 summarize

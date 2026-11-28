@@ -10,6 +10,17 @@
 # scope to be a ticket id from one of the given prefixes, e.g.
 # --ticket-prefixes "PROJ" requires "feat(PROJ-123): add login page".
 #
+# Subjects git writes on its own pass as they are, when there is proof git
+# wrote them: a merge ("Merge branch 'x'", "Merge remote-tracking branch
+# ...") while a merge is in progress (MERGE_HEAD exists), and a revert or a
+# revert of a revert ('Revert "..."', 'Reapply "..."') whose body carries
+# git's "This reverts commit <sha>." line naming a commit whose own subject
+# the revert subject quotes. A "fixup! " or "squash! " prefix
+# from `git commit --fixup` is set aside and the subject after it is
+# checked as usual; for "amend! ", the replacement message after the
+# blank line is what lands, so that is what gets checked. Only the first
+# line is matched as the subject.
+#
 # AI attribution is refused only when asked for. Pass --no-ai-attribution
 # to reject a message with a line crediting or linking an AI agent: a
 # Co-Authored-By trailer naming one, a "Generated with" line, or an agent
@@ -87,14 +98,91 @@ COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 
 readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
-if [[ -n "${__ticket_prefixes}" ]]; then
+# git's own merge and revert subjects (see the header).
+# A merge names what it merges; pulling a repository's HEAD with no branch
+# named gives "Merge <url>", hence the bare URL or path form.
+# A quoted name is '<no whitespace>': a ref name can't hold whitespace but
+# can hold an apostrophe (fix/o'clock), which git writes as it is. Keep an
+# even number of quote characters in these patterns: kcov reads bash's
+# trace of the match, and an odd count throws its line attribution off for
+# the rest of the file. The whole subject is anchored and follows git's
+# fmt-merge-msg: one or more sources joined by ", ", "; " or " and ", each
+# either HEAD or a kind with its names ("branch 'a'", "branches 'a', 'b'
+# and 'c'"), each with its own optional " of <repository>" (a path may
+# hold spaces, but not the "; " that starts the next source), then an
+# optional " into <branch>".
+readonly GIT_MERGE_NAME="'[^[:space:]]+'"
+readonly GIT_MERGE_SOURCE="(HEAD|(branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*)( of [^;]*[^;[:space:]])?"
+readonly GIT_MERGE_SUBJECT="^Merge (${GIT_MERGE_SOURCE}((, |; | and )${GIT_MERGE_SOURCE})*|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
+readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
+# "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
+readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'
+
+__subject_msg="${COMMIT_MSG}"
+
+# `git commit --fixup=amend:<commit>` (or reword:) writes "amend! <old
+# subject>", a blank line, then the replacement message, which is what
+# `git rebase -i` keeps. Check the replacement: its first line that is neither
+# blank nor a comment. With no replacement at all, the squash would leave
+# the target with an empty message, so that fails.
+if [[ ${__subject_msg} == "amend! "* ]]; then
+  if [[ ${__subject_msg} == *$'\n\n'* ]]; then
+    __subject_msg="${__subject_msg#*$'\n\n'}"
+  else
+    __subject_msg=""
+  fi
+  while [[ ${__subject_msg} == $'\n'* || ${__subject_msg} == "#"* ]]; do
+    if [[ ${__subject_msg} == *$'\n'* ]]; then
+      __subject_msg="${__subject_msg#*$'\n'}"
+    else
+      __subject_msg=""
+    fi
+  done
+fi
+
+# Set aside any fixup!, squash! or amend! prefixes; what follows is the
+# subject of the commit they target.
+while [[ ${__subject_msg} == "fixup! "* || ${__subject_msg} == "squash! "* || ${__subject_msg} == "amend! "* ]]; do
+  __subject_msg="${__subject_msg#*! }"
+done
+
+# The subject is the first line; in bash's regex `.` matches a newline too.
+__subject_msg="${__subject_msg%%$'\n'*}"
+
+__git_subject=false
+if [[ ${__subject_msg} =~ ${GIT_MERGE_SUBJECT} ]]; then
+  __git_dir=$(git rev-parse --git-dir 2>/dev/null || true)
+  if [[ -n "${__git_dir}" ]] && [[ -f "${__git_dir}/MERGE_HEAD" ]]; then
+    __git_subject=true
+  fi
+elif [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]]; then
+  __verb="${BASH_REMATCH[1]}"
+  __quoted="${BASH_REMATCH[2]}"
+  if [[ ${COMMIT_MSG} =~ ${GIT_REVERT_BODY} ]]; then
+    # The reverted commit must exist, and its subject must be the one
+    # quoted: 'Revert "S"' undoes a commit with subject S, and
+    # 'Reapply "S"' undoes a commit with subject 'Revert "S"'. git quotes
+    # the first line of a subject that wraps onto more lines, so that line
+    # is what is compared.
+    __target=$(git log -1 --format=%B "${BASH_REMATCH[2]}" 2>/dev/null || true)
+    __target="${__target%%$'\n'*}"
+    if [[ "${__verb}" = Revert && "${__target}" = "${__quoted}" ]] ||
+      [[ "${__verb}" = Reapply && "${__target}" = "Revert \"${__quoted}\"" ]]; then
+      __git_subject=true
+    fi
+  fi
+fi
+
+if [[ "${__git_subject}" = true ]]; then
+  : # written by git itself, accepted as it is
+elif [[ -n "${__ticket_prefixes}" ]]; then
   IFS=' ' read -r -a __prefix_array <<<"${__ticket_prefixes}"
   IFS='|'
   __prefix_pattern="${__prefix_array[*]}"
   unset IFS
   readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})\((${__prefix_pattern})-[0-9]+\)!?: .+"
 
-  if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
+  if [[ ! ${__subject_msg} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
 Error: commit message does not follow the required format.
 Expected format: 'type(TICKET-ID): description'
@@ -107,7 +195,7 @@ else
   # An optional "!" before the colon marks a breaking change.
   readonly CONVENTIONAL_COMMIT_REGEX="^(${COMMIT_TYPES})(\([a-zA-Z0-9_.-]+\))?!?: .+"
 
-  if [[ ! ${COMMIT_MSG} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
+  if [[ ! ${__subject_msg} =~ ${CONVENTIONAL_COMMIT_REGEX} ]]; then
     cat <<EOF
 Error: commit message does not follow Conventional Commits.
 Expected format: 'type(optional-scope): description', with '!' before the

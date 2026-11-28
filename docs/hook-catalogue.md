@@ -30,7 +30,7 @@ build your own selection from scratch.
 | `checklist-xml` | check-xml | `types: [xml]` | none |
 | `checklist-security-credentials` | detect-private-key, detect-secrets | all files (no selector needed) | `.secrets.baseline` at repo root, `scripts/install.sh` generates one |
 | `checklist-git-valid-branches` | `scripts/check-branch-name.sh` | not file-based: `pass_filenames: false`, `always_run: true` | none |
-| `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, `files: COMMIT_EDITMSG$` | `default_install_hook_types` must include `commit-msg` |
+| `checklist-git-commit-msg` | `scripts/check-commit-msg.sh` | `stages: [commit-msg]`, no `files:` filter (see [Git messages and branches](#git-messages-and-branches)) | `default_install_hook_types` must include `commit-msg` |
 | `checklist-git-protected-branches` | no-commit-to-branch, pattern `(?i)(develop\|staging\|main\|master)` | not file-based: `pass_filenames: false`, `always_run: true` | none |
 | `checklist-github-actions` | actionlint-docker, zizmor (`--no-online-audits`, pinned to an explicit release, offline audits only, see [Zizmor: offline by default](#zizmor-offline-by-default) below) | `files: ^\.github/workflows/` (both hooks) | Docker (actionlint-docker runs in a container); Python (zizmor installs via `additional_dependencies`) |
 | `checklist-dev-dotenv` | [dotenv-linter/dotenv-linter](https://github.com/dotenv-linter/dotenv-linter) (Rust), run directly from its published image, not through its own `.pre-commit-hooks.yaml`; see [Which dotenv-linter](#which-dotenv-linter) below | `files: '(^\|/)\.env(\..+)?$'`, baked into the local hook itself | Docker or Podman on PATH |
@@ -710,6 +710,50 @@ can override the hook in their own `.pre-commit-config.yaml` with
 environment `pre-commit` runs in; see
 [`docs/overrides.md`](overrides.md) for how a hook level override like
 that works.
+
+## Git messages and branches
+
+`checklist-git-commit-msg` takes no `files:` filter. At the commit-msg
+stage pre-commit hands the hook exactly one file, the message, which git
+names `MERGE_MSG` for a merge rather than `COMMIT_EDITMSG`. A
+`files: COMMIT_EDITMSG$` selector therefore skipped merges entirely, so a
+merge could carry any subject, and any AI attribution line
+`--no-ai-attribution` is there to refuse. An existing config with that
+line should drop it.
+
+Subjects git writes on its own are accepted as they are, since nobody
+types them, but only with proof that git wrote them:
+
+- a merge (`Merge branch 'x'`, `Merge remote-tracking branch 'origin/main'`,
+  `Merge tag 'v1.2.0'`, always with the quoted name git writes, or
+  `Merge <url>` from pulling a repository's HEAD) while a merge is in
+  progress, that is while `MERGE_HEAD` exists;
+- a revert, or a revert of a revert (`Revert "feat: add login page"`,
+  `Reapply "..."`, a merge revert too), whose body has git's
+  `This reverts commit <sha>` line naming a commit that exists and whose
+  subject is the one quoted.
+
+A merge-like subject typed during a merge, or a revert-like one whose body
+names no real commit with that subject, is checked like any other, and
+fails. These checks prove the message has git's exact shape, not that git
+typed it: a revert message written out by hand, word for word as git would
+for a real commit, passes too, and since a repository path may hold spaces,
+the text after a merge source's ` of ` is not checked.
+
+A `fixup!` or `squash!` prefix from `git commit --fixup` is set aside, and
+the subject after it is checked as usual. An `amend!` commit carries a
+replacement message after a blank line, which is what `git rebase -i`
+keeps, so that replacement is what gets checked, and an `amend!` with none
+fails. Only the first line counts as the subject, and the whole message is
+checked for AI attribution either way.
+
+`checklist-git-valid-branches` reads the current branch. On a detached
+HEAD in the middle of a rebase it checks the branch being rebased, which
+git records in `rebase-merge/head-name` (or `rebase-apply/head-name`).
+Any other detached HEAD, a bisect or a checked-out tag, has no branch to
+check and passes locally. In CI (`CI` set) a detached HEAD without
+`GITHUB_HEAD_REF` still exits 2, since there it means the checkout lost
+the branch. Outside a git repository it exits 2 as well.
 
 ## `stages:` depends on why you installed more than the pre-commit stage
 
