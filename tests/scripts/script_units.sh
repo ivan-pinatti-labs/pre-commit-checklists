@@ -76,7 +76,7 @@ if [[ "${1}" = rev-parse ]]; then
   echo "${STUB_GIT_DIR}"
   exit 0
 fi
-# `git log -1 --format=%s <sha>` answers STUB_SUBJECT, the subject of the
+# `git log -1 --format=%B <sha>` answers STUB_SUBJECT, the message of the
 # commit a revert names; unset, the commit does not exist.
 if [[ "${1}" = log ]]; then
   [[ -n "${STUB_SUBJECT:-}" ]] || exit 128
@@ -346,7 +346,8 @@ MERGING="${SCRATCH}/merging-git-dir"
 mkdir -p "${MERGING}"
 touch "${MERGING}/MERGE_HEAD"
 for subject in "Merge branch 'main' into fix/x" "Merge remote-tracking branch 'origin/main'" \
-  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'"; do
+  "Merge branches 'a' and 'b'" "Merge tag 'v1.2.0'" "Merge tags 'v1' and 'v2'" \
+  "Merge https://example.invalid/o/r.git" "Merge git@example.invalid:o/r.git"; do
   echo "${subject}" >"${MSG}"
   STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
   check "git's merge subject passes mid-merge, even with --ticket-prefixes: ${subject}" 0 out "Commit message is valid."
@@ -364,11 +365,20 @@ SHA=0123456789abcdef0123456789abcdef01234567
 printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
 STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
 check "git's revert passes when the named commit has the quoted subject" 0 \
-  out "Commit message is valid." log "git log -1 --format=%s ${SHA}"
+  out "Commit message is valid." log "git log -1 --format=%B ${SHA}"
 
 printf '%s\n' 'Reapply "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
 STUB_SUBJECT='Revert "feat: add login"' run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "git's reapply passes when the named commit is the revert" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "Merge branch '"'topic'"'"' "" "This reverts commit ${SHA}, reversing" \
+  "changes made to ${SHA}." >"${MSG}"
+STUB_SUBJECT="Merge branch 'topic'" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "git's merge revert passes" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "feat: add file"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT=$'feat: add file\nwith more detail\n\nbody' run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert of a wrapped subject compares its first line" 0 out "Commit message is valid."
 
 printf '%s\n' 'Revert "made up"' "" "This reverts commit ${SHA}." >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"

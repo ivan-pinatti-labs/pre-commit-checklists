@@ -99,9 +99,12 @@ COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
 # git's own merge and revert subjects (see the header).
-readonly GIT_MERGE_SUBJECT="^Merge (branch(es)?|remote-tracking branch(es)?|tag|commit) "
+# A merge names what it merges; pulling a repository's HEAD with no branch
+# named gives "Merge <url>", hence the bare URL or path form.
+readonly GIT_MERGE_SUBJECT="^Merge ((branch(es)?|remote-tracking branch(es)?|tags?|commits?) |[^ ]*[/:][^ ]*$)"
 readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
-readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)\\.(\n|$)'
+# "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
+readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'
 
 __subject_msg="${COMMIT_MSG}"
 
@@ -141,8 +144,11 @@ elif [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]]; then
   if [[ ${COMMIT_MSG} =~ ${GIT_REVERT_BODY} ]]; then
     # The reverted commit must exist, and its subject must be the one
     # quoted: 'Revert "S"' undoes a commit with subject S, and
-    # 'Reapply "S"' undoes a commit with subject 'Revert "S"'.
-    __target=$(git log -1 --format=%s "${BASH_REMATCH[2]}" 2>/dev/null || true)
+    # 'Reapply "S"' undoes a commit with subject 'Revert "S"'. git quotes
+    # the first line of a subject that wraps onto more lines, so that line
+    # is what is compared.
+    __target=$(git log -1 --format=%B "${BASH_REMATCH[2]}" 2>/dev/null || true)
+    __target="${__target%%$'\n'*}"
     if [[ "${__verb}" = Revert && "${__target}" = "${__quoted}" ]] ||
       [[ "${__verb}" = Reapply && "${__target}" = "Revert \"${__quoted}\"" ]]; then
       __git_subject=true

@@ -182,14 +182,18 @@ OUT6=$(cd "${__consumer}" && git revert --no-edit HEAD~1 2>&1)
 EXIT6=$?
 OUT7=$(cd "${__consumer}" && git revert --no-edit HEAD 2>&1)
 EXIT7=$?
+# The merge is now HEAD~2; reverting it writes "..., reversing" instead.
+OUT8=$(cd "${__consumer}" && git revert --no-edit -m 1 HEAD~2 2>&1)
+EXIT8=$?
 set -o errexit
 
-if [[ "${EXIT6}" -eq 0 ]] && [[ "${EXIT7}" -eq 0 ]]; then
-  pass "real revert: git's own revert and revert-of-revert messages pass"
+if [[ "${EXIT6}" -eq 0 ]] && [[ "${EXIT7}" -eq 0 ]] && [[ "${EXIT8}" -eq 0 ]]; then
+  pass "real revert: git's own revert, revert-of-revert and merge-revert messages pass"
 else
-  fail "real revert: git's revert messages should have passed" "exit=${EXIT6}/${EXIT7}
+  fail "real revert: git's revert messages should have passed" "exit=${EXIT6}/${EXIT7}/${EXIT8}
 ${OUT6}
-${OUT7}"
+${OUT7}
+${OUT8}"
 fi
 
 summarize

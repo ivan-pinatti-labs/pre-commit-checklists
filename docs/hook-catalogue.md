@@ -725,10 +725,12 @@ Subjects git writes on its own are accepted as they are, since nobody
 types them, but only with proof that git wrote them:
 
 - a merge (`Merge branch 'x'`, `Merge remote-tracking branch 'origin/main'`,
-  `Merge tag 'v1.2.0'`) while a merge is in progress, that is while
-  `MERGE_HEAD` exists;
+  `Merge tag 'v1.2.0'`, or `Merge <url>` from pulling a repository's HEAD)
+  while a merge is in progress, that is while `MERGE_HEAD` exists;
 - a revert, or a revert of a revert (`Revert "feat: add login page"`,
-  `Reapply "..."`), whose body has git's `This reverts commit <sha>` line.
+  `Reapply "..."`, a merge revert too), whose body has git's
+  `This reverts commit <sha>` line naming a commit that exists and whose
+  subject is the one quoted.
 
 The same subject typed by hand on an ordinary commit is checked like any
 other, and fails. A `fixup!` or `squash!` prefix from `git commit --fixup`
