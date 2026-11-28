@@ -76,6 +76,13 @@ if [[ "${1}" = rev-parse ]]; then
   echo "${STUB_GIT_DIR}"
   exit 0
 fi
+# `git log -1 --format=%s <sha>` answers STUB_SUBJECT, the subject of the
+# commit a revert names; unset, the commit does not exist.
+if [[ "${1}" = log ]]; then
+  [[ -n "${STUB_SUBJECT:-}" ]] || exit 128
+  echo "${STUB_SUBJECT}"
+  exit 0
+fi
 [[ -n "${STUB_BRANCH:-}" ]] || exit 128
 echo "${STUB_BRANCH}"
 EOF
@@ -353,18 +360,33 @@ echo "Merge stuff" >"${MSG}"
 STUB_GIT_DIR="${MERGING}" run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "a free form subject starting with Merge fails even mid-merge" 1 out "does not follow Conventional Commits"
 
-for subject in 'Revert "feat: add login"' 'Reapply "feat: add login"'; do
-  printf '%s\n' "${subject}" "" "This reverts commit 0123456789abcdef0123456789abcdef01234567." >"${MSG}"
-  run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
-  check "git's revert subject passes with its body: ${subject}" 0 out "Commit message is valid."
-done
+SHA=0123456789abcdef0123456789abcdef01234567
+printf '%s\n' 'Revert "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT="feat: add login" run "${STUBS}" check-commit-msg.sh --ticket-prefixes PROJ "${MSG}"
+check "git's revert passes when the named commit has the quoted subject" 0 \
+  out "Commit message is valid." log "git log -1 --format=%s ${SHA}"
+
+printf '%s\n' 'Reapply "feat: add login"' "" "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT='Revert "feat: add login"' run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "git's reapply passes when the named commit is the revert" 0 out "Commit message is valid."
+
+printf '%s\n' 'Revert "made up"' "" "This reverts commit ${SHA}." >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert naming a commit that does not exist fails" 1 out "does not follow Conventional Commits"
+
+STUB_SUBJECT="feat: something else" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a revert quoting another subject than the named commit's fails" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' 'Revert "made up"' "" "This reverts commit 0123abc nonsense" >"${MSG}"
+STUB_SUBJECT="made up" run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "a body line that is not git's exact form fails" 1 out "does not follow Conventional Commits"
 
 echo 'Revert "whatever"' >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "a revert subject without git's body line fails" 1 out "does not follow Conventional Commits"
 
-printf '%s\n' 'Revert "half' "" 'see "notes"' "This reverts commit 0123456." >"${MSG}"
-run "${STUBS}" check-commit-msg.sh "${MSG}"
+printf '%s\n' 'Revert "half' "" 'see "notes"' "This reverts commit ${SHA}." >"${MSG}"
+STUB_SUBJECT="half" run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "only the first line is the subject" 1 out "does not follow Conventional Commits"
 
 echo "fixup! squash! feat(auth): add login" >"${MSG}"
@@ -378,6 +400,10 @@ check "the subject after fixup! is still checked" 1 out "does not follow Convent
 printf '%s\n' "amend! feat: add login" "" "# a comment" "did some stuff" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"
 check "amend! checks the replacement message, not the old subject" 1 out "does not follow Conventional Commits"
+
+printf '%s\n' "amend! feat: add login" "" "# only a comment" >"${MSG}"
+run "${STUBS}" check-commit-msg.sh "${MSG}"
+check "amend! with no replacement subject fails" 1 out "does not follow Conventional Commits"
 
 printf '%s\n' "amend! added stuff" "" "feat: add login, reworded" >"${MSG}"
 run "${STUBS}" check-commit-msg.sh "${MSG}"

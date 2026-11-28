@@ -175,4 +175,21 @@ else
 ${OUT5}"
 fi
 
+# A real revert, then a revert of that revert: git writes 'Revert "..."'
+# and, from git 2.43, 'Reapply "..."', both naming the commit they undo.
+set +o errexit
+OUT6=$(cd "${__consumer}" && git revert --no-edit HEAD~1 2>&1)
+EXIT6=$?
+OUT7=$(cd "${__consumer}" && git revert --no-edit HEAD 2>&1)
+EXIT7=$?
+set -o errexit
+
+if [[ "${EXIT6}" -eq 0 ]] && [[ "${EXIT7}" -eq 0 ]]; then
+  pass "real revert: git's own revert and revert-of-revert messages pass"
+else
+  fail "real revert: git's revert messages should have passed" "exit=${EXIT6}/${EXIT7}
+${OUT6}
+${OUT7}"
+fi
+
 summarize

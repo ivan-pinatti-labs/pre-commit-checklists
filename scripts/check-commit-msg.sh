@@ -14,7 +14,8 @@
 # wrote them: a merge ("Merge branch 'x'", "Merge remote-tracking branch
 # ...") while a merge is in progress (MERGE_HEAD exists), and a revert or a
 # revert of a revert ('Revert "..."', 'Reapply "..."') whose body carries
-# git's "This reverts commit <sha>" line. A "fixup! " or "squash! " prefix
+# git's "This reverts commit <sha>." line naming a commit whose own subject
+# the revert subject quotes. A "fixup! " or "squash! " prefix
 # from `git commit --fixup` is set aside and the subject after it is
 # checked as usual; for "amend! ", the replacement message after the
 # blank line is what lands, so that is what gets checked. Only the first
@@ -99,8 +100,8 @@ readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|rev
 
 # git's own merge and revert subjects (see the header).
 readonly GIT_MERGE_SUBJECT="^Merge (branch(es)?|remote-tracking branch(es)?|tag|commit) "
-readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) ".+"$'
-readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit [0-9a-f]{7,}'
+readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
+readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)\\.(\n|$)'
 
 __subject_msg="${COMMIT_MSG}"
 
@@ -134,8 +135,19 @@ if [[ ${__subject_msg} =~ ${GIT_MERGE_SUBJECT} ]]; then
   if [[ -n "${__git_dir}" ]] && [[ -f "${__git_dir}/MERGE_HEAD" ]]; then
     __git_subject=true
   fi
-elif [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]] && [[ ${COMMIT_MSG} =~ ${GIT_REVERT_BODY} ]]; then
-  __git_subject=true
+elif [[ ${__subject_msg} =~ ${GIT_REVERT_SUBJECT} ]]; then
+  __verb="${BASH_REMATCH[1]}"
+  __quoted="${BASH_REMATCH[2]}"
+  if [[ ${COMMIT_MSG} =~ ${GIT_REVERT_BODY} ]]; then
+    # The reverted commit must exist, and its subject must be the one
+    # quoted: 'Revert "S"' undoes a commit with subject S, and
+    # 'Reapply "S"' undoes a commit with subject 'Revert "S"'.
+    __target=$(git log -1 --format=%s "${BASH_REMATCH[2]}" 2>/dev/null || true)
+    if [[ "${__verb}" = Revert && "${__target}" = "${__quoted}" ]] ||
+      [[ "${__verb}" = Reapply && "${__target}" = "Revert \"${__quoted}\"" ]]; then
+      __git_subject=true
+    fi
+  fi
 fi
 
 if [[ "${__git_subject}" = true ]]; then
