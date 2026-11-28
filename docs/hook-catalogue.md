@@ -737,12 +737,15 @@ A merge-like subject typed during a merge, or a revert-like one whose body
 names no real commit with that subject, is checked like any other, and
 fails. These checks prove the message has git's exact shape, not that git
 typed it: a revert message written out by hand, word for word as git would
-for a real commit, passes too. A `fixup!` or `squash!` prefix from `git commit --fixup`
-is set aside, and the subject after it is checked as usual. An `amend!`
-commit carries a replacement message after a blank line, which is what
-`git rebase -i` keeps, so that replacement is what gets checked, and an
-`amend!` with none fails. Only the first line counts as the subject, and
-the whole message is checked for AI attribution either way.
+for a real commit, passes too, and since a repository path may hold spaces,
+the text after a merge source's ` of ` is not checked.
+
+A `fixup!` or `squash!` prefix from `git commit --fixup` is set aside, and
+the subject after it is checked as usual. An `amend!` commit carries a
+replacement message after a blank line, which is what `git rebase -i`
+keeps, so that replacement is what gets checked, and an `amend!` with none
+fails. Only the first line counts as the subject, and the whole message is
+checked for AI attribution either way.
 
 `checklist-git-valid-branches` reads the current branch. On a detached
 HEAD in the middle of a rebase it checks the branch being rebased, which

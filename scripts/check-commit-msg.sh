@@ -105,13 +105,15 @@ readonly COMMIT_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|rev
 # can hold an apostrophe (fix/o'clock), which git writes as it is. Keep an
 # even number of quote characters in these patterns: kcov reads bash's
 # trace of the match, and an odd count throws its line attribution off for
-# the rest of the file. The whole subject is anchored: one or more groups
-# of a kind and its names ("branch 'a', remote-tracking branch 'b'",
-# "branches 'a', 'b' and 'c'"), then only git's own suffixes, " of <url>"
-# and " into <branch>".
+# the rest of the file. The whole subject is anchored and follows git's
+# fmt-merge-msg: one or more sources joined by ", ", "; " or " and ", each
+# either HEAD or a kind with its names ("branch 'a'", "branches 'a', 'b'
+# and 'c'"), each with its own optional " of <repository>" (a path may
+# hold spaces, but not the "; " that starts the next source), then an
+# optional " into <branch>".
 readonly GIT_MERGE_NAME="'[^[:space:]]+'"
-readonly GIT_MERGE_GROUP="(branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*"
-readonly GIT_MERGE_SUBJECT="^Merge (${GIT_MERGE_GROUP}((, |; | and )${GIT_MERGE_GROUP})*( of [^ ]+)?|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
+readonly GIT_MERGE_SOURCE="(HEAD|(branch(es)?|remote-tracking branch(es)?|tags?|commits?) ${GIT_MERGE_NAME}((, | and )${GIT_MERGE_NAME})*)( of [^;]*[^;[:space:]])?"
+readonly GIT_MERGE_SUBJECT="^Merge (${GIT_MERGE_SOURCE}((, |; | and )${GIT_MERGE_SOURCE})*|[^ ]*[/:][^ ]*)( into [^ ]+)?$"
 readonly GIT_REVERT_SUBJECT='^(Revert|Reapply) "(.+)"$'
 # "<sha>." for a commit, "<sha>, reversing" (then a new line) for a merge.
 readonly GIT_REVERT_BODY=$'(^|\n)This reverts commit ([0-9a-f]{40}([0-9a-f]{24})?)(\\.|, reversing)(\n|$)'
